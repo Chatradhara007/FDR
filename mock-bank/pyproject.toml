@@ -2,7 +2,7 @@
 name = "fdr-mock-bank"
 version = "0.0.0"
 description = "Mock bank verification service (stands in for an external bank API)"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.12"
 dependencies = ["fastapi>=0.115", "uvicorn[standard]>=0.32", "python-dotenv>=1.0"]
 
 [build-system]

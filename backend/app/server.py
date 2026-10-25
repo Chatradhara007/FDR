@@ -1,6 +1,7 @@
 """Entry point: wait for the database, apply migrations, then serve.
 
-`python -m app.server` in Docker; `python -m app.server --reload` for `npm run dev`.
+`python -m app.server` in Docker. `npm run dev` runs `python -m app.server --migrate-only` (wait for the
+database, migrate, exit) and then `python -m uvicorn app.main:app --reload`.
 """
 
 from __future__ import annotations
@@ -39,6 +40,8 @@ def prepare() -> None:
 def main(argv: list[str]) -> None:
     prepare()
     close_pool()  # the server process opens its own pool
+    if "--migrate-only" in argv:
+        return
     reload = "--reload" in argv
     uvicorn.run(
         "app.main:app", host="0.0.0.0", port=config.port, reload=reload, reload_dirs=["app"] if reload else None

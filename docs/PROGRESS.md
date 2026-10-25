@@ -69,8 +69,17 @@ Deviations / choices in the port:
 - Added libraries: `python-dotenv` (repo-root `.env`, never overriding real env vars), `httpx` (health
   ping, TestClient). APScheduler is installed but unused until Phase 04.
 - `npm run test` = pytest (backend, mock bank) + the small shared vitest suite. `npm run typecheck` =
-  ruff (lint + format check) + mypy --strict + `tsc` for shared and frontend. Scripts call `.venv/bin/…`
-  (POSIX path; on Windows use WSL or adjust to `.venv\Scripts`).
+  ruff (lint + format check) + mypy --strict + `tsc` for shared and frontend.
+- Windows support (follow-up): every Python npm script runs through `scripts/py.mjs` (Node), which uses
+  `.venv/Scripts/python.exe` on win32 and `.venv/bin/python` elsewhere, with tools run as modules
+  (`python -m uvicorn|pytest|mypy|ruff`); `--cwd` sets the working directory. `npm run setup:py` creates the
+  venv with `py -3.12`, then `py -3`, then `python` on Windows (`python3.12`, `python3`, `python` elsewhere),
+  uses the first that is 3.12+, and otherwise exits with install instructions. `npm run dev:backend` is now
+  `python -m app.server --migrate-only` (wait for DB + migrate) followed by `python -m uvicorn app.main:app
+  --reload`; the mock bank runs under `python -m uvicorn` on :4000. `requires-python` relaxed to `>=3.12` so a
+  3.13 picked by `py -3` can install. Checked here on Linux: fresh-venv setup, the no-Python and no-venv
+  messages, `npm run test`, `npm run typecheck`, `npm run seed`, `npm run dev`. Not run on Windows (no
+  Windows machine in the sandbox).
 - Root `package.json` workspaces are now `shared`, `frontend`; `package-lock.json` regenerated.
 
 ## Endpoints added

@@ -22,7 +22,8 @@
       "Bash(.venv/bin/ruff *)",
       "Bash(.venv/bin/mypy *)",
       "Bash(.venv/bin/python -m app.*)",
-      "Bash(.venv/bin/pip install *)"
+      "Bash(.venv/bin/pip install *)",
+      "Bash(node scripts/py.mjs *)"
     ],
     "deny": [
       "Bash(git push --force *)",

@@ -9,18 +9,18 @@
     "node": ">=22"
   },
   "scripts": {
-    "setup:py": "python3.12 -m venv .venv && .venv/bin/pip install -e 'backend[dev]' -e mock-bank",
+    "setup:py": "node scripts/py.mjs setup",
     "dev": "concurrently -n backend,bank,web -c blue,magenta,green \"npm run dev:backend\" \"npm run dev:bank\" \"npm run dev -w frontend\"",
-    "dev:backend": "cd backend && ../.venv/bin/python -m app.server --reload",
-    "dev:bank": "cd mock-bank && ../.venv/bin/python -m mock_bank.main --reload",
+    "dev:backend": "node scripts/py.mjs --cwd backend -m app.server --migrate-only && node scripts/py.mjs --cwd backend -m uvicorn app.main:app --reload --reload-dir app --host 0.0.0.0 --port 3000",
+    "dev:bank": "node scripts/py.mjs --cwd mock-bank -m uvicorn mock_bank.main:app --reload --reload-dir mock_bank --host 0.0.0.0 --port 4000",
     "test": "npm run test:py && npm run test -w shared",
-    "test:py": "cd backend && ../.venv/bin/pytest && cd ../mock-bank && ../.venv/bin/pytest",
+    "test:py": "node scripts/py.mjs --cwd backend -m pytest && node scripts/py.mjs --cwd mock-bank -m pytest",
     "typecheck": "npm run lint:py && npm run typecheck:py && npm run typecheck -w shared && npm run typecheck -w frontend",
-    "lint:py": ".venv/bin/ruff check --config backend/pyproject.toml backend mock-bank scripts && .venv/bin/ruff format --check --config backend/pyproject.toml backend mock-bank scripts",
-    "typecheck:py": "cd backend && ../.venv/bin/mypy && cd ../mock-bank && ../.venv/bin/mypy",
-    "gen:shared": ".venv/bin/python scripts/gen_shared_types.py",
-    "seed": "cd backend && ../.venv/bin/python -m app.seed",
-    "db:reset": "cd backend && ../.venv/bin/python -m app.db.migrate --reset"
+    "lint:py": "node scripts/py.mjs -m ruff check --config backend/pyproject.toml backend mock-bank scripts && node scripts/py.mjs -m ruff format --check --config backend/pyproject.toml backend mock-bank scripts",
+    "typecheck:py": "node scripts/py.mjs --cwd backend -m mypy && node scripts/py.mjs --cwd mock-bank -m mypy",
+    "gen:shared": "node scripts/py.mjs scripts/gen_shared_types.py",
+    "seed": "node scripts/py.mjs --cwd backend -m app.seed",
+    "db:reset": "node scripts/py.mjs --cwd backend -m app.db.migrate --reset"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",

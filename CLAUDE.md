@@ -25,7 +25,9 @@ If a feature does not serve one of these, it is low priority.
 ## Stack (fixed — do not substitute; DECISIONS D28)
 
 - Monorepo: npm workspaces `shared/`, `frontend/`; Python projects `backend/`, `mock-bank/` sharing one
-  dev virtualenv at `.venv/` (`npm run setup:py`).
+  dev virtualenv at `.venv/` (`npm run setup:py`). Every Python npm script goes through
+  `node scripts/py.mjs`, which picks `.venv/Scripts/python.exe` on Windows and `.venv/bin/python`
+  elsewhere, and runs tools as modules (`python -m uvicorn|pytest|mypy|ruff`). Never hard-code a venv path.
 - **shared**: `shared/constants.json` is the single source of domain constants (roles, statuses,
   allowed transitions, tracked fields, doc types, banks, rule defaults, event labels,
   `institutionVisibleActions`). Python loads it in `backend/app/shared_constants.py` (checked against
@@ -48,8 +50,8 @@ If a feature does not serve one of these, it is low priority.
 ```
 docker compose up -d db          # Postgres only (dev)
 npm install                      # from repo root, installs the JS workspaces (shared, frontend)
-npm run setup:py                 # python3.12 venv at .venv with backend[dev] + mock-bank (editable)
-npm run dev                      # uvicorn --reload :3000 (migrates first), mock bank :4000, vite :5173
+npm run setup:py                 # .venv (py -3.12 / py -3 / python on Windows, python3.12 elsewhere) + backend[dev], mock-bank
+npm run dev                      # migrate, then python -m uvicorn --reload :3000; mock bank :4000; vite :5173
 npm run test                     # pytest (backend + mock bank, uses fdr_test DB) + shared vitest
 npm run typecheck                # ruff check/format --check, mypy --strict, tsc for shared + frontend
 npm run gen:shared               # after editing shared/constants.json
@@ -57,7 +59,8 @@ npm run seed                     # migrations + base dataset (Phase 9: the demo 
 npm run db:reset                 # drop + re-create the dev schema
 docker compose up --build        # whole system in containers
 ```
-Single test: `cd backend && ../.venv/bin/pytest tests/test_phase02_submission.py -k stale`.
+Works the same in PowerShell, cmd and bash. Single test, or any other Python command:
+`node scripts/py.mjs --cwd backend -m pytest tests/test_phase02_submission.py -k stale`.
 
 ## Architecture rules (non-negotiable)
 
