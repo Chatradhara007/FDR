@@ -8,6 +8,7 @@ from ..domain import clock
 from ..domain.access import AuthUser, actor_of, assert_can_see, scope_instruments_query
 from ..domain.audit import record_event
 from ..domain.errors import Conflict, InvalidState, NotFound, ValidationFailed
+from ..domain.gaps import weakest_tier
 from ..domain.normalize import norm_amount
 from ..repositories.document_repo import list_live_documents
 from ..repositories.institution_repo import find_institution_by_id, list_regions
@@ -26,7 +27,9 @@ from ..repositories.instrument_repo import (
     update_instrument_fields,
 )
 from ..repositories.instrument_repo import list_instruments as list_instrument_rows
+from ..repositories.observation_repo import ObservationRow, list_observations
 from ..repositories.provenance_repo import ProvenanceRow, list_provenance
+from ..repositories.return_repo import ReturnRow, list_returns
 from ..repositories.rule_repo import get_rule_config
 from ..schemas import InstrumentCreate, InstrumentListQuery, InstrumentPatch, date_order_issue
 from ..shared_constants import (
@@ -38,6 +41,7 @@ from ..shared_constants import (
     STATUS_LABELS,
     DocType,
     InstrumentType,
+    TrustTier,
 )
 
 # Statuses in which the institution may edit fields and documents (2.6).
@@ -69,6 +73,9 @@ class InstrumentDetail(InstrumentRow):
     requiredDocs: list[DocType]
     missingDocs: list[DocType]
     lienRequired: bool
+    weakestTier: TrustTier | None
+    returns: list[ReturnRow]
+    observations: list[ObservationRow]
 
 
 class DocRules(TypedDict):
@@ -167,6 +174,10 @@ def get_instrument(user: AuthUser, instrument_id: str, db: Db | None = None) -> 
         "requiredDocs": required,
         "missingDocs": missing_docs(required, [d["docType"] for d in documents]),
         "lienRequired": rules["lienRequired"][row["type"]],
+        "weakestTier": weakest_tier(provenance),
+        "returns": list_returns(db, instrument_id),
+        # D24: institutions see only observations marked visible to them.
+        "observations": list_observations(db, instrument_id, visible_only=user.role == "institution"),
     }
 
 

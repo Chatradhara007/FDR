@@ -16,7 +16,19 @@ from pydantic_core import PydanticCustomError
 
 from .domain.normalize import norm_amount, norm_date, norm_ref
 from .repositories.instrument_repo import InstrumentSort
-from .shared_constants import BANKS, DOC_TYPES, INSTRUMENT_TYPES, DocType, InstrumentStatus, InstrumentType
+from .repositories.scrutiny_repo import AssignedFilter
+from .shared_constants import (
+    BANKS,
+    DOC_TYPES,
+    INSTRUMENT_TYPES,
+    OBSERVATION_SEVERITIES,
+    VERIFICATION_STATES,
+    DocType,
+    InstrumentStatus,
+    InstrumentType,
+    ObservationSeverity,
+    VerificationState,
+)
 
 
 class FieldIssue(TypedDict):
@@ -448,3 +460,135 @@ class InstrumentListQuery(ApiModel):
 
 def doc_type_or_none(v: object) -> DocType | None:
     return v if v in DOC_TYPES else None
+
+
+# ---- Phase 03: scrutiny ----------------------------------------------------------------------
+
+
+def _required_text(v: object, max_len: int, empty_message: str, label: str) -> str:
+    if not isinstance(v, str) or not v.strip():
+        raise fail(empty_message)
+    s = v.strip()
+    if len(s) > max_len:
+        raise fail(f"{label} must be at most {max_len} characters")
+    return s
+
+
+class NoteInput(ApiModel):
+    MISSING_MESSAGES: ClassVar[dict[str, str]] = {"note": "Enter a note"}
+
+    note: str
+
+    @field_validator("note", mode="before")
+    @classmethod
+    def _note(cls, v: object) -> str:
+        return _required_text(v, 1000, "Enter a note", "Note")
+
+
+class ReasonInput(ApiModel):
+    MISSING_MESSAGES: ClassVar[dict[str, str]] = {"reason": "Enter the reason for returning the instrument"}
+
+    reason: str
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def _reason(cls, v: object) -> str:
+        return _required_text(v, 1000, "Enter the reason for returning the instrument", "Reason")
+
+
+class AcceptInput(ApiModel):
+    override_note: str | None = None
+
+    @field_validator("override_note", mode="before")
+    @classmethod
+    def _override_note(cls, v: object) -> str | None:
+        v = _blank_to_none(v)
+        return None if v is None else _required_text(v, 1000, "Enter an override note", "Override note")
+
+
+class ObservationCreate(ApiModel):
+    MISSING_MESSAGES: ClassVar[dict[str, str]] = {"text": "Enter the observation"}
+
+    text: str
+    severity: ObservationSeverity = "INFO"
+    visible_to_institution: bool = False
+
+    @field_validator("text", mode="before")
+    @classmethod
+    def _text(cls, v: object) -> str:
+        return _required_text(v, 2000, "Enter the observation", "Observation")
+
+    @field_validator("severity", mode="before")
+    @classmethod
+    def _severity(cls, v: object) -> ObservationSeverity:
+        if v not in OBSERVATION_SEVERITIES:
+            raise fail("Choose Info, Concern or Blocking")
+        return v
+
+    @field_validator("visible_to_institution", mode="before")
+    @classmethod
+    def _visible(cls, v: object) -> bool:
+        if not isinstance(v, bool):
+            raise fail("Must be true or false")
+        return v
+
+
+class DocumentCheckInput(ApiModel):
+    MISSING_MESSAGES: ClassVar[dict[str, str]] = {"documentId": "Choose the document you checked"}
+
+    document_id: str
+    note: str | None = None
+
+    @field_validator("document_id", mode="before")
+    @classmethod
+    def _document_id(cls, v: object) -> str:
+        if not isinstance(v, str) or not _UUID.match(v):
+            raise fail("Choose the document you checked")
+        return v.lower()
+
+    @field_validator("note", mode="before")
+    @classmethod
+    def _note(cls, v: object) -> str | None:
+        return _optional_text(v, 1000, "Note")
+
+
+class QueueQuery(ApiModel):
+    region: str | None = None
+    bank: str | None = None
+    verification_state: VerificationState | None = None
+    assigned: AssignedFilter = "all"
+    page: int = 1
+    page_size: int = Field(default=25)
+
+    @field_validator("region", "bank", mode="before")
+    @classmethod
+    def _text(cls, v: object) -> str | None:
+        return _optional_query_text(v)
+
+    @field_validator("verification_state", mode="before")
+    @classmethod
+    def _verification_state(cls, v: object) -> VerificationState | None:
+        v = _blank_to_none(v)
+        if v is None:
+            return None
+        if v not in VERIFICATION_STATES:
+            raise fail("Unknown verification state")
+        return v
+
+    @field_validator("assigned", mode="before")
+    @classmethod
+    def _assigned(cls, v: object) -> AssignedFilter:
+        v = _blank_to_none(v) or "all"
+        if v not in ("me", "unassigned", "all"):
+            raise fail("Use me, unassigned or all")
+        return v
+
+    @field_validator("page", mode="before")
+    @classmethod
+    def _page(cls, v: object) -> int:
+        return _coerce_int(v, 1, None)
+
+    @field_validator("page_size", mode="before")
+    @classmethod
+    def _page_size(cls, v: object) -> int:
+        return _coerce_int(v, 1, 100)

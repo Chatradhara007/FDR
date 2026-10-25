@@ -26,6 +26,8 @@ VerificationState = Literal["UNVERIFIED", "PENDING", "CONFIRMED", "MISMATCH", "U
 DocType = Literal[
     "FDR_COPY", "BANK_LETTER", "DEPOSIT_CONFIRMATION", "LIEN_LETTER", "RELEASE_LETTER", "COMPLIANCE_CERTIFICATE", "OTHER",
 ]  # fmt: skip
+VerificationResult = Literal["CONFIRMED", "MISMATCH", "NOT_FOUND", "PENDING", "UNAVAILABLE", "STALE"]
+ObservationSeverity = Literal["INFO", "CONCERN", "BLOCKING"]
 TrackedField = Literal[
     "reference_no", "issuing_bank", "amount", "issue_date", "maturity_date", "beneficiary_name", "lien_marked",
 ]  # fmt: skip
@@ -57,6 +59,10 @@ ALLOWED: dict[InstrumentStatus, tuple[InstrumentStatus, ...]] = {
 }
 LIVE_STATUSES: tuple[InstrumentStatus, ...] = tuple(_data["liveStatuses"])
 TERMINAL_STATUSES: tuple[InstrumentStatus, ...] = tuple(_data["terminalStatuses"])
+VERIFIABLE_STATUSES: tuple[InstrumentStatus, ...] = tuple(_data["verifiableStatuses"])
+VERIFICATION_RESULTS: tuple[VerificationResult, ...] = tuple(_data["verificationResults"])
+OBSERVATION_SEVERITIES: tuple[ObservationSeverity, ...] = tuple(_data["observationSeverities"])
+DISCREPANCY_REASONS: dict[TrackedField, str] = _data["discrepancyReasons"]
 TRACKED_FIELDS: tuple[TrackedField, ...] = tuple(_data["trackedFields"])
 FIELD_LABELS: dict[TrackedField, str] = _data["fieldLabels"]
 TRACKED_FIELD_KEYS: dict[TrackedField, str] = _data["trackedFieldKeys"]
@@ -83,6 +89,8 @@ def _check_literals() -> None:
         (VerificationState, VERIFICATION_STATES),
         (DocType, DOC_TYPES),
         (TrackedField, TRACKED_FIELDS),
+        (VerificationResult, VERIFICATION_RESULTS),
+        (ObservationSeverity, OBSERVATION_SEVERITIES),
     ):
         if get_args(literal) != values:
             raise RuntimeError(f"{CONSTANTS_PATH} does not match the Literal types in shared_constants.py: {values}")

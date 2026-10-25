@@ -69,3 +69,10 @@ class InvalidState(Conflict):
 
     def __init__(self, message: str, details: object = None) -> None:
         super().__init__(message, details, "INVALID_STATE")
+
+
+class AcceptBlocked(Conflict):
+    """409 ACCEPT_BLOCKED listing every reason (D4)."""
+
+    def __init__(self, reasons: list[str]) -> None:
+        super().__init__("This instrument cannot be accepted yet", {"reasons": reasons}, "ACCEPT_BLOCKED")

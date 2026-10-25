@@ -72,6 +72,32 @@
     "MISMATCH": "Mismatch",
     "UNAVAILABLE": "Bank unavailable"
   },
+  "verificationResults": [
+    "CONFIRMED",
+    "MISMATCH",
+    "NOT_FOUND",
+    "PENDING",
+    "UNAVAILABLE",
+    "STALE"
+  ],
+  "verificationResultLabels": {
+    "CONFIRMED": "Confirmed",
+    "MISMATCH": "Mismatch",
+    "NOT_FOUND": "Not found at bank",
+    "PENDING": "Pending at bank",
+    "UNAVAILABLE": "Bank unavailable",
+    "STALE": "Discarded (record changed)"
+  },
+  "observationSeverities": [
+    "INFO",
+    "CONCERN",
+    "BLOCKING"
+  ],
+  "observationSeverityLabels": {
+    "INFO": "Info",
+    "CONCERN": "Concern",
+    "BLOCKING": "Blocking"
+  },
   "docTypes": [
     "FDR_COPY",
     "BANK_LETTER",
@@ -144,6 +170,14 @@
     "RENEWED",
     "RELEASED"
   ],
+  "verifiableStatuses": [
+    "UNDER_SCRUTINY",
+    "ACTIVE",
+    "EXPIRING",
+    "MATURED",
+    "LAPSED",
+    "RELEASE_REQUESTED"
+  ],
   "trackedFields": [
     "reference_no",
     "issuing_bank",
@@ -170,6 +204,15 @@
     "maturity_date": "maturityDate",
     "beneficiary_name": "beneficiaryName",
     "lien_marked": "lienMarked"
+  },
+  "discrepancyReasons": {
+    "reference_no": "Reference number mismatch",
+    "issuing_bank": "Issuing bank mismatch",
+    "amount": "Amount mismatch",
+    "issue_date": "Date inconsistency",
+    "maturity_date": "Date inconsistency",
+    "beneficiary_name": "Wrong beneficiary name",
+    "lien_marked": "Lien not marked in favour of AICTE"
   },
   "banks": [
     "State Bank of India",
@@ -230,7 +273,18 @@
     "INSTRUMENT_DRAFT_DELETED": "Draft deleted",
     "DOCUMENT_UPLOADED": "Document uploaded",
     "DOCUMENT_REMOVED": "Document removed",
-    "DOCUMENT_ACCESSED": "Document opened"
+    "DOCUMENT_ACCESSED": "Document opened",
+    "INSTRUMENT_CLAIMED": "Taken up for scrutiny",
+    "VERIFICATION_REQUESTED": "Bank verification requested",
+    "VERIFICATION_RESULT": "Bank verification result",
+    "DISCREPANCY_OPENED": "Discrepancy opened",
+    "DISCREPANCY_RESOLVED": "Discrepancy resolved",
+    "FIELD_DOCUMENT_CHECKED": "Field checked against a document",
+    "OBSERVATION_ADDED": "Observation recorded",
+    "OBSERVATION_RESOLVED": "Observation resolved",
+    "INSTRUMENT_RETURNED": "Returned to institution",
+    "INSTRUMENT_ACCEPTED": "Accepted by officer",
+    "ACCEPTED_WITH_OVERRIDE": "Accepted without bank confirmation"
   },
   "institutionVisibleActions": [
     "STATUS_DRAFT",
@@ -248,6 +302,9 @@
     "INSTRUMENT_EDITED",
     "INSTRUMENT_SUBMITTED",
     "DOCUMENT_UPLOADED",
-    "DOCUMENT_REMOVED"
+    "DOCUMENT_REMOVED",
+    "INSTRUMENT_RETURNED",
+    "INSTRUMENT_ACCEPTED",
+    "VERIFICATION_RESULT"
   ]
 }

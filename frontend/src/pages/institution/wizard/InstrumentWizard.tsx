@@ -6,7 +6,8 @@ import { ApiError, missingDocumentsOf } from '@/api/client';
 import {
   useCreateInstrument, useDeleteDraft, useInstrument, useMeta, usePatchInstrument, useSubmitInstrument,
 } from '@/api/instruments';
-import { Button, Card, EmptyState, Modal, PageHeader, StatusChip, useToast } from '@/components';
+import { Button, Card, EmptyState, Modal, ObservationItem, PageHeader, StatusChip, useToast } from '@/components';
+import { ReturnBanner } from '../InstrumentView';
 import { cn } from '@/lib/cn';
 import { DetailsStep } from './DetailsStep';
 import { DocumentsStep } from './DocumentsStep';
@@ -177,13 +178,12 @@ export function InstrumentWizard() {
       />
 
       {detail?.status === 'RETURNED' && (
-        <div role="alert" className="mb-4 flex items-start gap-2 rounded-md border border-warning-600/30 bg-warning-50 px-4 py-3 text-sm text-warning-700">
-          <Undo2 className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <div>
-            <p className="font-medium">Returned by the AICTE officer — action needed</p>
-            <p>Correct the details or documents the officer asked about, then submit again.</p>
-          </div>
-        </div>
+        <>
+          <ReturnBanner reason={detail.returns[0]?.reason ?? 'See the officer\'s observations'} />
+          {detail.observations.length > 0 && (
+            <ul className="mb-4 space-y-2">{detail.observations.map((o) => <ObservationItem key={o.id} o={o} />)}</ul>
+          )}
+        </>
       )}
 
       {stale && (

@@ -1,0 +1,68 @@
+[
+  {
+    "bank": "State Bank of India",
+    "reference_no": "SBIN/FDR/2026/00731",
+    "amount": "2000000.00",
+    "issue_date": "2026-04-01",
+    "maturity_date": "2027-04-01",
+    "beneficiary_name": "MEMBER SECRETARY AICTE",
+    "lien_marked": true,
+    "lien_in_favour_of": "Member Secretary, AICTE",
+    "status": "LIVE"
+  },
+  {
+    "bank": "Canara Bank",
+    "reference_no": "CNRB/FD/2025/11842",
+    "amount": "4000000.00",
+    "issue_date": "2025-11-01",
+    "maturity_date": "2027-01-30",
+    "beneficiary_name": "MEMBER SECRETARY AICTE",
+    "lien_marked": true,
+    "lien_in_favour_of": "AICTE, New Delhi",
+    "status": "LIVE"
+  },
+  {
+    "bank": "Bank of India",
+    "reference_no": "BKID/FD/2026/20415",
+    "amount": "1500000.00",
+    "issue_date": "2026-06-15",
+    "maturity_date": "2028-06-15",
+    "beneficiary_name": "MEMBER SECRETARY AICTE",
+    "lien_marked": true,
+    "lien_in_favour_of": "AICTE",
+    "status": "LIVE"
+  },
+  {
+    "bank": "Indian Overseas Bank",
+    "reference_no": "IOBA/FD/2026/03381",
+    "amount": "1000000.00",
+    "issue_date": "2026-05-10",
+    "maturity_date": "2027-05-10",
+    "beneficiary_name": "MEMBER SECRETARY AICTE",
+    "lien_marked": true,
+    "lien_in_favour_of": "AICTE",
+    "status": "LIVE"
+  },
+  {
+    "bank": "HDFC Bank",
+    "reference_no": "HDFC/FD/2024/88120",
+    "amount": "2200000.00",
+    "issue_date": "2024-08-01",
+    "maturity_date": "2027-08-01",
+    "beneficiary_name": "MEMBER SECRETARY AICTE",
+    "lien_marked": true,
+    "lien_in_favour_of": "AICTE",
+    "status": "CLOSED"
+  },
+  {
+    "bank": "Axis Bank",
+    "reference_no": "UTIB/FD/2026/77302",
+    "amount": "1800000.00",
+    "issue_date": "2026-03-01",
+    "maturity_date": "2027-09-01",
+    "beneficiary_name": "MEMBER SECRETARY AICTE",
+    "lien_marked": true,
+    "lien_in_favour_of": "Axis Bank Ltd (overdraft)",
+    "status": "LIVE"
+  }
+]

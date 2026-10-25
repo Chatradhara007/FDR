@@ -8,6 +8,8 @@ import { InstitutionHome } from '@/pages/institution/InstitutionHome';
 import { InstrumentView } from '@/pages/institution/InstrumentView';
 import { InstrumentWizard } from '@/pages/institution/wizard/InstrumentWizard';
 import { Login } from '@/pages/Login';
+import { ReviewPage } from '@/pages/officer/ReviewPage';
+import { ScrutinyQueue } from '@/pages/officer/ScrutinyQueue';
 import { RoleHome } from '@/pages/RoleHome';
 
 export function App() {
@@ -25,6 +27,8 @@ export function App() {
           <Route path="instruments/:id/edit" element={<InstrumentWizard />} />
           <Route path="instruments/:id" element={<InstrumentView />} />
         </Route>
+        <Route path="/officer/queue" element={<ProtectedRoute roles={['officer', 'approver', 'admin', 'auditor']}><ScrutinyQueue /></ProtectedRoute>} />
+        <Route path="/officer/review/:id" element={<ProtectedRoute roles={['officer', 'approver', 'admin', 'auditor']}><ReviewPage /></ProtectedRoute>} />
         <Route path="*" element={<EmptyState title="Page not found" description="Check the address or use the menu." />} />
       </Route>
     </Routes>
