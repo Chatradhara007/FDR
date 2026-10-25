@@ -60,8 +60,8 @@ Status values: `not started` · `in progress` · `done` · `done with known issu
 
 (things to fix later; mark resolved when fixed)
 
-- Phase 00: Dockerfiles written but `docker compose up --build` not yet run (no Docker in the build sandbox).
-  Needs a manual run on a machine with Docker.
+- Phase 00: frontend image lacked `tsconfig.base.json` (fixed in all three Dockerfiles); `docker compose up --build`
+  needs a re-run on a machine with Docker to confirm.
 - Phase 01: switch `migrate()`'s `appliedAt` to the app clock; move StatusChip statuses to the shared enum;
   add the `app_clock` row to `insertFixedRows()` in `backend/tests/helpers.ts`.
 
@@ -69,7 +69,17 @@ Status values: `not started` · `in progress` · `done` · `done with known issu
 
 (results of the UI/manual acceptance checks, e.g. "Phase 00 check 1: docker compose up OK on macOS")
 
-- Phase 00 check 1 (`docker compose up --build`): **pending, to be run by the user**.
+- Phase 00 check 1 (`docker compose up --build`), first run by the user: db, mock-bank and backend OK; the frontend
+  failed with `TSCONFIG_ERROR "Failed to load tsconfig '../tsconfig.base.json'"`, because the Dockerfiles never
+  copied the root `tsconfig.base.json`, which every workspace tsconfig extends (`shared`, `backend`, `mock-bank`,
+  `frontend`). Fixed: all three Dockerfiles now `COPY package.json package-lock.json tsconfig.base.json ./`.
+  Reviewed by reading only (no Docker in the sandbox):
+  - each image has the root manifests and the base tsconfig, every workspace `package.json` (needed by `npm ci`),
+    and its own sources plus `shared/` where it imports it (backend, frontend);
+  - `.dockerignore` excludes only `node_modules`, `.env`, `storage`, `.git`, `dist` and `coverage`, none of which
+    the build needs. The `.env` loaders skip a missing file, and compose passes the env vars.
+
+  **Re-run pending, to be done by the user.**
 - Phase 00 check 2 (`npm run dev` + Postgres only): OK in cloud sandbox (Postgres 16 via
   `scripts/start-pg-sandbox.sh`). Headless Chromium on `http://localhost:5173` showed "API: up, Database: up,
   Mock bank: up" with no console errors; CORS header present for the frontend origin.
