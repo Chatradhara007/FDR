@@ -45,6 +45,11 @@ class Config:
         return (REPO_ROOT / os.environ.get("STORAGE_DIR", "./storage")).resolve()
 
     @property
+    def scheduler_enabled(self) -> bool:
+        """Daily evaluation in REAL clock mode (SCHEDULER_ENABLED=false turns it off; tests do)."""
+        return os.environ.get("SCHEDULER_ENABLED", "true") != "false"
+
+    @property
     def jwt_secret(self) -> str:
         return os.environ.get("JWT_SECRET", "dev-secret-change-me")
 

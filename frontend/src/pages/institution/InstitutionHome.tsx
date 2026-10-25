@@ -2,7 +2,7 @@ import { AlertTriangle, CheckCircle2, FilePen, Hourglass, Plus, Undo2, type Luci
 import { Link, useNavigate } from 'react-router-dom';
 import { INSTRUMENT_TYPE_LABELS, type InstrumentListItem } from '@fdr/shared';
 import { useInstruments } from '@/api/instruments';
-import { Button, DateText, Money, PageHeader, StatusChip, Table, VerificationChip, type Column } from '@/components';
+import { Button, DateText, Money, PageHeader, StatusChip, Table, VerificationChip, WorstAlertChip, type Column } from '@/components';
 
 function Tile({ label, value, icon: Icon, hint }: { label: string; value: number | undefined; icon: LucideIcon; hint?: string }) {
   return (
@@ -56,6 +56,7 @@ export function InstitutionHome() {
     { key: 'maturity', header: 'Maturity', sortValue: (r) => r.maturityDate, cell: (r) => <DateText value={r.maturityDate} /> },
     { key: 'days', header: 'Days left', align: 'right', sortValue: (r) => r.daysToMaturity, cell: (r) => <DaysLeft days={r.daysToMaturity} /> },
     { key: 'status', header: 'Status', cell: (r) => <StatusChip status={r.status} /> },
+    { key: 'alerts', header: 'Alerts', sortValue: (r) => r.worstOpenAlertLevel, cell: (r) => <WorstAlertChip level={r.worstOpenAlertLevel} count={r.openAlertCount} /> },
     { key: 'verification', header: 'Verification', cell: (r) => (r.status === 'DRAFT' ? <span className="text-slate-400">—</span> : <VerificationChip state={r.verificationState} />) },
   ];
 

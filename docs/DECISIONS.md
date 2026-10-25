@@ -161,3 +161,11 @@ unchanged SQL migrations and the same API contract. Shared constants live in `sh
 (read by Python at startup, imported by the frontend). **Where a phase file names a TypeScript stack piece
 or a `.ts` file, use the Python equivalent** (see CLAUDE.md, "Phase files written for TypeScript").
 
+
+### D29 — Re-verification demotes contradicted bank confirmations (decided after Phase 03)
+When a bank verification (including re-verification of a live instrument) reports a mismatch on a field whose
+provenance tier is `BANK_CONFIRMED`, that field drops back to `CLAIMED` (source `institution`) in the same
+transaction that opens the discrepancy. Keeping a confirmation the bank now disputes would overstate what is proven.
+Fields that were `CLAIMED` or `DOCUMENT` keep their tier, as Phase 03 specifies. This is a deliberate departure from
+`docs/phases/03-scrutiny.md`, which keeps every existing tier on mismatch; it was implemented in Phase 03 and is
+recorded in `docs/PROGRESS.md` under "Deviations / choices".

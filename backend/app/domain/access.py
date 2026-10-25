@@ -36,3 +36,28 @@ def scope_instruments_query(user: AuthUser, params: list[object], alias: str = "
         return ""
     params.append(user.institutionId)
     return f" AND {alias}.institution_id = ${len(params)}"
+
+
+def scope_alerts_query(user: AuthUser, params: list[object], alias: str = "a") -> str:
+    """SQL fragment limiting alerts to the ones addressed to the user (D23); appends parameters to `params`.
+
+    institution: its own institution's institution-role copies. officer: officer alerts addressed to them or to the
+    pool. approver / admin: their role pool. auditor: everything (read-only oversight).
+    """
+    if user.role == "auditor":
+        return ""
+    params.append(user.role)
+    sql = f" AND {alias}.recipient_role = ${len(params)}::user_role"
+    if user.role == "institution":
+        params.append(user.institutionId)
+        sql += f" AND {alias}.institution_id = ${len(params)}"
+    elif user.role == "officer":
+        params.append(user.id)
+        sql += f" AND ({alias}.recipient_user_id IS NULL OR {alias}.recipient_user_id = ${len(params)})"
+    return sql
+
+
+def scope_alert_stats_query(user: AuthUser, params: list[object], alias: str = "a") -> str:
+    """Alert columns on instrument lists: AICTE roles see the instrument's worst open level across every copy (an item
+    escalated to the admin shows as L3 in the officer's queue); institutions count only their own copies."""
+    return scope_alerts_query(user, params, alias) if user.role == "institution" else ""

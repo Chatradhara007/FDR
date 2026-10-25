@@ -21,7 +21,7 @@ def test_ac10_only_domain_state_machine_py_updates_instruments_status() -> None:
         for rel, text in FILES.items()
         if rel != "domain/state_machine.py"
         and (
-            re.search(r"\bSET\s+status\b", text, re.IGNORECASE)
+            re.search(r"UPDATE\s+instruments\b[^;`\"']*?\bSET\s+status\b", text, re.IGNORECASE | re.DOTALL)
             or re.search(r"UPDATE\s+instruments\b[^;`\"']*?[\s,]status\s*=", text, re.IGNORECASE | re.DOTALL)
         )
     ]

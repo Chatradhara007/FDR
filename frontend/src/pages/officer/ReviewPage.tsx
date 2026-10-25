@@ -10,7 +10,7 @@ import { Checklist } from './review/Checklist';
 import { DiscrepancyCards } from './review/DiscrepancyCards';
 import { DocumentsTab } from './review/DocumentsTab';
 import { FieldsPanel } from './review/FieldsPanel';
-import { NoteModal } from './review/NoteModal';
+import { NoteModal } from '@/components/NoteModal';
 import { ObservationsTab } from './review/ObservationsTab';
 import { VerificationHistory } from './review/VerificationHistory';
 

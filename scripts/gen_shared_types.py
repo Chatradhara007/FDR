@@ -26,6 +26,9 @@ UNIONS = {
     "Bank": "banks",
     "VerificationResult": "verificationResults",
     "ObservationSeverity": "observationSeverities",
+    "AlertKind": "alertKinds",
+    "AlertStatus": "alertStatuses",
+    "AlertResolution": "alertResolutions",
 }
 
 

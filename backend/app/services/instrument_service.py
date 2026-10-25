@@ -5,7 +5,7 @@ from typing import TypedDict, cast
 
 from ..db.pool import Conn, Db, get_pool, transaction
 from ..domain import clock
-from ..domain.access import AuthUser, actor_of, assert_can_see, scope_instruments_query
+from ..domain.access import AuthUser, actor_of, assert_can_see, scope_alert_stats_query, scope_instruments_query
 from ..domain.audit import record_event
 from ..domain.errors import Conflict, InvalidState, NotFound, ValidationFailed
 from ..domain.gaps import weakest_tier
@@ -197,7 +197,13 @@ def list_instruments(user: AuthUser, q: InstrumentListQuery) -> InstrumentListRe
         "page": q.page,
         "pageSize": q.page_size,
     }
-    rows, total = list_instrument_rows(db, filters, today, lambda params: scope_instruments_query(user, params))
+    rows, total = list_instrument_rows(
+        db,
+        filters,
+        today,
+        lambda params: scope_instruments_query(user, params),
+        lambda params: scope_alert_stats_query(user, params),
+    )
     return {"items": rows, "total": total, "page": q.page, "pageSize": q.page_size}
 
 

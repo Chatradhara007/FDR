@@ -250,8 +250,158 @@
         "FDR": true,
         "SECURITY_DEPOSIT": false
       }
+    },
+    {
+      "key": "reminder",
+      "name": "Maturity reminders",
+      "type": "reminder",
+      "config": {
+        "offsets": [
+          {
+            "days": 90,
+            "recipients": [
+              "institution",
+              "officer"
+            ]
+          },
+          {
+            "days": 60,
+            "recipients": [
+              "institution",
+              "officer"
+            ]
+          },
+          {
+            "days": 30,
+            "recipients": [
+              "institution",
+              "officer"
+            ]
+          },
+          {
+            "days": 7,
+            "recipients": [
+              "institution",
+              "officer",
+              "approver"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "pending_verification",
+      "name": "Verification pending",
+      "type": "pending_verification",
+      "config": {
+        "afterDays": 5,
+        "recipients": [
+          "officer"
+        ]
+      }
+    },
+    {
+      "key": "discrepancy_open",
+      "name": "Discrepancy open",
+      "type": "discrepancy_open",
+      "config": {
+        "afterDays": 7,
+        "recipients": [
+          "officer"
+        ]
+      }
+    },
+    {
+      "key": "overdue_renewal",
+      "name": "Overdue renewal",
+      "type": "overdue_renewal",
+      "config": {
+        "graceDays": 15,
+        "recipients": [
+          "institution",
+          "officer",
+          "approver"
+        ]
+      }
+    },
+    {
+      "key": "release_pending",
+      "name": "Release pending",
+      "type": "release_pending",
+      "config": {
+        "afterDays": 5,
+        "recipients": [
+          "approver"
+        ]
+      }
+    },
+    {
+      "key": "escalation",
+      "name": "Escalation ladder",
+      "type": "escalation",
+      "config": {
+        "levels": [
+          {
+            "level": 1,
+            "role": "officer",
+            "afterDays": 0
+          },
+          {
+            "level": 2,
+            "role": "approver",
+            "afterDays": 7
+          },
+          {
+            "level": 3,
+            "role": "admin",
+            "afterDays": 14
+          }
+        ],
+        "kinds": [
+          "PENDING_VERIFICATION",
+          "DISCREPANCY_OPEN",
+          "OVERDUE_RENEWAL",
+          "RELEASE_PENDING"
+        ]
+      }
     }
   ],
+  "alertKinds": [
+    "MATURITY_REMINDER",
+    "PENDING_VERIFICATION",
+    "DISCREPANCY_OPEN",
+    "OVERDUE_RENEWAL",
+    "RELEASE_PENDING"
+  ],
+  "alertKindLabels": {
+    "MATURITY_REMINDER": "Maturity reminder",
+    "PENDING_VERIFICATION": "Verification pending",
+    "DISCREPANCY_OPEN": "Discrepancy open",
+    "OVERDUE_RENEWAL": "Overdue renewal",
+    "RELEASE_PENDING": "Release pending"
+  },
+  "alertStatuses": [
+    "OPEN",
+    "ACKNOWLEDGED",
+    "ESCALATED",
+    "RESOLVED"
+  ],
+  "alertStatusLabels": {
+    "OPEN": "Open",
+    "ACKNOWLEDGED": "Acknowledged",
+    "ESCALATED": "Escalated",
+    "RESOLVED": "Resolved"
+  },
+  "alertResolutions": [
+    "SYSTEM_CONDITION_CLEARED",
+    "MANUAL",
+    "SUPERSEDED"
+  ],
+  "alertResolutionLabels": {
+    "SYSTEM_CONDITION_CLEARED": "Condition cleared",
+    "MANUAL": "Resolved by hand",
+    "SUPERSEDED": "Superseded by a closer reminder"
+  },
   "eventLabels": {
     "STATUS_DRAFT": "Status changed to Draft",
     "STATUS_SUBMITTED": "Status changed to Submitted",
@@ -284,7 +434,11 @@
     "OBSERVATION_RESOLVED": "Observation resolved",
     "INSTRUMENT_RETURNED": "Returned to institution",
     "INSTRUMENT_ACCEPTED": "Accepted by officer",
-    "ACCEPTED_WITH_OVERRIDE": "Accepted without bank confirmation"
+    "ACCEPTED_WITH_OVERRIDE": "Accepted without bank confirmation",
+    "JOB_EVALUATED": "Daily evaluation ran",
+    "ALERT_ACKNOWLEDGED": "Alert acknowledged",
+    "ALERT_ESCALATED": "Alert escalated",
+    "ALERT_RESOLVED": "Alert resolved"
   },
   "institutionVisibleActions": [
     "STATUS_DRAFT",

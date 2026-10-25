@@ -2,16 +2,26 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
+from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import config
+from .jobs.scheduler import start_scheduler
 from .middleware.errors import RequestIdMiddleware, install_error_handlers
 from .middleware.responses import ApiJSONResponse
-from .routes import clock, demo, health, instruments, meta, scrutiny
+from .routes import alerts, clock, demo, health, instruments, jobs, meta, scrutiny
 from .routes.auth import auth_router
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    scheduler = start_scheduler() if config.scheduler_enabled else None
+    yield
+    if scheduler is not None:
+        scheduler.shutdown(wait=False)
 
 
 def create_app(mount_test_routes: Callable[[APIRouter], None] | None = None) -> FastAPI:
@@ -22,6 +32,7 @@ def create_app(mount_test_routes: Callable[[APIRouter], None] | None = None) -> 
         redoc_url=None,
         openapi_url=None,
         default_response_class=ApiJSONResponse,
+        lifespan=lifespan,
     )
     install_error_handlers(app)
     app.add_middleware(
@@ -40,6 +51,8 @@ def create_app(mount_test_routes: Callable[[APIRouter], None] | None = None) -> 
     api.include_router(instruments.router)
     api.include_router(scrutiny.router)
     api.include_router(meta.router)
+    api.include_router(alerts.router)
+    api.include_router(jobs.router)
     if config.demo_mode:
         api.include_router(demo.router)
     if mount_test_routes:

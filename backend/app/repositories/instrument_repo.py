@@ -7,6 +7,7 @@ from typing import Literal, TypedDict, cast
 
 from ..db.pool import Db, exec_, many, maybe_one, one
 from ..shared_constants import InstrumentStatus, InstrumentType, TrustTier, VerificationState
+from .alert_repo import open_alert_stats_sql
 
 
 class InstrumentRow(TypedDict):
@@ -262,16 +263,23 @@ class ListItem(TypedDict):
     region: str
     daysToMaturity: int | None
     weakestTier: TrustTier | None
+    worstOpenAlertLevel: int | None
+    openAlertCount: int
     version: int
     updatedAt: datetime
 
 
 def list_instruments(
-    db: Db, q: ListFilters, today: str, scope: Callable[[list[object]], str]
+    db: Db,
+    q: ListFilters,
+    today: str,
+    scope: Callable[[list[object]], str],
+    alert_scope: Callable[[list[object]], str],
 ) -> tuple[list[ListItem], int]:
-    """Filtered, sorted, paged list. `scope` returns the access filter (appending its parameter);
-    `today` is the app clock's business date for daysToMaturity."""
+    """Filtered, sorted, paged list. `scope` returns the access filter (appending its parameter), `alert_scope` the
+    alert visibility filter for the alert columns; `today` is the app clock's business date for daysToMaturity."""
     params: list[object] = [today]
+    alert_stats = open_alert_stats_sql(alert_scope(params))
     where: list[str] = [f"true{scope(params)}"]
 
     def add(sql: Callable[[str], str], value: object) -> None:
@@ -303,6 +311,7 @@ def list_instruments(
             i.verification_state AS "verificationState", i.institution_id AS "institutionId",
             inst.name AS "institutionName", inst.region, (i.maturity_date - $1::date) AS "daysToMaturity",
             (SELECT min(fp.tier) FROM field_provenance fp WHERE fp.instrument_id = i.id) AS "weakestTier",
+            {alert_stats},
             i.version, i.updated_at AS "updatedAt", count(*) OVER () AS total
        FROM instruments i JOIN institutions inst ON inst.id = i.institution_id
       WHERE {" AND ".join(where)}

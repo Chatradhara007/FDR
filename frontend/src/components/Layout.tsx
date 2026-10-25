@@ -4,6 +4,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
 import { cn } from '@/lib/cn';
 import { NAV } from '@/lib/nav';
+import { AlertBell } from './AlertBell';
 import { Badge } from './Badge';
 import { Button } from './Button';
 import { ClockBadge, ClockControls } from './ClockBadge';
@@ -50,6 +51,7 @@ export function Layout() {
           </div>
           {user && (
             <div className="flex items-center gap-3">
+              <AlertBell />
               <div className="text-right leading-tight">
                 <p className="text-sm font-medium text-slate-800" data-testid="user-name">{user.name}</p>
                 {user.institutionName && <p className="text-xs text-slate-500">{user.institutionName}</p>}

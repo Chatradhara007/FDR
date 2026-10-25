@@ -50,6 +50,13 @@ export function formatDate(value: string): string {
   return `${Number(m[3])} ${month} ${m[1]}`;
 }
 
+/** ISO timestamp → '1 Nov 2026, 10:00 am' in Asia/Kolkata (the business time zone). */
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit',
+  });
+}
+
 const ONES = [
   '', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen',
   'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen',
