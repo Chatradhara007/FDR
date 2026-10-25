@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { ApiError } from '@/api/client';
-import { Button, FieldError, Modal } from '@/components';
+import { Button } from './Button';
+import { FieldError } from './FieldError';
+import { Modal } from './Modal';
 
 /** A modal that asks for one mandatory text (a note, a reason) and shows the server's field error next to it. */
 export function NoteModal({ open, title, label, submitLabel, intro, initial = '', onClose, onSubmit, pending, error, variant = 'primary' }: {

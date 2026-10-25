@@ -4,7 +4,7 @@ import { FIELD_LABELS, type Discrepancy } from '@fdr/shared';
 import { useResolveDiscrepancy } from '@/api/scrutiny';
 import { Button, useToast } from '@/components';
 import { fieldValue } from '@/lib/display';
-import { NoteModal } from './NoteModal';
+import { NoteModal } from '@/components/NoteModal';
 
 /** Institution claimed vs bank confirmed, side by side, the differing value highlighted. */
 export function DiscrepancyCards({ discrepancies, canAct, canReturn, onReturn }: {

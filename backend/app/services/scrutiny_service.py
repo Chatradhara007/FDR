@@ -7,12 +7,14 @@ from typing import TypedDict
 
 from ..db.pool import Conn, Db, get_pool, transaction
 from ..domain import clock
-from ..domain.access import AuthUser, actor_of
+from ..domain.access import AuthUser, actor_of, scope_alert_stats_query
 from ..domain.audit import record_event
 from ..domain.errors import AcceptBlocked, InvalidState, NotFound, ValidationFailed
 from ..domain.fields import tracked_value
 from ..domain.gaps import Gap, find_gaps
+from ..domain.rules import load_rules
 from ..domain.state_machine import transition
+from ..jobs.evaluate import sweep_instrument
 from ..repositories.discrepancy_repo import DiscrepancyRow, list_discrepancies, lock_discrepancy, resolve_discrepancy
 from ..repositories.document_repo import find_live_document, list_live_documents
 from ..repositories.instrument_repo import InstrumentRow, lock_instrument, set_acceptance, set_assigned_officer
@@ -152,7 +154,7 @@ def queue(user: AuthUser, q: QueueQuery) -> QueueResponse:
         "page": q.page,
         "pageSize": q.page_size,
     }
-    items, total = scrutiny_queue(db, filters, clock.today(db))
+    items, total = scrutiny_queue(db, filters, clock.today(db), lambda p: scope_alert_stats_query(user, p))
     return {"items": items, "total": total, "page": q.page, "pageSize": q.page_size}
 
 
@@ -261,7 +263,9 @@ def resolve_discrepancy_with_note(user: AuthUser, discrepancy_id: str, note: str
 
 
 def after_accept(tx: Conn, inst: InstrumentRow) -> None:
-    """Hook: Phase 4 adds the targeted sweep (D20), Phase 5 renewal activation."""
+    """Targeted sweep (D20): an instrument accepted close to (or past) maturity moves on at once. Phase 5 adds
+    renewal activation."""
+    sweep_instrument(tx, inst, clock.today(tx), load_rules(tx))
 
 
 def accept(user: AuthUser, instrument_id: str, data: AcceptInput) -> Review:

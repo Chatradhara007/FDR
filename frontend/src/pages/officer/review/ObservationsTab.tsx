@@ -3,7 +3,7 @@ import { OBSERVATION_SEVERITIES, OBSERVATION_SEVERITY_LABELS, type Observation, 
 import { ApiError } from '@/api/client';
 import { useAddObservation, useResolveObservation } from '@/api/scrutiny';
 import { Button, FieldError, ObservationItem, useToast } from '@/components';
-import { NoteModal } from './NoteModal';
+import { NoteModal } from '@/components/NoteModal';
 
 export function ObservationsTab({ review, canAct }: { review: ReviewPayload; canAct: boolean }) {
   const toast = useToast();

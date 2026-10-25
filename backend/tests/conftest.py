@@ -23,6 +23,7 @@ os.environ["DATABASE_URL"] = _test_url
 os.environ["MOCK_BANK_URL"] = os.environ.get(
     "TEST_MOCK_BANK_URL", "http://127.0.0.1:9"
 )  # unreachable unless a test starts one
+os.environ["SCHEDULER_ENABLED"] = "false"  # the real-clock daily job never runs inside tests
 os.environ["JWT_SECRET"] = "test-secret-at-least-32-bytes-long!"
 # Uploaded files go to a throwaway directory, never the dev storage.
 os.environ["STORAGE_DIR"] = os.path.join(tempfile.gettempdir(), f"fdr-test-storage-{os.getpid()}")

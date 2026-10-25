@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
+from itertools import pairwise
 from typing import Any, ClassVar, Literal, TypedDict
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
@@ -18,15 +19,20 @@ from .domain.normalize import norm_amount, norm_date, norm_ref
 from .repositories.instrument_repo import InstrumentSort
 from .repositories.scrutiny_repo import AssignedFilter
 from .shared_constants import (
+    ALERT_KINDS,
+    ALERT_STATUSES,
     BANKS,
     DOC_TYPES,
     INSTRUMENT_TYPES,
     OBSERVATION_SEVERITIES,
+    ROLES,
     VERIFICATION_STATES,
+    AlertKind,
     DocType,
     InstrumentStatus,
     InstrumentType,
     ObservationSeverity,
+    Role,
     VerificationState,
 )
 
@@ -582,6 +588,228 @@ class QueueQuery(ApiModel):
         if v not in ("me", "unassigned", "all"):
             raise fail("Use me, unassigned or all")
         return v
+
+    @field_validator("page", mode="before")
+    @classmethod
+    def _page(cls, v: object) -> int:
+        return _coerce_int(v, 1, None)
+
+    @field_validator("page_size", mode="before")
+    @classmethod
+    def _page_size(cls, v: object) -> int:
+        return _coerce_int(v, 1, 100)
+
+
+# ---- Phase 04: rule configs (reused by the Phase 8 rules editor) and alert queries ----
+
+
+def _recipients(v: object) -> list[Role]:
+    if not isinstance(v, list) or not v:
+        raise fail("Choose at least one recipient")
+    if any(r not in ROLES for r in v):
+        raise fail("Unknown recipient role")
+    if len(set(v)) != len(v):
+        raise fail("Each recipient once")
+    return v
+
+
+def _whole_days(v: object, low: int = 0) -> int:
+    if isinstance(v, bool) or not isinstance(v, int):
+        raise fail("Enter a whole number of days")
+    if v < low:
+        raise fail(f"Must be at least {low}")
+    return v
+
+
+class ReminderOffset(ApiModel):
+    days: int
+    recipients: list[Role]
+
+    @field_validator("days", mode="before")
+    @classmethod
+    def _days(cls, v: object) -> int:
+        return _whole_days(v, 1)
+
+    @field_validator("recipients", mode="before")
+    @classmethod
+    def _recipients(cls, v: object) -> list[Role]:
+        return _recipients(v)
+
+
+class ReminderRule(ApiModel):
+    """key 'reminder': maturity reminder offsets (days before maturity)."""
+
+    offsets: list[ReminderOffset]
+
+    @field_validator("offsets", mode="after")
+    @classmethod
+    def _offsets(cls, v: list[ReminderOffset]) -> list[ReminderOffset]:
+        if not v:
+            raise fail("Add at least one reminder offset")
+        if len({o.days for o in v}) != len(v):
+            raise fail("Each offset once")
+        return sorted(v, key=lambda o: -o.days)
+
+
+class AfterDaysRule(ApiModel):
+    """keys 'pending_verification', 'discrepancy_open', 'release_pending'."""
+
+    after_days: int
+    recipients: list[Role]
+
+    @field_validator("after_days", mode="before")
+    @classmethod
+    def _after_days(cls, v: object) -> int:
+        return _whole_days(v)
+
+    @field_validator("recipients", mode="before")
+    @classmethod
+    def _recipients(cls, v: object) -> list[Role]:
+        return _recipients(v)
+
+
+class OverdueRenewalRule(ApiModel):
+    """key 'overdue_renewal': grace after maturity before an un-renewed instrument lapses."""
+
+    grace_days: int
+    recipients: list[Role]
+
+    @field_validator("grace_days", mode="before")
+    @classmethod
+    def _grace_days(cls, v: object) -> int:
+        return _whole_days(v)
+
+    @field_validator("recipients", mode="before")
+    @classmethod
+    def _recipients(cls, v: object) -> list[Role]:
+        return _recipients(v)
+
+
+class EscalationLevel(ApiModel):
+    level: int
+    role: Role
+    after_days: int
+
+    @field_validator("level", mode="before")
+    @classmethod
+    def _level(cls, v: object) -> int:
+        return _whole_days(v, 1)
+
+    @field_validator("role", mode="before")
+    @classmethod
+    def _role(cls, v: object) -> Role:
+        if v not in ROLES:
+            raise fail("Unknown role")
+        return v
+
+    @field_validator("after_days", mode="before")
+    @classmethod
+    def _after_days(cls, v: object) -> int:
+        return _whole_days(v)
+
+
+class EscalationRule(ApiModel):
+    """key 'escalation' (D11): cumulative thresholds from the root alert."""
+
+    levels: list[EscalationLevel]
+    kinds: list[AlertKind]
+
+    @field_validator("levels", mode="after")
+    @classmethod
+    def _levels(cls, v: list[EscalationLevel]) -> list[EscalationLevel]:
+        if [x.level for x in v] != list(range(1, len(v) + 1)):
+            raise fail("Levels must be numbered 1, 2, 3 … in order")
+        if any(b.after_days < a.after_days for a, b in pairwise(v)):
+            raise fail("Each level must start no earlier than the one before")
+        return v
+
+    @field_validator("kinds", mode="before")
+    @classmethod
+    def _kinds(cls, v: object) -> list[AlertKind]:
+        if not isinstance(v, list) or any(k not in ALERT_KINDS for k in v):
+            raise fail("Unknown alert kind")
+        return v
+
+
+RULE_CONFIG_MODELS: dict[str, type[ApiModel]] = {
+    "reminder": ReminderRule,
+    "pending_verification": AfterDaysRule,
+    "discrepancy_open": AfterDaysRule,
+    "overdue_renewal": OverdueRenewalRule,
+    "release_pending": AfterDaysRule,
+    "escalation": EscalationRule,
+}
+
+AlertStatusFilter = Literal["open", "OPEN", "ACKNOWLEDGED", "ESCALATED", "RESOLVED", "all"]
+
+
+class AlertListQuery(ApiModel):
+    status: AlertStatusFilter = "open"
+    kind: AlertKind | None = None
+    instrument_id: str | None = None
+    mine: bool = False
+    level: int | None = None
+    page: int = 1
+    page_size: int = Field(default=50)
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def _status(cls, v: object) -> AlertStatusFilter:
+        v = _blank_to_none(v) or "open"
+        if v not in ("open", "all", *ALERT_STATUSES):
+            raise fail("Use open, all, OPEN, ACKNOWLEDGED, ESCALATED or RESOLVED")
+        return v  # type: ignore[return-value]
+
+    @field_validator("kind", mode="before")
+    @classmethod
+    def _kind(cls, v: object) -> AlertKind | None:
+        v = _blank_to_none(v)
+        if v is None:
+            return None
+        if v not in ALERT_KINDS:
+            raise fail("Unknown alert kind")
+        return v
+
+    @field_validator("instrument_id", mode="before")
+    @classmethod
+    def _instrument_id(cls, v: object) -> str | None:
+        v = _blank_to_none(v)
+        if v is None:
+            return None
+        if not isinstance(v, str) or not _UUID.match(v):
+            raise fail("Not a valid id")
+        return v
+
+    @field_validator("mine", mode="before")
+    @classmethod
+    def _mine(cls, v: object) -> bool:
+        v = _blank_to_none(v)
+        if v in (None, False, "false", "0"):
+            return False
+        if v in (True, "true", "1"):
+            return True
+        raise fail("Use true or false")
+
+    @field_validator("level", mode="before")
+    @classmethod
+    def _level(cls, v: object) -> int | None:
+        v = _blank_to_none(v)
+        return None if v is None else _coerce_int(v, 1, 10)
+
+    @field_validator("page", mode="before")
+    @classmethod
+    def _page(cls, v: object) -> int:
+        return _coerce_int(v, 1, None)
+
+    @field_validator("page_size", mode="before")
+    @classmethod
+    def _page_size(cls, v: object) -> int:
+        return _coerce_int(v, 1, 100)
+
+
+class PageQuery(ApiModel):
+    page: int = 1
+    page_size: int = Field(default=25)
 
     @field_validator("page", mode="before")
     @classmethod

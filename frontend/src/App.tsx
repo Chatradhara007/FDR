@@ -7,6 +7,8 @@ import { ROLE_HOME } from '@/lib/roles';
 import { InstitutionHome } from '@/pages/institution/InstitutionHome';
 import { InstrumentView } from '@/pages/institution/InstrumentView';
 import { InstrumentWizard } from '@/pages/institution/wizard/InstrumentWizard';
+import { AlertsInbox } from '@/pages/alerts/AlertsInbox';
+import { Outbox } from '@/pages/admin/Outbox';
 import { Login } from '@/pages/Login';
 import { ReviewPage } from '@/pages/officer/ReviewPage';
 import { ScrutinyQueue } from '@/pages/officer/ScrutinyQueue';
@@ -29,6 +31,8 @@ export function App() {
         </Route>
         <Route path="/officer/queue" element={<ProtectedRoute roles={['officer', 'approver', 'admin', 'auditor']}><ScrutinyQueue /></ProtectedRoute>} />
         <Route path="/officer/review/:id" element={<ProtectedRoute roles={['officer', 'approver', 'admin', 'auditor']}><ReviewPage /></ProtectedRoute>} />
+        <Route path="/alerts" element={<AlertsInbox />} />
+        <Route path="/admin/outbox" element={<ProtectedRoute roles={['admin']}><Outbox /></ProtectedRoute>} />
         <Route path="*" element={<EmptyState title="Page not found" description="Check the address or use the menu." />} />
       </Route>
     </Routes>

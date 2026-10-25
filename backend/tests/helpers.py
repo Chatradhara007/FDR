@@ -164,3 +164,62 @@ def ready_fdr(user: SeededUser, body: dict[str, Any] | None = None) -> str:
         if res.status_code != 201:
             raise AssertionError(f"upload failed {res.status_code} {res.text}")
     return instrument_id
+
+
+# ---- Phase 04 helpers ----
+
+
+def make_instrument(
+    status: str,
+    maturity: str,
+    *,
+    institution_email: str = "inst1@demo.in",
+    issue: str = "2025-01-01",
+    ref: str | None = None,
+    verification_state: str = "CONFIRMED",
+    submitted_at: str | None = None,
+    parent_id: str | None = None,
+    assigned_officer_id: str | None = None,
+    amount: str = "2500000.00",
+) -> str:
+    """Inserts an instrument straight into the given status (test setup only; the app changes status via transition())."""
+    global _file_counter
+    _file_counter += 1
+    at = clock.now(get_pool())
+    row = one(
+        get_pool(),
+        """INSERT INTO instruments (institution_id, type, reference_no, issuing_bank, amount, issue_date, maturity_date,
+                                beneficiary_name, lien_marked, status, verification_state, submitted_at,
+                                parent_instrument_id, assigned_officer_id, created_at, updated_at)
+     VALUES ($1, 'FDR', $2, 'Canara Bank', $3, $4, $5, 'Member Secretary, AICTE', true, $6::instrument_status,
+             $7::verification_state, $8, $9, $10, $11, $11)
+     RETURNING id""",
+        [
+            institution_id(institution_email), ref or f"CNRB/FD/TEST/{_file_counter:05d}", amount, issue, maturity,
+            status, verification_state, submitted_at, parent_id, assigned_officer_id, at,
+        ],
+    )  # fmt: skip
+    return str(row["id"])
+
+
+def evaluate_on(day: str) -> dict[str, Any]:
+    """Sets the app clock to `day` and runs the evaluation job once."""
+    from app.jobs.evaluate import evaluate
+
+    set_today(day)
+    with transaction() as tx:
+        return dict(evaluate(tx, day))
+
+
+def alerts_of(instrument_id: str) -> list[dict[str, Any]]:
+    return many(
+        get_pool(),
+        """SELECT id, kind, rule_key, subject_id, level, root_alert_id, recipient_role, recipient_user_id, status,
+              resolution, resolution_note, resolved_by, dedupe_key
+         FROM alerts WHERE instrument_id = $1 ORDER BY level, rule_key, recipient_role""",
+        [instrument_id],
+    )
+
+
+def instrument_status(instrument_id: str) -> str:
+    return str(one(get_pool(), "SELECT status FROM instruments WHERE id = $1", [instrument_id])["status"])

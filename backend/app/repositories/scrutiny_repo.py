@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
 from typing import Literal, TypedDict, cast
 
 from ..db.pool import Db, many
 from ..shared_constants import InstrumentStatus, VerificationState
+from .alert_repo import open_alert_stats_sql
 
 AssignedFilter = Literal["me", "unassigned", "all"]
 
@@ -34,14 +36,23 @@ class QueueItem(TypedDict):
     openDiscrepancies: int
     submittedAt: datetime | None
     ageingDays: int | None
+    worstOpenAlertLevel: int | None
+    openAlertCount: int
 
 
-def scrutiny_queue(db: Db, f: QueueFilters, today: str) -> tuple[list[QueueItem], int]:
+def scrutiny_queue(
+    db: Db, f: QueueFilters, today: str, alert_scope: Callable[[list[object]], str]
+) -> tuple[list[QueueItem], int]:
     """§3.7: SUBMITTED / UNDER_SCRUTINY instruments, oldest submission first. Ageing is days from the
     IST submission date to the app clock's `today`."""
+    params: list[object] = [
+        today, f["region"], f["bank"], f["verificationState"], f["assigned"], f["officerId"], f["pageSize"],
+        (f["page"] - 1) * f["pageSize"],
+    ]  # fmt: skip
+    alert_stats = open_alert_stats_sql(alert_scope(params))
     rows = many(
         db,
-        """SELECT i.id, i.reference_no AS "referenceNo", i.issuing_bank AS "issuingBank", i.amount,
+        f"""SELECT i.id, i.reference_no AS "referenceNo", i.issuing_bank AS "issuingBank", i.amount,
             i.maturity_date AS "maturityDate", i.verification_state AS "verificationState", i.status,
             i.assigned_officer_id AS "assignedOfficerId", u.name AS "assignedOfficerName",
             inst.name AS institution, inst.region,
@@ -49,6 +60,7 @@ def scrutiny_queue(db: Db, f: QueueFilters, today: str) -> tuple[list[QueueItem]
               AS "openDiscrepancies",
             i.submitted_at AS "submittedAt",
             ($1::date - (i.submitted_at AT TIME ZONE 'Asia/Kolkata')::date) AS "ageingDays",
+            {alert_stats},
             count(*) OVER () AS total
        FROM instruments i
        JOIN institutions inst ON inst.id = i.institution_id
@@ -61,10 +73,7 @@ def scrutiny_queue(db: Db, f: QueueFilters, today: str) -> tuple[list[QueueItem]
              OR ($5 = 'unassigned' AND i.assigned_officer_id IS NULL))
       ORDER BY i.submitted_at ASC, i.id
       LIMIT $7 OFFSET $8""",
-        [
-            today, f["region"], f["bank"], f["verificationState"], f["assigned"], f["officerId"], f["pageSize"],
-            (f["page"] - 1) * f["pageSize"],
-        ],
-    )  # fmt: skip
+        params,
+    )
     total = int(rows[0]["total"]) if rows else 0
     return [cast(QueueItem, {k: v for k, v in r.items() if k != "total"}) for r in rows], total

@@ -10,3 +10,6 @@ export type TrackedField = 'reference_no' | 'issuing_bank' | 'amount' | 'issue_d
 export type Bank = 'State Bank of India' | 'Punjab National Bank' | 'Bank of Baroda' | 'Canara Bank' | 'Union Bank of India' | 'HDFC Bank' | 'ICICI Bank' | 'Axis Bank' | 'Bank of India' | 'Indian Overseas Bank' | 'Kotak Mahindra Bank';
 export type VerificationResult = 'CONFIRMED' | 'MISMATCH' | 'NOT_FOUND' | 'PENDING' | 'UNAVAILABLE' | 'STALE';
 export type ObservationSeverity = 'INFO' | 'CONCERN' | 'BLOCKING';
+export type AlertKind = 'MATURITY_REMINDER' | 'PENDING_VERIFICATION' | 'DISCREPANCY_OPEN' | 'OVERDUE_RENEWAL' | 'RELEASE_PENDING';
+export type AlertStatus = 'OPEN' | 'ACKNOWLEDGED' | 'ESCALATED' | 'RESOLVED';
+export type AlertResolution = 'SYSTEM_CONDITION_CLEARED' | 'MANUAL' | 'SUPERSEDED';

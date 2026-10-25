@@ -5,7 +5,7 @@ import { VERIFICATION_STATES, VERIFICATION_STATE_LABELS, type QueueItem } from '
 import { useMeta } from '@/api/instruments';
 import { useClaim, useQueue } from '@/api/scrutiny';
 import { useAuth } from '@/auth/AuthContext';
-import { Button, DateText, Money, PageHeader, StatusChip, Table, VerificationChip, useToast, type Column } from '@/components';
+import { Button, DateText, Money, PageHeader, StatusChip, Table, VerificationChip, WorstAlertChip, useToast, type Column } from '@/components';
 
 /** Days since submission: amber after 5, red after 10 (icon + text, never colour alone). */
 export function Ageing({ days }: { days: number | null }) {
@@ -58,6 +58,7 @@ export function ScrutinyQueue() {
       cell: (r) => <div><DateText value={r.submittedAt} /><div className="text-xs"><Ageing days={r.ageingDays} /></div></div>,
     },
     { key: 'verification', header: 'Verification', cell: (r) => <VerificationChip state={r.verificationState} /> },
+    { key: 'alerts', header: 'Alerts', sortValue: (r) => r.worstOpenAlertLevel, cell: (r) => <WorstAlertChip level={r.worstOpenAlertLevel} count={r.openAlertCount} /> },
     {
       key: 'disc', header: 'Discrepancies', align: 'right', className: 'whitespace-nowrap', sortValue: (r) => r.openDiscrepancies,
       cell: (r) => r.openDiscrepancies ? <span className="inline-flex items-center gap-1 font-medium text-danger-700"><AlertTriangle className="size-3.5" aria-hidden />{r.openDiscrepancies} open</span> : <span className="text-slate-400">None</span>,

@@ -2,11 +2,11 @@
 // backend also reads); literal types come from the generated constants.gen.ts.
 import c from '../constants.json';
 import type {
-  Bank, DocType, InstrumentStatus, InstrumentType, ObservationSeverity, Role, TrackedField, TrustTier, VerificationResult, VerificationState,
+  AlertKind, AlertResolution, AlertStatus, Bank, DocType, InstrumentStatus, InstrumentType, ObservationSeverity, Role, TrackedField, TrustTier, VerificationResult, VerificationState,
 } from './constants.gen';
 
 export type {
-  Bank, DocType, InstrumentStatus, InstrumentType, ObservationSeverity, Role, TrackedField, TrustTier, VerificationResult, VerificationState,
+  AlertKind, AlertResolution, AlertStatus, Bank, DocType, InstrumentStatus, InstrumentType, ObservationSeverity, Role, TrackedField, TrustTier, VerificationResult, VerificationState,
 } from './constants.gen';
 
 export const ROLES = c.roles as readonly Role[];
@@ -41,6 +41,12 @@ export const TRACKED_FIELD_KEYS = c.trackedFieldKeys as Record<TrackedField, str
 export const DISCREPANCY_REASONS = c.discrepancyReasons as Record<TrackedField, string>;
 
 export const BANKS = c.banks as readonly Bank[];
+
+export const ALERT_KINDS = c.alertKinds as readonly AlertKind[];
+export const ALERT_KIND_LABELS = c.alertKindLabels as Record<AlertKind, string>;
+export const ALERT_STATUSES = c.alertStatuses as readonly AlertStatus[];
+export const ALERT_STATUS_LABELS = c.alertStatusLabels as Record<AlertStatus, string>;
+export const ALERT_RESOLUTION_LABELS = c.alertResolutionLabels as Record<AlertResolution, string>;
 
 export const EVENT_LABELS = c.eventLabels as Record<string, string>;
 export const INSTITUTION_VISIBLE_ACTIONS = c.institutionVisibleActions as readonly string[];

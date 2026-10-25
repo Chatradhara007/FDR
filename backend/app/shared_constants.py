@@ -32,6 +32,12 @@ TrackedField = Literal[
     "reference_no", "issuing_bank", "amount", "issue_date", "maturity_date", "beneficiary_name", "lien_marked",
 ]  # fmt: skip
 
+AlertKind = Literal[
+    "MATURITY_REMINDER", "PENDING_VERIFICATION", "DISCREPANCY_OPEN", "OVERDUE_RENEWAL", "RELEASE_PENDING"
+]
+AlertStatus = Literal["OPEN", "ACKNOWLEDGED", "ESCALATED", "RESOLVED"]
+AlertResolution = Literal["SYSTEM_CONDITION_CLEARED", "MANUAL", "SUPERSEDED"]
+
 
 class RuleDefault(TypedDict):
     key: str
@@ -68,6 +74,10 @@ FIELD_LABELS: dict[TrackedField, str] = _data["fieldLabels"]
 TRACKED_FIELD_KEYS: dict[TrackedField, str] = _data["trackedFieldKeys"]
 BANKS: tuple[str, ...] = tuple(_data["banks"])
 RULE_DEFAULTS: tuple[RuleDefault, ...] = tuple(_data["ruleDefaults"])
+ALERT_KINDS: tuple[AlertKind, ...] = tuple(_data["alertKinds"])
+ALERT_KIND_LABELS: dict[AlertKind, str] = _data["alertKindLabels"]
+ALERT_STATUSES: tuple[AlertStatus, ...] = tuple(_data["alertStatuses"])
+ALERT_RESOLUTIONS: tuple[AlertResolution, ...] = tuple(_data["alertResolutions"])
 EVENT_LABELS: dict[str, str] = _data["eventLabels"]
 INSTITUTION_VISIBLE_ACTIONS: tuple[str, ...] = tuple(_data["institutionVisibleActions"])
 
@@ -91,6 +101,9 @@ def _check_literals() -> None:
         (TrackedField, TRACKED_FIELDS),
         (VerificationResult, VERIFICATION_RESULTS),
         (ObservationSeverity, OBSERVATION_SEVERITIES),
+        (AlertKind, ALERT_KINDS),
+        (AlertStatus, ALERT_STATUSES),
+        (AlertResolution, ALERT_RESOLUTIONS),
     ):
         if get_args(literal) != values:
             raise RuntimeError(f"{CONSTANTS_PATH} does not match the Literal types in shared_constants.py: {values}")

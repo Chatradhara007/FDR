@@ -9,7 +9,7 @@ Claude Code updates this file at the end of every phase. Read it first in every 
 | 02 | Submission and documents | done | (this commit) | All 11 checks pass (AC11 run in headless Chromium) |
 | — | Stack migration: backend + mock bank → Python (D28) | done | (this commit) | Phases 00–02 ported 1:1; 100 backend pytest + 1 mock-bank + 7 shared vitest; UI checks re-run |
 | 03 | Scrutiny, mock bank, trust tiers | done | (this commit) | All 15 checks pass (AC15 run in headless Chromium) |
-| 04 | Rules engine, alerts, escalation | not started | | |
+| 04 | Rules engine, alerts, escalation | done | (this commit) | All 13 checks pass (AC13 run in headless Chromium) |
 | 05 | Renewal chain and passport | not started | | |
 | 06 | Release workflow | not started | | |
 | 07 | Dashboard, my day, reports, metrics | not started | | |
@@ -133,6 +133,21 @@ Deviations / choices in the port:
 - Mock bank (Python): `POST /verify`, `GET /records`, `POST /records/load {records}`, `POST /reload`, `GET /health`;
   dev data `mock-bank/data/records.example.json` (used until `records.json` is written by a load)
 
+**Phase 04** (all under `/api/v1`)
+- `POST /clock/advance`, `/clock/set`, `/clock/reset` (admin) now run the evaluation job in the same transaction and return
+  `{ clock: { mode, now, today, warning? }, summary: { asOf, statusChanges, alertsCreated, escalations, resolved, superseded } }`
+- `POST /jobs/evaluate` (admin) → the summary
+- `GET /alerts` (all roles, scoped per D23) — `status` (`open` = OPEN+ACKNOWLEDGED default, `OPEN`, `ACKNOWLEDGED`,
+  `ESCALATED`, `RESOLVED`, `all`), `kind`, `instrumentId`, `mine=true` (addressed to me), `level`, `page`, `pageSize` (50, max
+  100); items joined with instrument reference/type/status/bank/amount/maturity, institution name, `ageDays` from the root
+- `GET /alerts/summary` → `{ total, byKind, byLevel }` (open = OPEN+ACKNOWLEDGED, for the bell)
+- `POST /alerts/:id/acknowledge` (all but auditor; does not stop escalation), `POST /alerts/:id/resolve {note}` (officer,
+  approver, admin → `MANUAL`); an alert not addressed to the user → 404
+- `GET /outbox` (admin) → simulated emails, newest first, paged
+- `GET /instruments` and `GET /scrutiny/queue` items gain `worstOpenAlertLevel` and `openAlertCount`
+- Real clock: APScheduler evaluates at start-up and daily at 06:00 IST while the clock mode is REAL (`SCHEDULER_ENABLED=false`
+  turns it off; the tests do)
+
 ## Pages added
 
 (append per phase)
@@ -176,6 +191,20 @@ Deviations / choices in the port:
 - Institution: detail page and wizard show the return reason and observations marked visible
 - New components: `TrustBadge` (Claimed outline circle / Document-checked file-check / Bank-confirmed shield-check;
   `TrustChip` is now an alias), `WeakestTierBadge`, `ObservationItem` + `SeverityChip`
+
+**Phase 04**
+- Header (admin): clock widget +1d / +7d / +30d / +90d, "Set date…", "Reset to today"; toast built from the summary
+  (`App date 2 Nov 2026 (simulated): 1 status change · 5 alerts · 0 escalations · 0 resolved`); moving backwards (an earlier
+  date, or Reset while the simulated date is ahead of the browser's date) asks for confirmation; every query is invalidated
+- Header (all roles): bell with the open alert count (`/alerts/summary`, polled every 30 s and refreshed after clock changes)
+- `/alerts` (all roles): tabs Open / Acknowledged / Escalated / Resolved, alerts grouped by instrument (reference, status chip,
+  institution, bank, amount, maturity, Open instrument), kind chip with icon, level chip (`L1`, `L2 · Escalated to approver`,
+  `L3 · Escalated to administrator`), due date and age, Acknowledge, Resolve with note (internal roles), resolution text
+- `/admin/outbox` (admin): table of simulated emails (time, recipient, subject); click opens the email
+- Institution home table and scrutiny queue gain an "Alerts" column (worst open level + count, icon + text)
+- Sidebar: "Alerts" for every role, "Outbox" for admin
+- New components: `AlertKindChip`, `AlertLevelChip`, `WorstAlertChip`, `AlertBell`; `NoteModal` moved from
+  `pages/officer/review/` to `components/` (reused by the inbox)
 
 ## Deviations / choices
 
@@ -250,7 +279,7 @@ Deviations / choices in the port:
   `records.example.json`. The example file includes demo A1 (`SBIN/FDR/2026/00731`, ₹20 L) so demo steps 1–2 work before Phase 9.
 - A CLOSED deposit whose fields all match still gets an OPEN discrepancy on `reference_no` with reason "Deposit closed at bank"
   (otherwise a MISMATCH would have nothing to resolve).
-- Re-verification: a field that was BANK_CONFIRMED and is now contradicted by the bank drops to CLAIMED (source `institution`)
+- Re-verification (now DECISIONS D29): a field that was BANK_CONFIRMED and is now contradicted by the bank drops to CLAIMED (source `institution`)
   besides getting the discrepancy — keeping a confirmation the bank now disputes would overstate the proof. Fields that were
   CLAIMED/DOCUMENT keep their tier as specified. A MISMATCH response also auto-resolves open discrepancies of fields that now match.
 - `verifications.requested_at` / `responded_at` come from the app clock (rule 2); the bank's own `responded_at` stays in
@@ -270,7 +299,38 @@ Deviations / choices in the port:
 - `shared/constants.json` gains `verifiableStatuses`, `verificationResults` (+ labels), `observationSeverities` (+ labels),
   `discrepancyReasons`, new event labels; `institutionVisibleActions` += INSTRUMENT_RETURNED, INSTRUMENT_ACCEPTED,
   VERIFICATION_RESULT (D24). `gen_shared_types.py` emits `VerificationResult` and `ObservationSeverity`.
-- `after_accept(tx, inst)` hook in `scrutiny_service.py` is a no-op for Phases 4/5.
+- `after_accept(tx, inst)` hook in `scrutiny_service.py` is a no-op for Phases 4/5 (Phase 04 filled in the targeted sweep).
+
+Phase 04:
+- `JOB_EVALUATED` is written only when some counter is non-zero, so a repeat run on the same date leaves no trace at all (AC2).
+  It carries the summary in `after_json`.
+- Clock change and evaluation run in **one** transaction (clock row locked, `CLOCK_*` event, then the job), so a failed run
+  leaves the clock unchanged. Phase 01 tests and `useClockMutation` were updated for the `{ clock, summary }` response (spec §4.4).
+- Summary counters: `alertsCreated` = live alerts inserted by maturity reminders and the process step; `superseded` = live
+  reminders updated to SUPERSEDED plus looser ones inserted already superseded; `escalations` = new higher-level alerts (not
+  also counted as created); `resolved` = auto-resolved (SYSTEM_CONDITION_CLEARED).
+- `OVERDUE_RENEWAL` keeps one `rule_key` (`overdue_renewal`, due = maturity + grace) across MATURED → LAPSED, so the escalation
+  chain is not restarted by the lapse; its message is fixed when created ("matured … grace ends …" or "lapsed …").
+- Escalated alerts copy the root's due date and message, prefixed "Escalated to approver (L2) — not resolved for N days.";
+  their recipients follow D23 (officer level → assigned officer). Each escalated alert gets an outbox email.
+- No per-alert `ALERT_CREATED` event (the outbox row and `JOB_EVALUATED` record creation). `ALERT_ACKNOWLEDGED`,
+  `ALERT_ESCALATED` and `ALERT_RESOLVED` (manual, auto-resolved, superseded) are events.
+- Alert visibility (D23): institution → own institution's institution copies; officer → officer copies addressed to them or to
+  the pool; approver / admin → their role's copies; auditor → all (read-only). `worstOpenAlertLevel` / `openAlertCount` on
+  instrument lists count every open copy for AICTE roles (so the queue shows an item escalated to L3) and only their own
+  copies for institutions.
+- `PENDING_VERIFICATION` / `DISCREPANCY_OPEN` ages use the IST calendar date of `submitted_at` / the discrepancy's
+  `created_at`; `>= afterDays` triggers (5 days after submission). Discrepancy alerts are not raised on RENEWED/RELEASED.
+- Rule configs are validated by pydantic models in `schemas.py` (`ReminderRule`, `AfterDaysRule`, `OverdueRenewalRule`,
+  `EscalationRule`, `RULE_CONFIG_MODELS`, for the Phase 8 editor). A missing rule falls back to its default in
+  `shared/constants.json`; an invalid stored config fails the run with 500 `RULE_INVALID` (nothing is applied).
+- Alert inserts are batched (`jsonb_to_recordset`, `ON CONFLICT (dedupe_key) DO NOTHING RETURNING`), ids generated in Python
+  so level-1 alerts carry `root_alert_id = id`. The 365-day jump over 500 instruments takes ≈2 s here.
+- The inbox has a fourth tab, "Escalated", so an officer can see what climbed above them.
+- `GET /alerts/summary` (the bell) counts OPEN + ACKNOWLEDGED, as `GET /alerts`'s default; acknowledging does not lower it.
+- Phase 01 source guard: the `SET status` pattern now matches only `UPDATE instruments … SET status`, so
+  `UPDATE alerts SET status` is allowed; the instruments guard is as strict as before.
+- Scheduler uses the fixed IST offset from `domain/clock.py` (no tz database needed on Windows).
 
 ## Known issues / follow-ups
 
@@ -280,7 +340,7 @@ Deviations / choices in the port:
   needs a re-run on a machine with Docker to confirm.
 - ~~Phase 01: switch `migrate()`'s `appliedAt` to the app clock; move StatusChip statuses to the shared enum;
   add the `app_clock` row to `insertFixedRows()`~~ — resolved in Phase 01.
-- Phase 04: clock endpoints should run the evaluation job and return its summary.
+- ~~Phase 04: clock endpoints should run the evaluation job and return its summary.~~ — resolved in Phase 04.
 - Python migration: Docker images were not built here (no Docker). The backend and mock-bank image layouts were
   simulated (same COPY paths, clean `python3.12` venv, non-editable install): constants, migrations and the DB
   resolve. **`docker compose up --build` re-run pending, to be done by the user** (with `DB_HOST_PORT=55432`).
@@ -339,3 +399,16 @@ Deviations / choices in the port:
   and saw no clock controls; admin +7d → `SIMULATED · 1 Nov 2026`, Set date 2026-12-12 → `SIMULATED · 12 Dec 2026`,
   Reset → `Today · …`; wrong password showed "Email or password is incorrect"; invalid email showed a field error;
   no console errors.
+- Phase 04 checks 1–6, 8, 12: `backend/tests/test_phase04_job.py` (also: targeted sweep after accept, grace period, overdue
+  messages, discrepancy alerts); 7, 9, 10: `test_phase04_alerts.py` (also: assigned officer vs pool, filters/summary, list
+  alert columns); 11: `test_phase04_clock.py` (also: backwards move keeps alerts, `/jobs/evaluate`, outbox, rules read per run,
+  rule validation, scheduler only in REAL mode).
+- Phase 04 check 13 (UI), cloud sandbox, `npm run seed` + three scratch instruments + `npm run dev` + headless Chromium:
+  admin +7d → toast "App date 2 Nov 2026 (simulated): 1 status change · 5 alerts · 0 escalations · 0 resolved", badge
+  `SIMULATED · 2 Nov 2026`; next +7d → "1 escalation"; next → L3 reached the admin: bell 1, `/alerts` showed one instrument group
+  with "Verification pending" + "L3 · Escalated to administrator"; Outbox listed the emails and opened one; Set date to an earlier
+  day showed "Move the clock backwards?" and Cancel left the date unchanged. Officer: bell count, queue row "L3 · 1 open",
+  inbox grouped by instrument, Acknowledge moved the row to the Acknowledged tab, Resolve with an empty note showed "Note is
+  required", with a note → Resolved tab "Resolved by hand — …". Institution 1: home table "Alerts" column `L1 · 1 open`, inbox
+  with only its own two instruments and no Resolve button. Officer review page Return modal still opens (NoteModal move).
+  No console errors. Dev DB reset and re-seeded afterwards.

@@ -1,5 +1,5 @@
 import type {
-  DocType, InstrumentStatus, InstrumentType, ObservationSeverity, Role, TrackedField, TrustTier, VerificationResult, VerificationState,
+  AlertKind, AlertResolution, AlertStatus, DocType, InstrumentStatus, InstrumentType, ObservationSeverity, Role, TrackedField, TrustTier, VerificationResult, VerificationState,
 } from './constants.gen';
 
 /** API shapes (camelCase) shared by backend responses and the frontend. */
@@ -78,6 +78,9 @@ export interface InstrumentListItem {
   daysToMaturity: number | null;
   /** Lowest trust tier among the seven tracked fields; null before the first submission. */
   weakestTier: TrustTier | null;
+  /** Highest escalation level among open alerts on it (institutions: their own copies only); null when none. */
+  worstOpenAlertLevel: number | null;
+  openAlertCount: number;
   version: number;
   updatedAt: string;
 }
@@ -301,6 +304,8 @@ export interface QueueItem {
   openDiscrepancies: number;
   submittedAt: string | null;
   ageingDays: number | null;
+  worstOpenAlertLevel: number | null;
+  openAlertCount: number;
 }
 
 export interface QueueResponse {
@@ -314,4 +319,84 @@ export interface ObservationInput {
   text: string;
   severity: ObservationSeverity;
   visibleToInstitution: boolean;
+}
+
+/** Counters returned by one run of the evaluation job (Phase 04). */
+export interface EvaluationSummary {
+  asOf: string;
+  statusChanges: number;
+  alertsCreated: number;
+  escalations: number;
+  resolved: number;
+  superseded: number;
+}
+
+/** POST /clock/advance | /clock/set | /clock/reset: the clock moved and the job ran for the new date. */
+export interface ClockChange {
+  clock: ClockState;
+  summary: EvaluationSummary;
+}
+
+export interface Alert {
+  id: string;
+  instrumentId: string;
+  kind: AlertKind;
+  ruleKey: string;
+  subjectId: string;
+  level: number;
+  rootAlertId: string;
+  recipientRole: Role;
+  recipientUserId: string | null;
+  institutionId: string;
+  dueDate: string;
+  message: string;
+  status: AlertStatus;
+  resolution: AlertResolution | null;
+  resolutionNote: string | null;
+  createdAt: string;
+  acknowledgedAt: string | null;
+  resolvedAt: string | null;
+  rootCreatedAt: string;
+  /** Days since the first alert of the escalation chain (app clock). */
+  ageDays: number;
+  instrumentReferenceNo: string | null;
+  instrumentType: InstrumentType;
+  instrumentStatus: InstrumentStatus;
+  issuingBank: string | null;
+  amount: string | null;
+  maturityDate: string | null;
+  institutionName: string;
+}
+
+export interface AlertListResponse {
+  items: Alert[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface AlertSummary {
+  total: number;
+  byKind: Record<AlertKind, number>;
+  byLevel: Record<string, number>;
+}
+
+export interface OutboxItem {
+  id: number;
+  alertId: string | null;
+  toRole: Role | null;
+  toUserId: string | null;
+  toUserName: string | null;
+  toInstitutionId: string | null;
+  toInstitutionName: string | null;
+  subject: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface OutboxResponse {
+  items: OutboxItem[];
+  total: number;
+  page: number;
+  pageSize: number;
 }

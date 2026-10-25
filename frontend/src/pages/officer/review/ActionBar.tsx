@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { LIVE_STATUSES, type ReviewPayload, type VerifyResponse } from '@fdr/shared';
 import { useAccept, useVerify } from '@/api/scrutiny';
 import { Button, useToast } from '@/components';
-import { NoteModal } from './NoteModal';
+import { NoteModal } from '@/components/NoteModal';
 
 /** Seconds left on the bank's "retry after", counting down once a second. */
 function useCountdown(): [number, (s: number) => void] {
