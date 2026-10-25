@@ -65,8 +65,10 @@ ALLOWED: dict[InstrumentStatus, tuple[InstrumentStatus, ...]] = {
 }
 LIVE_STATUSES: tuple[InstrumentStatus, ...] = tuple(_data["liveStatuses"])
 TERMINAL_STATUSES: tuple[InstrumentStatus, ...] = tuple(_data["terminalStatuses"])
+RENEWABLE_STATUSES: tuple[InstrumentStatus, ...] = tuple(_data["renewableStatuses"])
 VERIFIABLE_STATUSES: tuple[InstrumentStatus, ...] = tuple(_data["verifiableStatuses"])
 VERIFICATION_RESULTS: tuple[VerificationResult, ...] = tuple(_data["verificationResults"])
+VERIFICATION_RESULT_LABELS: dict[str, str] = _data["verificationResultLabels"]
 OBSERVATION_SEVERITIES: tuple[ObservationSeverity, ...] = tuple(_data["observationSeverities"])
 DISCREPANCY_REASONS: dict[TrackedField, str] = _data["discrepancyReasons"]
 TRACKED_FIELDS: tuple[TrackedField, ...] = tuple(_data["trackedFields"])

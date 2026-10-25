@@ -273,16 +273,20 @@ class ResolvedAlert(TypedDict):
     level: int
 
 
-def auto_resolve(db: Db, still_relevant_sql: str, at: datetime) -> list[ResolvedAlert]:
-    """Closes every live alert (incl. ESCALATED links of a chain) whose condition no longer holds."""
+def auto_resolve(
+    db: Db, still_relevant_sql: str, at: datetime, instrument_id: str | None = None
+) -> list[ResolvedAlert]:
+    """Closes every live alert (incl. ESCALATED links of a chain) whose condition no longer holds; with
+    `instrument_id`, only that instrument's (targeted, e.g. after a renewal is activated)."""
     rows = many(
         db,
         f"""UPDATE alerts a SET status = 'RESOLVED', resolution = 'SYSTEM_CONDITION_CLEARED', resolved_at = $1
        FROM instruments i
       WHERE i.id = a.instrument_id AND a.status IN ('OPEN','ACKNOWLEDGED','ESCALATED')
+        AND ($2::uuid IS NULL OR a.instrument_id = $2)
         AND NOT ({still_relevant_sql})
       RETURNING a.id, a.instrument_id AS "instrumentId", a.kind, a.level""",
-        [at],
+        [at, instrument_id],
     )
     return cast(list[ResolvedAlert], rows)
 

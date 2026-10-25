@@ -8,9 +8,8 @@ from typing import TypedDict
 from ..db.pool import Conn, Db, get_pool, transaction
 from ..domain import clock
 from ..domain.access import AuthUser, actor_of, scope_alert_stats_query
-from ..domain.audit import record_event
+from ..domain.audit import Actor, record_event
 from ..domain.errors import AcceptBlocked, InvalidState, NotFound, ValidationFailed
-from ..domain.fields import tracked_value
 from ..domain.gaps import Gap, find_gaps
 from ..domain.rules import load_rules
 from ..domain.state_machine import transition
@@ -36,17 +35,9 @@ from ..shared_constants import (
     TRACKED_FIELDS,
     VERIFICATION_STATE_LABELS,
     TrackedField,
-    TrustTier,
 )
-from .instrument_service import InstrumentDetail, doc_rules, get_instrument
-
-
-class ReviewField(TypedDict):
-    fieldName: TrackedField
-    value: str
-    tier: TrustTier
-    source: str | None
-    updatedAt: object
+from .instrument_service import InstrumentDetail, ReviewField, doc_rules, field_rows, get_instrument
+from .renewal_service import activate_renewal, check_replacement, parent_of, raise_replacement_concerns
 
 
 class Review(TypedDict):
@@ -107,21 +98,7 @@ def get_review(user: AuthUser, instrument_id: str, db: Db | None = None) -> Revi
     """Everything the review page needs in one call (§3.6)."""
     db = db or get_pool()
     detail = get_instrument(user, instrument_id, db)
-    prov = {p["fieldName"]: p for p in detail["provenance"]}
-    fields: list[ReviewField] = []
-    for f in TRACKED_FIELDS:
-        p = prov.get(f)
-        fields.append(
-            {"fieldName": f, "value": p["value"], "tier": p["tier"], "source": p["source"], "updatedAt": p["updatedAt"]}
-            if p
-            else {
-                "fieldName": f,
-                "value": tracked_value(f, detail),
-                "tier": "CLAIMED",
-                "source": None,
-                "updatedAt": None,
-            }
-        )
+    fields = field_rows(detail)
     documents = [d["docType"] for d in detail["documents"]]
     gaps = _gaps(db, detail, documents)
     hard, verification = accept_blockers(db, detail, documents)
@@ -262,9 +239,10 @@ def resolve_discrepancy_with_note(user: AuthUser, discrepancy_id: str, note: str
     return get_review(user, d["instrumentId"])
 
 
-def after_accept(tx: Conn, inst: InstrumentRow) -> None:
-    """Targeted sweep (D20): an instrument accepted close to (or past) maturity moves on at once. Phase 5 adds
-    renewal activation."""
+def after_accept(tx: Conn, inst: InstrumentRow, actor: Actor) -> None:
+    """A replacement activates its renewal chain (§5.4: the parent becomes RENEWED, or the whole accept rolls back),
+    then the targeted sweep (D20) moves an instrument accepted close to (or past) maturity on at once."""
+    activate_renewal(tx, inst, actor)
     sweep_instrument(tx, inst, clock.today(tx), load_rules(tx))
 
 
@@ -277,6 +255,13 @@ def accept(user: AuthUser, instrument_id: str, data: AcceptInput) -> Review:
         reasons = [*hard, *([verification] if verification and not data.override_note else [])]
         if reasons:
             raise AcceptBlocked(reasons)
+        parent = parent_of(tx, inst)
+        if parent:
+            # §5.3 is checked again at accept; the soft checks add any concern not raised yet.
+            issues = check_replacement(tx, inst, parent)
+            if issues:
+                raise ValidationFailed(issues)
+            raise_replacement_concerns(tx, inst, parent)
         override_note = data.override_note if verification else None
         set_acceptance(tx, instrument_id, user.id, override_note, clock.now(tx))
         transition(tx, {"id": instrument_id, "status": inst["status"]}, "ACTIVE", actor_of(user))
@@ -285,5 +270,5 @@ def accept(user: AuthUser, instrument_id: str, data: AcceptInput) -> Review:
         if override_note:
             _event(tx, user, "ACCEPTED_WITH_OVERRIDE", "instrument", instrument_id, instrument_id,
                    {"overrideNote": override_note, "verificationState": inst["verificationState"]})  # fmt: skip
-        after_accept(tx, lock_instrument(tx, instrument_id))
+        after_accept(tx, lock_instrument(tx, instrument_id), actor_of(user))
     return get_review(user, instrument_id)

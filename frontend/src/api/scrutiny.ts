@@ -30,6 +30,7 @@ function useStoreReview() {
     qc.setQueryData(['instrument', review.instrument.id], review.instrument);
     void qc.invalidateQueries({ queryKey: ['queue'] });
     void qc.invalidateQueries({ queryKey: ['instruments'] });
+    void qc.invalidateQueries({ queryKey: ['passport'] });
   };
 }
 

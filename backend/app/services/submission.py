@@ -20,6 +20,7 @@ from .instrument_service import (
     is_editable,
     missing_docs,
 )
+from .renewal_service import check_replacement, parent_of, raise_replacement_concerns
 
 
 def submit_instrument(user: AuthUser, instrument_id: str) -> InstrumentDetail:
@@ -38,6 +39,11 @@ def submit_instrument(user: AuthUser, instrument_id: str) -> InstrumentDetail:
         today = clock.ist_date(now)
         rules = doc_rules(tx)
         fields = submission_issues(inst, today)
+        parent = parent_of(tx, inst)
+        if parent:
+            # §5.3: a replacement must mature after what it replaces (listed with every other failing field).
+            seen = {i["field"] for i in fields}
+            fields += [i for i in check_replacement(tx, inst, parent) if i["field"] not in seen]
         missing = missing_docs(
             rules["requiredDocs"][inst["type"]], [d["docType"] for d in list_live_documents(tx, instrument_id)]
         )
@@ -63,6 +69,8 @@ def submit_instrument(user: AuthUser, instrument_id: str) -> InstrumentDetail:
         )
         set_submission_meta(tx, instrument_id, now, verification_state)
         transition(tx, {"id": instrument_id, "status": inst["status"]}, "SUBMITTED", actor_of(user))
+        if parent:
+            raise_replacement_concerns(tx, inst, parent)
         record_event(
             tx,
             actor=actor_of(user),

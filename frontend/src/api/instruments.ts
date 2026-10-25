@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
-  DocType, InstrumentCreateInput, InstrumentDetail, InstrumentListResponse, InstrumentPatchInput, Meta, UploadResponse,
+  DocType, InstrumentCreateInput, InstrumentDetail, InstrumentListResponse, InstrumentPatchInput, Meta, Passport, UploadResponse,
 } from '@fdr/shared';
 import { apiFetch, apiUpload } from './client';
 
-// Server state for instruments (TanStack Query). Keys: ['instruments', params] lists, ['instrument', id] details.
+// Server state for instruments (TanStack Query). Keys: ['instruments', params] lists, ['instrument', id] details,
+// ['passport', id] passports.
 
 export function useMeta() {
   return useQuery({ queryKey: ['meta'], queryFn: () => apiFetch<Meta>('/meta'), staleTime: 5 * 60_000 });
@@ -31,6 +32,23 @@ export function useInstrument(id: string | undefined) {
   });
 }
 
+export function usePassport(id: string | undefined) {
+  return useQuery({
+    queryKey: ['passport', id],
+    queryFn: () => apiFetch<Passport>(`/instruments/${id}/passport`),
+    enabled: !!id,
+  });
+}
+
+/** POST /instruments/:id/renew — returns the new replacement draft. */
+export function useRenew() {
+  const store = useStoreDetail();
+  return useMutation({
+    mutationFn: (parentId: string) => apiFetch<InstrumentDetail>(`/instruments/${parentId}/renew`, { method: 'POST', body: {} }),
+    onSuccess: (d) => store(d),
+  });
+}
+
 /** After any write: store the fresh detail and refresh lists. */
 function useStoreDetail() {
   const qc = useQueryClient();
@@ -38,6 +56,7 @@ function useStoreDetail() {
     if (detail) qc.setQueryData(['instrument', detail.id], detail);
     else if (id) void qc.invalidateQueries({ queryKey: ['instrument', id] });
     void qc.invalidateQueries({ queryKey: ['instruments'] });
+    void qc.invalidateQueries({ queryKey: ['passport'] });
   };
 }
 

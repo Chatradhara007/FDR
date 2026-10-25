@@ -400,3 +400,75 @@ export interface OutboxResponse {
   page: number;
   pageSize: number;
 }
+
+// ---- Phase 05: renewal chain and passport ----
+
+/** One link of a renewal chain, oldest first. `gapDaysFromPrevious`: positive = gap, negative = overlap. */
+export interface ChainLink {
+  id: string;
+  referenceNo: string | null;
+  issuingBank: string | null;
+  amount: string | null;
+  issueDate: string | null;
+  maturityDate: string | null;
+  status: InstrumentStatus;
+  depth: number;
+  isCurrent: boolean;
+  gapDaysFromPrevious: number | null;
+  gapKind: 'gap' | 'overlap' | 'continuous' | 'unknown' | null;
+}
+
+/** Institutions get the outcome and per-field match only (D24); AICTE roles also the raw payloads. */
+export interface PassportVerification {
+  id: string;
+  result: VerificationResult;
+  requestedAt: string;
+  respondedAt: string | null;
+  fieldMatches: Partial<Record<TrackedField, boolean>>;
+  requestedByName?: string | null;
+  source?: string;
+  requestPayload?: Record<string, string>;
+  responsePayload?: BankResponse | null;
+}
+
+export type TimelineIcon =
+  | 'status' | 'renewal' | 'view' | 'document' | 'bank' | 'discrepancy' | 'observation' | 'alert' | 'return' | 'accept' | 'edit'
+  | 'clock' | 'event';
+
+export interface TimelineEvent {
+  id: number;
+  action: string;
+  label: string;
+  icon: TimelineIcon;
+  actor: string;
+  at: string;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+}
+
+export interface PassportSummary {
+  daysToMaturity: number | null;
+  weakestTier: TrustTier | null;
+  openProblems: Gap[];
+  acceptedWithOverride: boolean;
+  overrideNote: string | null;
+  openAlertCount: number;
+  worstOpenAlertLevel: number | null;
+}
+
+/** GET /instruments/:id/passport — the whole story of one instrument, filtered by role. */
+export interface Passport {
+  instrument: InstrumentDetail;
+  fields: ReviewField[];
+  weakestTier: TrustTier | null;
+  chain: ChainLink[];
+  documents: DocumentInfo[];
+  verifications: PassportVerification[];
+  discrepancies: Discrepancy[];
+  observations: Observation[];
+  returns: ReturnRecord[];
+  alerts: Alert[];
+  releaseRequests: unknown[];
+  summary: PassportSummary;
+  timeline: TimelineEvent[];
+}

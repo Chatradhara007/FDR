@@ -46,7 +46,7 @@ export function ScrutinyQueue() {
       key: 'ref', header: 'Reference', sortValue: (r) => r.referenceNo,
       cell: (r) => (
         <div className="space-y-1">
-          <Link to={`/officer/review/${r.id}`} onClick={(e) => e.stopPropagation()} className="font-medium whitespace-nowrap text-primary-700 hover:underline">{r.referenceNo}</Link>
+          <Link to={`/instruments/${r.id}`} title="Open passport" onClick={(e) => e.stopPropagation()} className="font-medium whitespace-nowrap text-primary-700 hover:underline">{r.referenceNo}</Link>
           <div><StatusChip status={r.status} /></div>
         </div>
       ),

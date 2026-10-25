@@ -24,7 +24,7 @@ export function DaysLeft({ days }: { days: number | null }) {
 }
 
 const linkFor = (r: InstrumentListItem) =>
-  r.status === 'DRAFT' || r.status === 'RETURNED' ? `/institution/instruments/${r.id}/edit` : `/institution/instruments/${r.id}`;
+  r.status === 'DRAFT' || r.status === 'RETURNED' ? `/institution/instruments/${r.id}/edit` : `/instruments/${r.id}`;
 
 export function InstitutionHome() {
   const navigate = useNavigate();

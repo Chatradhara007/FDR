@@ -731,6 +731,26 @@ class EscalationRule(ApiModel):
         return v
 
 
+class RenewalChecksRule(ApiModel):
+    """key 'renewal_checks' (Phase 5): what is checked when a replacement is submitted and accepted."""
+
+    require_later_maturity: bool
+    flag_coverage_gap_days: int
+    flag_lower_amount: bool
+
+    @field_validator("require_later_maturity", "flag_lower_amount", mode="before")
+    @classmethod
+    def _flag(cls, v: object) -> bool:
+        if not isinstance(v, bool):
+            raise fail("Choose yes or no")
+        return v
+
+    @field_validator("flag_coverage_gap_days", mode="before")
+    @classmethod
+    def _gap_days(cls, v: object) -> int:
+        return _whole_days(v)
+
+
 RULE_CONFIG_MODELS: dict[str, type[ApiModel]] = {
     "reminder": ReminderRule,
     "pending_verification": AfterDaysRule,
@@ -738,6 +758,7 @@ RULE_CONFIG_MODELS: dict[str, type[ApiModel]] = {
     "overdue_renewal": OverdueRenewalRule,
     "release_pending": AfterDaysRule,
     "escalation": EscalationRule,
+    "renewal_checks": RenewalChecksRule,
 }
 
 AlertStatusFilter = Literal["open", "OPEN", "ACKNOWLEDGED", "ESCALATED", "RESOLVED", "all"]

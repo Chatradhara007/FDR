@@ -20,6 +20,7 @@ export const STATUS_LABELS = c.statusLabels as Record<InstrumentStatus, string>;
 export const ALLOWED = c.allowedTransitions as Record<InstrumentStatus, readonly InstrumentStatus[]>;
 export const LIVE_STATUSES = c.liveStatuses as readonly InstrumentStatus[];
 export const TERMINAL_STATUSES = c.terminalStatuses as readonly InstrumentStatus[];
+export const RENEWABLE_STATUSES = c.renewableStatuses as readonly InstrumentStatus[];
 export const VERIFIABLE_STATUSES = c.verifiableStatuses as readonly InstrumentStatus[];
 
 export const TRUST_TIERS = c.trustTiers as readonly TrustTier[];

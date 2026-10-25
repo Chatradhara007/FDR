@@ -8,6 +8,7 @@ from ..domain import clock
 from ..domain.access import AuthUser, actor_of, assert_can_see, scope_alert_stats_query, scope_instruments_query
 from ..domain.audit import record_event
 from ..domain.errors import Conflict, InvalidState, NotFound, ValidationFailed
+from ..domain.fields import tracked_value
 from ..domain.gaps import weakest_tier
 from ..domain.normalize import norm_amount
 from ..repositories.document_repo import list_live_documents
@@ -39,8 +40,10 @@ from ..shared_constants import (
     INSTRUMENT_TYPE_LABELS,
     INSTRUMENT_TYPES,
     STATUS_LABELS,
+    TRACKED_FIELDS,
     DocType,
     InstrumentType,
+    TrackedField,
     TrustTier,
 )
 
@@ -76,6 +79,36 @@ class InstrumentDetail(InstrumentRow):
     weakestTier: TrustTier | None
     returns: list[ReturnRow]
     observations: list[ObservationRow]
+
+
+class ReviewField(TypedDict):
+    """One tracked field with its trust tier (review page and passport)."""
+
+    fieldName: TrackedField
+    value: str
+    tier: TrustTier
+    source: str | None
+    updatedAt: object
+
+
+def field_rows(detail: InstrumentDetail) -> list[ReviewField]:
+    """The seven tracked fields in order; before submission a field shows its current value as CLAIMED."""
+    prov = {p["fieldName"]: p for p in detail["provenance"]}
+    fields: list[ReviewField] = []
+    for f in TRACKED_FIELDS:
+        p = prov.get(f)
+        fields.append(
+            {"fieldName": f, "value": p["value"], "tier": p["tier"], "source": p["source"], "updatedAt": p["updatedAt"]}
+            if p
+            else {
+                "fieldName": f,
+                "value": tracked_value(f, detail),
+                "tier": "CLAIMED",
+                "source": None,
+                "updatedAt": None,
+            }
+        )
+    return fields
 
 
 class DocRules(TypedDict):

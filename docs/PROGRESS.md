@@ -10,7 +10,7 @@ Claude Code updates this file at the end of every phase. Read it first in every 
 | — | Stack migration: backend + mock bank → Python (D28) | done | (this commit) | Phases 00–02 ported 1:1; 100 backend pytest + 1 mock-bank + 7 shared vitest; UI checks re-run |
 | 03 | Scrutiny, mock bank, trust tiers | done | (this commit) | All 15 checks pass (AC15 run in headless Chromium) |
 | 04 | Rules engine, alerts, escalation | done | (this commit) | All 13 checks pass (AC13 run in headless Chromium) |
-| 05 | Renewal chain and passport | not started | | |
+| 05 | Renewal chain and passport | done | (this commit) | All 9 checks pass (AC9 run in headless Chromium) |
 | 06 | Release workflow | not started | | |
 | 07 | Dashboard, my day, reports, metrics | not started | | |
 | 08 | Admin, audit integrity, security | not started | | |
@@ -148,6 +148,18 @@ Deviations / choices in the port:
 - Real clock: APScheduler evaluates at start-up and daily at 06:00 IST while the clock mode is REAL (`SCHEDULER_ENABLED=false`
   turns it off; the tests do)
 
+**Phase 05** (all under `/api/v1`)
+- `POST /instruments/:id/renew` (institution, own) → 201 the new DRAFT replacement (copies institution, type, bank, branch,
+  beneficiary, purpose, amount; dates/reference empty, lien false); 409 `NOT_RENEWABLE` (not EXPIRING/MATURED/LAPSED, or a
+  release request is open — D6) / `ALREADY_RENEWING` (`details.successorId`); other institution 404, AICTE roles 403
+- `GET /instruments/:id/passport` (all roles, scoped) → `{ instrument, fields, weakestTier, chain, documents, verifications,
+  discrepancies, observations, returns, alerts, releaseRequests: [], summary, timeline }`; chain links carry `depth`,
+  `isCurrent`, `gapDaysFromPrevious` (+ = gap, − = overlap) and `gapKind`
+- `POST /instruments/:id/submit` of a replacement: 422 on `maturityDate` when it does not mature after the parent (rule
+  `renewal_checks`); coverage gap / lower amount add system CONCERN observations (once)
+- `POST /instruments/:id/accept` of a replacement: re-checks the maturity rule (422), then the parent → RENEWED (409
+  `PARENT_NOT_RENEWABLE` rolls the whole accept back), `RENEWED_BY` / `RENEWS` events, parent's alerts auto-resolved at once
+
 ## Pages added
 
 (append per phase)
@@ -205,6 +217,22 @@ Deviations / choices in the port:
 - Sidebar: "Alerts" for every role, "Outbox" for admin
 - New components: `AlertKindChip`, `AlertLevelChip`, `WorstAlertChip`, `AlertBell`; `NoteModal` moved from
   `pages/officer/review/` to `components/` (reused by the inbox)
+
+**Phase 05**
+- `/instruments/:id` (all roles): the **passport** — header (reference, bank, amount, maturity with days left / overdue in red,
+  status, verification, open-alert chip, weakest-tier badge, "Accepted without bank confirmation" badge + note for AICTE roles,
+  "Replaces …" / "Replaced by …" links); actions: institution Renew (EXPIRING/MATURED/LAPSED without successor), Continue
+  renewal, Edit / Correct and resubmit; AICTE roles Open review. Open-problems card (blockers). Tabs Timeline (default; icon,
+  label, actor, app-clock time, click to expand a before/after table with changed keys highlighted), Fields (tier, source, last
+  updated), Documents (+ required checklist), Verification (result, per-field match, raw payload for AICTE roles, observations),
+  Chain (nodes oldest → newest, arrows "12-day gap" red / "5-day overlap" green / "continuous", current highlighted, click opens
+  that passport), Alerts (open / resolved), Release (empty until Phase 6)
+- The Phase 2 detail page is gone: `/institution/instruments/:id` redirects to the passport. Institution home rows, alerts inbox
+  "Open instrument" (every role), scrutiny queue reference links and the wizard's post-submit redirect go to the passport;
+  the review page links to it. Queue row click still opens the review.
+- Wizard: a renewal draft shows "Replacement for <ref> (matures …)" with the rule it must meet
+- New files: `pages/passport/{PassportPage,TimelineTab,ChainTab,DetailTabs}.tsx`, `pages/institution/ReturnBanner.tsx` (moved),
+  `pages/institution/wizard/ReplacementBanner.tsx`
 
 ## Deviations / choices
 
@@ -332,6 +360,38 @@ Phase 04:
   `UPDATE alerts SET status` is allowed; the instruments guard is as strict as before.
 - Scheduler uses the fixed IST offset from `domain/clock.py` (no tz database needed on Windows).
 
+Phase 05:
+- Chain query (§5.5): the `down` part starts at depth **1** (the spec's CTE gave the successor depth 0, the same as the
+  instrument itself, so ordering by depth was ambiguous). Children are found with ids only, then joined to the full rows.
+- No `release_requests` table until Phase 6: "open release request" (D6) is the RELEASE_REQUESTED status, which Phase 6 sets
+  for every open request (it stays there while a request is RETURNED). Renew in RELEASE_REQUESTED → 409 `NOT_RENEWABLE` with
+  the D6 wording.
+- Coverage gap is flagged when `gapDays > flagCoverageGapDays` (default 0: any day between parent maturity and replacement
+  issue). Lower amount compared in paise. Both observations are system ones (author null, CONCERN, visible to the
+  institution, `OBSERVATION_ADDED` by `system`), deduplicated by exact text on the instrument. They are warnings, not accept
+  blockers. `requireLaterMaturity: false` switches the hard rule off (rule `renewal_checks`, migration 005 + `ruleDefaults`,
+  validated by `RenewalChecksRule`).
+- The maturity rule is checked again at accept (422 `maturityDate`), and the soft checks run again there (dedup keeps them single).
+- Error codes: `NOT_RENEWABLE`, `ALREADY_RENEWING` (the partial unique index backs it up under a race), `PARENT_NOT_RENEWABLE`.
+- Events: `RENEWAL_STARTED` on both instruments (child `after {parentId, parentReferenceNo}`, parent `after {childId}`), plus
+  `INSTRUMENT_CREATED` on the child; at activation `STATUS_RENEWED` (`renewedBy`), `RENEWED_BY` (parent, `{childId,
+  referenceNo}`), `RENEWS` (child, `{parentId, referenceNo}`). All three are institution-visible (D24 whitelist).
+- Targeted auto-resolve: `auto_resolve`/`resolve_cleared` take an optional instrument id; activation runs it for the parent
+  (`ALERT_RESOLVED` events, SYSTEM_CONDITION_CLEARED). The child then gets the D20 sweep as before.
+- Passport, D24 strictly: institutions get no discrepancies (`[]`; per-field match is in the verification outcome), no raw
+  verification payloads or requester, `overrideNote` null, only visible observations (also in `openProblems`), only their own
+  alert copies, only whitelisted events. AICTE roles get every alert copy.
+- Labels: `eventLabels` stays the one map; `domain/event_labels.py` refines a few from the event data (VERIFICATION_RESULT
+  "Bank verification: mismatch on amount" / "…: confirmed", RENEWED_BY "Replaced by <ref>", RENEWS "Replaces <ref>",
+  ALERT_ESCALATED "Escalated to approver", DOCUMENT_ACCESSED "Document viewed by <actor>"); unknown actions fall back to the
+  action name. The existing STATUS_* labels ("Status changed to Active") were kept; "Accepted by officer" is INSTRUMENT_ACCEPTED.
+  Icon keys come from the server (`icon_for`), mapped to lucide icons in the UI.
+- `shared/constants.json` gains `renewableStatuses` (EXPIRING, MATURED, LAPSED), the `renewal_checks` default, three labels.
+- Refactors needed by this phase: the review page's field builder moved to `instrument_service.field_rows` (shared with the
+  passport); `after_accept` takes the actor; `sourceLabel` accepts passport verifications; the mock-bank `bank_url` fixture
+  moved from `test_phase03_scrutiny.py` to `conftest.py` (unchanged) for the renewal tests.
+- The passport page is keyed by instrument id so moving along the chain starts on the Timeline tab.
+
 ## Known issues / follow-ups
 
 (things to fix later; mark resolved when fixed)
@@ -412,3 +472,16 @@ Phase 04:
   required", with a note → Resolved tab "Resolved by hand — …". Institution 1: home table "Alerts" column `L1 · 1 open`, inbox
   with only its own two instruments and no Resolve button. Officer review page Return modal still opens (NoteModal move).
   No console errors. Dev DB reset and re-seeded afterwards.
+- Phase 05 checks 1–5, 8: `backend/tests/test_phase05_renewal.py` (also: renew copy + events, permissions, renewable statuses,
+  same-maturity rejection, the rule switch, every failing field listed, accept re-check, draft successor in the chain);
+  6–7: `test_phase05_passport.py` (also: payload shape, newest-first timeline, dynamic labels).
+- Phase 05 check 9 (UI), cloud sandbox, `npm run seed` + `npm run dev` + headless Chromium: Institution 1's
+  `SBIN/FDR/2026/00731` accepted, clock +100 d → EXPIRING; its passport showed Expiring / Bank-confirmed / "L1 · 1 open",
+  57 d to maturity, Timeline with icons and actors; **Renew** → wizard with "Replacement for SBIN/FDR/2026/00731 (matures 1 Apr
+  2027)"; maturity 1 Mar 2027 → Submit showed "Maturity date: Replacement must mature after the instrument it replaces (1 Apr
+  2027)"; corrected to 1 Feb 2028 → submitted → passport. Officer claimed, verified (CONFIRMED), accepted (API). Child passport
+  Chain tab: two nodes, arrow "59-day overlap", current node highlighted; clicking the parent node opened its passport on the
+  Timeline tab: Renewed, "Replaced by SBIN/FDR/2027/00950" and "Status changed to Renewed" expanded (status EXPIRING →
+  RENEWED highlighted); Alerts tab: reminder "Resolved · Condition cleared", 0 open. Officer passport: Verification tab with
+  per-field matches and the raw payload toggle, "Open review" button, internal events in the timeline. No console errors
+  besides the browser's log line for the intentional 422. Dev DB reset and re-seeded, `mock-bank/data/records.json` removed.
