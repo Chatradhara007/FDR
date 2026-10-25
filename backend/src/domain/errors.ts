@@ -1,3 +1,5 @@
+import type { FieldIssue, SubmitErrorDetails } from '@fdr/shared';
+
 export type ErrorDetails = unknown;
 
 export class AppError extends Error {
@@ -36,13 +38,11 @@ export class Conflict extends AppError {
   }
 }
 
-export interface FieldIssue {
-  field: string;
-  message: string;
-}
+export type { FieldIssue } from '@fdr/shared';
 
+/** 422. Details are the failing fields, or (submit) `{ fields, missingDocuments }`. */
 export class ValidationFailed extends AppError {
-  constructor(details: FieldIssue[], message = 'Validation failed') {
+  constructor(details: FieldIssue[] | SubmitErrorDetails, message = 'Validation failed') {
     super('VALIDATION_FAILED', message, details, 422);
   }
 }
@@ -56,5 +56,12 @@ export class InvalidTransition extends AppError {
 export class TooManyRequests extends AppError {
   constructor(message: string) {
     super('RATE_LIMITED', message, null, 429);
+  }
+}
+
+/** 409 for an action the record's current state does not allow (other than a status transition). */
+export class InvalidState extends Conflict {
+  constructor(message: string, details: ErrorDetails = null) {
+    super(message, details, 'INVALID_STATE');
   }
 }

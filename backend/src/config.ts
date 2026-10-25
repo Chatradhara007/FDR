@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 // Load the repo-root .env for local dev. process.loadEnvFile never overrides variables that are
 // already set, so Docker / CI / test values win.
-const envFile = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.env');
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const envFile = path.join(repoRoot, '.env');
 if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
 
 export const config = {
@@ -24,6 +25,10 @@ export const config = {
   },
   get demoMode(): boolean {
     return process.env.DEMO_MODE === 'true';
+  },
+  /** Uploaded files live here (STORAGE_DIR, relative paths resolve against the repo root). */
+  get storageDir(): string {
+    return path.resolve(repoRoot, process.env.STORAGE_DIR ?? './storage');
   },
   get jwtSecret(): string {
     return process.env.JWT_SECRET ?? 'dev-secret-change-me';

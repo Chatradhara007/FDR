@@ -100,7 +100,7 @@ file stays on disk as evidence. Duplicate checksum detection ignores deleted doc
 `recordEvent` takes `pg_advisory_xact_lock(7001)`, reads the last event's `hash`, reserves the id
 with `nextval`, and stores
 `hash = sha256(prev_hash ?? 'GENESIS' + '|' + canonicalJson({id, actor_id, actor_label, action,
-entity_type, entity_id, before_json, after_json, created_at_iso}))`.
+entity_type, entity_id, instrument_id, before_json, after_json, created_at_iso}))`.
 `canonicalJson` sorts object keys recursively (JSONB reorders keys, so never hash raw stringify).
 `GET /audit/integrity` recomputes the chain and returns `{ ok, checked, firstBrokenId }`.
 Events are append-only: no UPDATE/DELETE on `events` in application code (a DB trigger rejects them,

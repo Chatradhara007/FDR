@@ -1,4 +1,4 @@
-import { maybeOne, one, type Db } from '../db/pool';
+import { many, maybeOne, one, type Db } from '../db/pool';
 
 export interface InstitutionRow {
   id: string;
@@ -21,4 +21,8 @@ export async function upsertInstitution(db: Db, i: Omit<InstitutionRow, 'id'>): 
 
 export async function findInstitutionById(db: Db, id: string): Promise<InstitutionRow | null> {
   return maybeOne<InstitutionRow>(db, 'SELECT * FROM institutions WHERE id = $1', [id]);
+}
+
+export async function listRegions(db: Db): Promise<string[]> {
+  return (await many<{ region: string }>(db, 'SELECT DISTINCT region FROM institutions ORDER BY region')).map((r) => r.region);
 }

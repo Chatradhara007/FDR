@@ -1,3 +1,4 @@
+import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,3 +13,5 @@ if (!testUrl) throw new Error('TEST_DATABASE_URL is not set; refusing to run tes
 process.env.DATABASE_URL = testUrl;
 process.env.MOCK_BANK_URL = process.env.TEST_MOCK_BANK_URL ?? 'http://127.0.0.1:9'; // unreachable unless a test starts one
 process.env.JWT_SECRET = 'test-secret';
+// Uploaded files go to a throwaway directory, never the dev storage.
+process.env.STORAGE_DIR = path.join(os.tmpdir(), `fdr-test-storage-${process.pid}`);
