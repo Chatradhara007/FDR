@@ -22,6 +22,9 @@ export const config = {
   get frontendOrigins(): string[] {
     return (process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173').split(',').map((s) => s.trim());
   },
+  get demoMode(): boolean {
+    return process.env.DEMO_MODE === 'true';
+  },
   get jwtSecret(): string {
     return process.env.JWT_SECRET ?? 'dev-secret-change-me';
   },

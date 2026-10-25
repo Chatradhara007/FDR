@@ -1,16 +1,16 @@
 import type { RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
+import { ROLES } from '@fdr/shared';
 import { config } from '../config';
+import type { AuthUser } from '../domain/access';
 import { Unauthorized } from '../domain/errors';
+import { loadSessionUser } from '../services/authService';
 
-export type Role = 'institution' | 'officer' | 'approver' | 'admin' | 'auditor';
-const ROLES: readonly string[] = ['institution', 'officer', 'approver', 'admin', 'auditor'];
+export type { AuthUser } from '../domain/access';
+export type { Role } from '@fdr/shared';
+export { signToken } from '../domain/token';
 
-export interface AuthUser {
-  id: string;
-  role: Role;
-  institutionId: string | null;
-}
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -21,27 +21,26 @@ declare global {
   }
 }
 
-export function signToken(user: AuthUser, expiresIn: jwt.SignOptions['expiresIn'] = '8h'): string {
-  return jwt.sign({ role: user.role, institutionId: user.institutionId }, config.jwtSecret, {
-    subject: user.id,
-    expiresIn,
-  });
-}
-
+/** Verifies the bearer token, then loads the user: deactivated or deleted users are rejected immediately. */
 export const authenticate: RequestHandler = (req, _res, next) => {
   const header = req.header('authorization') ?? '';
   const match = /^Bearer (.+)$/.exec(header);
   if (!match) return next(new Unauthorized());
+  let sub: string;
   try {
     const payload = jwt.verify(match[1], config.jwtSecret) as jwt.JwtPayload;
-    if (typeof payload.sub !== 'string' || !ROLES.includes(payload.role)) throw new Error('bad claims');
-    req.user = {
-      id: payload.sub,
-      role: payload.role as Role,
-      institutionId: typeof payload.institutionId === 'string' ? payload.institutionId : null,
-    };
-    next();
+    if (typeof payload.sub !== 'string' || !UUID.test(payload.sub) || !(ROLES as readonly string[]).includes(payload.role)) {
+      throw new Error('bad claims');
+    }
+    sub = payload.sub;
   } catch {
-    next(new Unauthorized('Invalid or expired session'));
+    return next(new Unauthorized('Invalid or expired session'));
   }
+  loadSessionUser(sub)
+    .then((user) => {
+      if (!user) return next(new Unauthorized('Invalid or expired session'));
+      req.user = user;
+      next();
+    })
+    .catch(next);
 };

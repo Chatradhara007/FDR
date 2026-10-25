@@ -1,19 +1,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { closePool, exec, getPool, many, withTransaction, type Db } from './pool';
+import * as clock from '../domain/clock';
+import { closePool, exec, getPool, many, maybeOne, withTransaction, type Db } from './pool';
 
 export const MIGRATIONS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
 
 /**
  * Applies migrations/*.sql in filename order, each in its own transaction.
- * appliedAt: Phase 0 has no app clock yet, so callers pass wall time; Phase 1 switches to clock.now().
+ * applied_at comes from the app clock once app_clock exists (wall time only for the very first migration,
+ * when the clock is REAL anyway); callers may pass appliedAt explicitly.
  */
 export async function migrate(
   options: { dir?: string; appliedAt?: string } = {},
 ): Promise<string[]> {
   const dir = options.dir ?? MIGRATIONS_DIR;
-  const appliedAt = options.appliedAt ?? new Date().toISOString();
   const pool = getPool();
   await exec(
     pool,
@@ -26,12 +27,18 @@ export async function migrate(
     if (done.has(file)) continue;
     const sql = fs.readFileSync(path.join(dir, file), 'utf8');
     await withTransaction(async (tx) => {
+      const appliedAt = options.appliedAt ?? (await clockNowIfAvailable(tx));
       await tx.query(sql);
       await exec(tx, 'INSERT INTO schema_migrations (name, applied_at) VALUES ($1, $2)', [file, appliedAt]);
     });
     applied.push(file);
   }
   return applied;
+}
+
+async function clockNowIfAvailable(db: Db): Promise<Date> {
+  const exists = await maybeOne<{ t: string | null }>(db, "SELECT to_regclass('public.app_clock') AS t");
+  return exists?.t ? clock.now(db) : new Date();
 }
 
 export async function resetSchema(db: Db = getPool()): Promise<void> {

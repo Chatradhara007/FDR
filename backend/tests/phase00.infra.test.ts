@@ -4,9 +4,9 @@ import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { migrate } from '../src/db/migrate';
 import { closePool, exec, getPool, many, maybeOne, one, withTransaction } from '../src/db/pool';
-import { authenticate, signToken } from '../src/middleware/authenticate';
+import { authenticate } from '../src/middleware/authenticate';
 import { requireRole } from '../src/middleware/requireRole';
-import { api, resetDb } from './helpers';
+import { api, resetDb, userFor } from './helpers';
 
 afterAll(async () => {
   await exec(getPool(), 'DROP TABLE IF EXISTS zz_phase00_probe');
@@ -64,14 +64,16 @@ describe('phase 00 — authenticate and requireRole', () => {
     expect(bad.body.code).toBe('UNAUTHORIZED');
   });
 
+  // Phase 01: authenticate loads the user from the DB, so tokens must belong to seeded users.
   it('403 for the wrong role, 200 for the right one', async () => {
-    const officer = signToken({ id: 'u1', role: 'officer', institutionId: null });
-    const admin = signToken({ id: 'u2', role: 'admin', institutionId: null });
-    const res403 = await app().get('/api/v1/__test/admin-only').set('Authorization', `Bearer ${officer}`);
+    await resetDb();
+    const officer = await userFor('officer@demo.in');
+    const admin = await userFor('admin@demo.in');
+    const res403 = await app().get('/api/v1/__test/admin-only').set('Authorization', `Bearer ${officer.token}`);
     expect(res403.status).toBe(403);
     expect(res403.body).toMatchObject({ code: 'FORBIDDEN', details: null });
-    const ok = await app().get('/api/v1/__test/admin-only').set('Authorization', `Bearer ${admin}`);
+    const ok = await app().get('/api/v1/__test/admin-only').set('Authorization', `Bearer ${admin.token}`);
     expect(ok.status).toBe(200);
-    expect(ok.body.user).toEqual({ id: 'u2', role: 'admin', institutionId: null });
+    expect(ok.body.user).toEqual({ id: admin.id, name: admin.name, role: 'admin', institutionId: null });
   });
 });
