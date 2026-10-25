@@ -139,7 +139,7 @@ null). `institution` alerts are visible only to users of that instrument's insti
 Instrument, own documents, verification outcomes (result + per-field match, not raw payloads),
 observations with `visible_to_institution = true`, their alerts, release request status and
 remarks addressed to them, and events whose action is in the institution whitelist
-(`shared/src/eventLabels.ts` exports `INSTITUTION_VISIBLE_ACTIONS`).
+(`shared/constants.json` → `institutionVisibleActions`).
 
 ### D25 — Submission date rules
 At submit: `issue_date <= today`, `maturity_date > issue_date`, `maturity_date >= today`.
@@ -151,3 +151,13 @@ labelled "Simulated on demo data".
 
 ### D27 — Separation of duties across every level
 In the release chain no user may act at more than one level of the same request.
+
+### D28 — Backend and mock bank are Python (decided after Phase 02)
+The backend and the mock bank are Python 3.12 (FastAPI + Uvicorn, psycopg 3 with raw parameterised SQL,
+pydantic v2, bcrypt, PyJWT, python-multipart, `filetype` for magic bytes, APScheduler, pytest, ruff, mypy).
+The frontend stays React + TypeScript. Phases 00–02 were ported with identical behaviour: same layering,
+one clock, one `transition()`, hash-chained events (hashes byte-compatible with the TypeScript version),
+unchanged SQL migrations and the same API contract. Shared constants live in `shared/constants.json`
+(read by Python at startup, imported by the frontend). **Where a phase file names a TypeScript stack piece
+or a `.ts` file, use the Python equivalent** (see CLAUDE.md, "Phase files written for TypeScript").
+

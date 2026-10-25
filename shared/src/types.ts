@@ -1,5 +1,4 @@
-import type { DocType, InstrumentStatus, InstrumentType, Role, TrustTier, VerificationState } from './enums';
-import type { TrackedField } from './fields';
+import type { DocType, InstrumentStatus, InstrumentType, Role, TrackedField, TrustTier, VerificationState } from './constants.gen';
 
 /** API shapes (camelCase) shared by backend responses and the frontend. */
 
@@ -136,4 +135,26 @@ export interface Meta {
   regions: string[];
   requiredDocs: Record<InstrumentType, DocType[]>;
   lienRequired: Record<InstrumentType, boolean>;
+}
+
+/** Request bodies (validated server-side by backend/app/schemas.py). Blank strings and null clear a field. */
+export interface InstrumentFieldsInput {
+  referenceNo?: string | null;
+  issuingBank?: string | null;
+  branch?: string | null;
+  amount?: string | number | null;
+  issueDate?: string | null;
+  maturityDate?: string | null;
+  beneficiaryName?: string | null;
+  lienMarked?: boolean;
+  purpose?: string | null;
+}
+
+export interface InstrumentCreateInput extends InstrumentFieldsInput {
+  type: InstrumentType;
+}
+
+export interface InstrumentPatchInput extends InstrumentFieldsInput {
+  type?: InstrumentType;
+  version: number;
 }

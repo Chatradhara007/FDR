@@ -1,5 +1,5 @@
-// Display formatting shared by frontend and backend (reports, CSV). Money stays a string:
-// we never route amounts through JS floats for anything but the compact, approximate form.
+// Display formatting for the UI. Money stays a string: we never route amounts through JS floats for
+// anything but the compact, approximate form.
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 

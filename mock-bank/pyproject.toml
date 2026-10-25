@@ -1,0 +1,23 @@
+[project]
+name = "fdr-mock-bank"
+version = "0.0.0"
+description = "Mock bank verification service (stands in for an external bank API)"
+requires-python = ">=3.12"
+dependencies = ["fastapi>=0.115", "uvicorn[standard]>=0.32", "python-dotenv>=1.0"]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["mock_bank*"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["mock_bank"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]

@@ -1,14 +1,26 @@
 {
   "name": "fdr-portal",
   "private": true,
-  "workspaces": ["shared", "backend", "mock-bank", "frontend"],
-  "engines": { "node": ">=22" },
+  "workspaces": [
+    "shared",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "dev": "concurrently -n backend,bank,web -c blue,magenta,green \"npm run dev -w backend\" \"npm run dev -w mock-bank\" \"npm run dev -w frontend\"",
-    "test": "npm run test -w shared && npm run test -w backend",
-    "typecheck": "npm run typecheck -w shared && npm run typecheck -w backend && npm run typecheck -w mock-bank && npm run typecheck -w frontend",
-    "seed": "npm run seed -w backend",
-    "db:reset": "npm run db:reset -w backend"
+    "setup:py": "node scripts/py.mjs setup",
+    "dev": "concurrently -n backend,bank,web -c blue,magenta,green \"npm run dev:backend\" \"npm run dev:bank\" \"npm run dev -w frontend\"",
+    "dev:backend": "node scripts/py.mjs --cwd backend -m app.server --migrate-only && node scripts/py.mjs --cwd backend -m uvicorn app.main:app --reload --reload-dir app --host 0.0.0.0 --port 3000",
+    "dev:bank": "node scripts/py.mjs --cwd mock-bank -m uvicorn mock_bank.main:app --reload --reload-dir mock_bank --host 0.0.0.0 --port 4000",
+    "test": "npm run test:py && npm run test -w shared",
+    "test:py": "node scripts/py.mjs --cwd backend -m pytest && node scripts/py.mjs --cwd mock-bank -m pytest",
+    "typecheck": "npm run lint:py && npm run typecheck:py && npm run typecheck -w shared && npm run typecheck -w frontend",
+    "lint:py": "node scripts/py.mjs -m ruff check --config backend/pyproject.toml backend mock-bank scripts && node scripts/py.mjs -m ruff format --check --config backend/pyproject.toml backend mock-bank scripts",
+    "typecheck:py": "node scripts/py.mjs --cwd backend -m mypy && node scripts/py.mjs --cwd mock-bank -m mypy",
+    "gen:shared": "node scripts/py.mjs scripts/gen_shared_types.py",
+    "seed": "node scripts/py.mjs --cwd backend -m app.seed",
+    "db:reset": "node scripts/py.mjs --cwd backend -m app.db.migrate --reset"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",
