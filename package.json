@@ -1,0 +1,17 @@
+{
+  "name": "fdr-portal",
+  "private": true,
+  "workspaces": ["shared", "backend", "mock-bank", "frontend"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "concurrently -n backend,bank,web -c blue,magenta,green \"npm run dev -w backend\" \"npm run dev -w mock-bank\" \"npm run dev -w frontend\"",
+    "test": "npm run test -w shared && npm run test -w backend",
+    "typecheck": "npm run typecheck -w shared && npm run typecheck -w backend && npm run typecheck -w mock-bank && npm run typecheck -w frontend",
+    "seed": "npm run seed -w backend",
+    "db:reset": "npm run db:reset -w backend"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6",
+    "typescript": "^5.9.0"
+  }
+}

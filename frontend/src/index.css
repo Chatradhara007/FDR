@@ -1,0 +1,50 @@
+@import 'tailwindcss';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+
+/* Design tokens — defined once, used everywhere. Semantic colours carry meaning only:
+   success = bank-confirmed/healthy, warning = expiring/attention, danger = discrepancy/lapsed/blocked,
+   info = in progress, neutral = draft/claimed. */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --color-primary-50: #eef3f9;
+  --color-primary-100: #d6e1ef;
+  --color-primary-200: #adc3de;
+  --color-primary-500: #3a5f8f;
+  --color-primary-600: #2a4a73;
+  --color-primary-700: #1f3a5f;
+  --color-primary-800: #172c48;
+  --color-primary-900: #0f1e33;
+
+  --color-surface: #ffffff;
+  --color-canvas: #f4f6f9;
+
+  --color-success-50: #ecfdf3;
+  --color-success-600: #15803d;
+  --color-success-700: #166534;
+  --color-warning-50: #fffbeb;
+  --color-warning-600: #b45309;
+  --color-warning-700: #92400e;
+  --color-danger-50: #fef2f2;
+  --color-danger-600: #b91c1c;
+  --color-danger-700: #991b1b;
+  --color-info-50: #eff6ff;
+  --color-info-600: #1d4ed8;
+  --color-info-700: #1e40af;
+  --color-neutral-50: #f8fafc;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+}
+
+@layer base {
+  html {
+    @apply bg-canvas text-slate-800 antialiased;
+    font-feature-settings: 'cv11';
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary-500;
+  }
+}
