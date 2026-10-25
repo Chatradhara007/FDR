@@ -49,3 +49,50 @@ export function formatDate(value: string): string {
   if (!month) throw new Error(`Not a date: ${value}`);
   return `${Number(m[3])} ${month} ${m[1]}`;
 }
+
+const ONES = [
+  '', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen',
+  'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen',
+];
+const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+
+/** 0–99 in words: 25 → 'twenty-five'. */
+function twoDigits(n: number): string {
+  if (n < 20) return ONES[n];
+  return TENS[Math.floor(n / 10)] + (n % 10 ? `-${ONES[n % 10]}` : '');
+}
+
+/** 0–999 in words. */
+function threeDigits(n: number): string {
+  const h = Math.floor(n / 100);
+  const rest = n % 100;
+  return [h ? `${ONES[h]} hundred` : '', rest ? twoDigits(rest) : ''].filter(Boolean).join(' ');
+}
+
+/** Indian units on an integer digit string (crore can itself exceed 99, e.g. 'one hundred crore'). */
+function rupeesInWords(digits: string): string {
+  const n = BigInt(digits);
+  if (n === 0n) return 'zero';
+  const crore = n / 10_000_000n;
+  const lakh = Number((n / 100_000n) % 100n);
+  const thousand = Number((n / 1000n) % 100n);
+  const rest = Number(n % 1000n);
+  return [
+    crore ? `${rupeesInWords(crore.toString())} crore` : '',
+    lakh ? `${twoDigits(lakh)} lakh` : '',
+    thousand ? `${twoDigits(thousand)} thousand` : '',
+    rest ? threeDigits(rest) : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+/** '2500000.00' → 'Twenty-five lakh rupees'; '1500.50' → 'One thousand five hundred rupees and fifty paise'. */
+export function amountInWords(amount: string | number): string {
+  const { negative, rupees, paise } = splitAmount(amount);
+  const p = Number(paise);
+  let words = `${rupeesInWords(rupees)} ${rupees === '1' ? 'rupee' : 'rupees'}`;
+  if (p) words += ` and ${twoDigits(p)} paise`;
+  if (negative) words = `minus ${words}`;
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}

@@ -82,3 +82,60 @@ export async function createInstrument(overrides: Partial<NewInstrument> & { ins
 export async function countEvents(where = 'true', params: unknown[] = []): Promise<number> {
   return (await one<{ n: number }>(getPool(), `SELECT count(*) AS n FROM events WHERE ${where}`, params)).n;
 }
+
+// ---- Phase 02 helpers ----
+
+let fileCounter = 0;
+
+/** A minimal PDF whose bytes (and so checksum) differ per call unless `tag` is given. */
+export function pdfBytes(tag?: string): Buffer {
+  return Buffer.from(`%PDF-1.4\n% ${tag ?? `file-${++fileCounter}-${Math.random()}`}\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n`);
+}
+
+/** 1×1 PNG. */
+export const PNG_BYTES = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+export const VALID_FDR = {
+  type: 'FDR',
+  referenceNo: 'SBIN/FDR/2026/00731',
+  issuingBank: 'State Bank of India',
+  branch: 'Begumpet',
+  amount: '25,00,000',
+  issueDate: '2026-04-01',
+  maturityDate: '2027-04-01',
+  beneficiaryName: 'Member Secretary, AICTE',
+  lienMarked: true,
+  purpose: 'Security deposit for approval of new institution',
+};
+
+/** Fixes the app clock so date rules are deterministic. */
+export async function setToday(date: string): Promise<void> {
+  await clock.setSimulated(getPool(), date);
+}
+
+export async function createDraftViaApi(user: SeededUser, body: Record<string, unknown> = VALID_FDR): Promise<{ id: string; version: number }> {
+  const res = await api().post('/api/v1/instruments').set(...bearer(user)).send(body);
+  if (res.status !== 201) throw new Error(`create failed ${res.status} ${JSON.stringify(res.body)}`);
+  return res.body;
+}
+
+export function uploadDoc(user: SeededUser, instrumentId: string, docType: string, bytes: Buffer = pdfBytes(), filename = 'doc.pdf') {
+  return api()
+    .post(`/api/v1/instruments/${instrumentId}/documents`)
+    .set(...bearer(user))
+    .field('docType', docType)
+    .attach('file', bytes, filename);
+}
+
+/** Draft with all fields and the FDR's required documents, ready to submit. */
+export async function readyFdr(user: SeededUser, body: Record<string, unknown> = VALID_FDR): Promise<string> {
+  const { id } = await createDraftViaApi(user, body);
+  for (const docType of ['FDR_COPY', 'BANK_LETTER']) {
+    const res = await uploadDoc(user, id, docType);
+    if (res.status !== 201) throw new Error(`upload failed ${res.status} ${JSON.stringify(res.body)}`);
+  }
+  return id;
+}

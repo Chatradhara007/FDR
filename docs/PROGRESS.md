@@ -6,7 +6,7 @@ Claude Code updates this file at the end of every phase. Read it first in every 
 |---|---|---|---|---|
 | 00 | Environment and skeleton | done with known issues | (this commit) | AC1 (docker compose) not run: no Docker in build sandbox |
 | 01 | Foundation | done | (this commit) | All 11 checks pass (AC11 run in headless Chromium) |
-| 02 | Submission and documents | not started | | |
+| 02 | Submission and documents | done | (this commit) | All 11 checks pass (AC11 run in headless Chromium) |
 | 03 | Scrutiny, mock bank, trust tiers | not started | | |
 | 04 | Rules engine, alerts, escalation | not started | | |
 | 05 | Renewal chain and passport | not started | | |
@@ -34,6 +34,23 @@ Status values: `not started` · `in progress` · `done` · `done with known issu
 - `GET /instruments/:id` (all roles; institution users get 404 for other institutions)
 - `GET /demo/users` (public, only when `DEMO_MODE=true`)
 
+**Phase 02** (all under `/api/v1`)
+- `GET /instruments` (all roles, institution-scoped) — filters `status` (repeat, `status[]` or comma list), `type`, `bank`,
+  `region`, `institutionId`, `q` (reference / beneficiary / institution name), `maturityFrom`, `maturityTo`; `sort`
+  (`maturityDate` default, `amount`, `createdAt`, `updatedAt`, `referenceNo`, `-` prefix for descending); `page`, `pageSize`
+  (25, max 100) → `{ items, total, page, pageSize }`; items carry `daysToMaturity` from the app clock
+- `POST /instruments` (institution) → 201 DRAFT detail; `PATCH /instruments/:id` (institution, own, DRAFT/RETURNED, `version`
+  required → 409 `STALE_VERSION`); `DELETE /instruments/:id` (DRAFT only) → 204
+- `GET /instruments/:id` now returns the detail: `documents`, `provenance`, `daysToMaturity`, `requiredDocs`, `missingDocs`,
+  `lienRequired`, `institutionName`, `region`
+- `POST /instruments/:id/submit` (institution) → 200 detail; 422 `details: { fields, missingDocuments }`; 409
+  `INVALID_TRANSITION` / `DUPLICATE_REFERENCE`
+- `POST /instruments/:id/documents` (multipart `file` + `docType`) → 201 `{ document, duplicateOf }`; 422
+  `UNSUPPORTED_FILE_TYPE` / `FILE_TOO_LARGE`; 409 `INVALID_STATE` outside DRAFT/RETURNED
+- `DELETE /instruments/:id/documents/:docId` (soft, D15) → 204
+- `GET /instruments/:id/documents/:docId/download` and `/preview` (all roles, scoped; each logs `DOCUMENT_ACCESSED`)
+- `GET /meta` (all roles) → banks, doc types, instrument types, regions, `requiredDocs`, `lienRequired`
+
 ## Pages added
 
 (append per phase)
@@ -52,6 +69,17 @@ Status values: `not started` · `in progress` · `done` · `done with known issu
 - Header: user name + role chip, sign out, clock badge (`SIMULATED · 12 Dec 2026` amber / `Today · …`),
   admin clock controls (+1d/+7d/+30d, Set date modal, Reset) with toasts
 - New components: `ClockBadge`/`ClockControls`, `SystemStatus` (was the Phase 00 Home page)
+
+**Phase 02**
+- `/institution`: tiles (Active, Expiring ≤ 90 d, Returned — needs action, Drafts) and instrument table (reference link,
+  type, bank, amount, maturity, days left from the server, status chip, verification chip); RETURNED rows show
+  "Action needed — returned by officer"; "New instrument" button
+- `/institution/instruments/new` and `/institution/instruments/:id/edit`: 3-step wizard (Details / Documents / Review and
+  submit), Save draft on every step, server field errors next to the fields, missing-document checklist, upload with
+  progress, duplicate-file warning, stale-version banner with Reload, delete draft (confirm modal), RETURNED banner
+- `/institution/instruments/:id`: simple detail page (fields, required documents, "What is proven" table with trust chips,
+  documents with preview/download)
+- New components: `VerificationChip`, `TrustChip`, `DocumentList`, `DocChecklist`
 
 ## Deviations / choices
 
@@ -76,7 +104,7 @@ Status values: `not started` · `in progress` · `done` · `done with known issu
 **Phase 01**
 - Default rules are inserted at the end of `001_init.sql` (no separate `001b`); same values in `shared/src/ruleDefaults.ts`;
   `seedBase()` re-inserts missing ones (`ON CONFLICT DO NOTHING`, never overwrites admin edits).
-- Event hash payload includes `instrument_id` (phase file 1.4); D16's field list omits it. `before`/`after` are
+- Event hash payload includes `instrument_id` (phase file 1.4; D16 updated in Phase 02 to list it). `before`/`after` are
   JSON round-tripped before hashing so the hash matches what JSONB returns; `created_at` hashed as ISO (ms).
 - `transition()` raises 409 `STATUS_CHANGED` when the row's status no longer matches (concurrent change).
 - `authenticate` now loads the user from the DB on each request (deactivated users are rejected at once);
@@ -95,6 +123,29 @@ Status values: `not started` · `in progress` · `done` · `done with known issu
 - Allowed infra change: `docker-compose.yml` publishes Postgres on `${DB_HOST_PORT:-5432}`; `.env.example` documents
   `# DB_HOST_PORT=5432` (commented). **Local Docker using 55432 must set `DB_HOST_PORT=55432` in `.env`.**
 - Added dependency: `express-rate-limit` (backend).
+
+**Phase 02**
+- DECISIONS D16 now lists `instrument_id` among the hashed fields (matches the Phase 01 code; no code change).
+- Lien not marked is **not** a submit blocker: D8 makes it a gap for `findGaps` and the accept guard (Phase 3). The wizard
+  shows a hint when `lien_required` applies.
+- D7 duplicate check counts drafts too (any non-terminal status). It runs at create, at edit (when bank or reference
+  changes) and at submit; 409 `DUPLICATE_REFERENCE` with `details: { field: 'referenceNo', status }`. Comparison uses the
+  normalised reference (`normRef`, also applied in SQL).
+- Stored values: `reference_no` stored `normRef`-normalised; `beneficiary_name`, `branch`, `purpose` trimmed with spaces
+  collapsed; empty strings clear a field (null). Provenance `value` is the canonical string (`trackedValue`);
+  D5 compares with `sameTrackedValue` (beneficiary ignores case/punctuation via `normName`).
+- Date rules vs. today (`issue_date <= today`, `maturity_date >= today`) are checked at submit only (drafts may be
+  incomplete); `maturity_date > issue_date` is checked on every save (422, not the DB constraint error).
+- Extra event `INSTRUMENT_CREATED` on create. Wrong-state edit/upload/delete → 409 `INVALID_STATE`; wrong-state submit →
+  409 `INVALID_TRANSITION` (as specified). `type` can be changed only while DRAFT.
+- `ValidationFailed` accepts the submit shape `{ fields, missingDocuments }`; every other 422 keeps the array shape.
+- Upload order: visibility check → magic-byte type check → file stored (outside any transaction) → transaction re-locks,
+  checks DRAFT/RETURNED and records it; if the transaction fails the unrecorded file is removed. Stored path is relative
+  to `STORAGE_DIR` (`<instrumentId>/<uuid>.<ext>`). Tests use a temp `STORAGE_DIR`.
+- Instrument detail endpoint replaced the Phase 01 bare row with the detail shape (a superset).
+- Return reason text is not shown yet (no `returns` table until Phase 3); the wizard shows a generic RETURNED banner.
+- Frontend: `ApiError.fieldErrors()` also reads `details.fields` and single-`field` 409s; added `missingDocumentsOf()`,
+  `apiUpload()` (XHR for upload progress) and `apiOpenInTab()` (authorised preview via blob URL).
 
 ## Known issues / follow-ups
 
@@ -127,6 +178,15 @@ Status values: `not started` · `in progress` · `done` · `done with known issu
 - Phase 00 checks 3–6: `backend/tests/phase00.health.test.ts`. Check 7: `npm run typecheck` passes in all 4 workspaces.
 - Phase 01 checks 1–2: `backend/tests/phase01.auth.test.ts`; 3: `phase01.access.test.ts`; 4–5: `phase01.stateMachine.test.ts`;
   6: `phase01.clock.test.ts`; 7–8: `phase01.audit.test.ts`; 9: `shared/tests/normalize.test.ts`; 10: `phase01.sourceGuard.test.ts`.
+- Phase 02 checks 1–3, 7–9: `backend/tests/phase02.submission.test.ts`; 4–6: `phase02.documents.test.ts`;
+  10: `phase02.list.test.ts`; schemas/`amountInWords`: `shared/tests/schemas.test.ts`, `format.test.ts`.
+- Phase 02 check 11 (UI), cloud sandbox, `npm run dev` + headless Chromium: Institution 1 → New instrument; invalid
+  reference/amount/bank showed errors under each field; amount typed `2500000` shown as `25,00,000` with "Twenty-five lakh
+  rupees"; Next saved the draft and moved to Documents; a text file named `.pdf` was rejected next to the file input; FDR
+  copy and bank letter uploads turned the checklist green; re-uploading the same file showed the duplicate warning; Review
+  said "Everything required is in place"; Submit → detail page with Submitted + Not verified chips and seven "Claimed by
+  institution" chips. Two tabs editing the same draft: the second save showed "This record changed in another tab" and
+  Reload loaded the other tab's value. Only console errors were the browser's log lines for the intentional 422s.
 - Phase 01 check 11 (UI), cloud sandbox, `npm run dev` + headless Chromium: each of the six quick buttons signed in and
   landed on its role home with name and `Today · 25 Oct 2026` badge; officer opening `/admin` was redirected to `/officer`
   and saw no clock controls; admin +7d → `SIMULATED · 1 Nov 2026`, Set date 2026-12-12 → `SIMULATED · 12 Dec 2026`,

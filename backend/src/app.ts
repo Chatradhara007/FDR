@@ -8,6 +8,7 @@ import { clockRouter } from './routes/clock';
 import { demoRouter } from './routes/demo';
 import { healthRouter } from './routes/health';
 import { instrumentsRouter } from './routes/instruments';
+import { metaRouter } from './routes/meta';
 
 export interface AppOptions {
   /** Tests mount throwaway routes under /api/v1 here. */
@@ -26,6 +27,7 @@ export function createApp(options: AppOptions = {}): Express {
   api.use(authRouter());
   api.use(clockRouter);
   api.use(instrumentsRouter);
+  api.use(metaRouter);
   if (config.demoMode) api.use(demoRouter);
   options.mountTestRoutes?.(api);
   app.use('/api/v1', api);

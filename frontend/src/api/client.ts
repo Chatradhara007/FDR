@@ -18,15 +18,27 @@ export class ApiError extends Error {
     this.name = 'ApiError';
   }
 
-  /** Field issues from a 422, keyed by field name, for showing next to form inputs. */
+  /**
+   * Field issues keyed by field name, for showing next to form inputs. Reads a 422's details array,
+   * the submit shape `{ fields, missingDocuments }`, and 409s that name one `field` (e.g. DUPLICATE_REFERENCE).
+   */
   fieldErrors(): Record<string, string> {
-    if (!Array.isArray(this.details)) return {};
+    const d = this.details as { fields?: unknown; field?: unknown } | null;
+    if (d && !Array.isArray(d) && typeof d.field === 'string') return { [d.field]: this.message };
+    const list = Array.isArray(d) ? d : Array.isArray(d?.fields) ? d.fields : [];
     const out: Record<string, string> = {};
-    for (const d of this.details as FieldIssue[]) {
+    for (const d of list as FieldIssue[]) {
       if (d && typeof d.field === 'string' && !(d.field in out)) out[d.field] = d.message;
     }
     return out;
   }
+}
+
+/** Missing document types from a submit 422 (`details.missingDocuments`). */
+export function missingDocumentsOf(err: unknown): string[] {
+  if (!(err instanceof ApiError)) return [];
+  const d = err.details as { missingDocuments?: unknown } | null;
+  return d && Array.isArray(d.missingDocuments) ? (d.missingDocuments as string[]) : [];
 }
 
 export interface RequestOptions {
@@ -91,4 +103,49 @@ export async function apiDownload(path: string, fallbackName = 'download', optio
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+/** Multipart upload with progress (fetch has no upload progress); same token and error handling as apiFetch. */
+export function apiUpload<T>(path: string, form: FormData, onProgress?: (fraction: number) => void): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_URL}${path}`);
+    xhr.setRequestHeader('Accept', 'application/json');
+    const token = getToken();
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress?.(e.loaded / e.total);
+    };
+    xhr.onerror = () => reject(new ApiError(0, 'NETWORK', 'Cannot reach the server', null));
+    xhr.onload = () => {
+      let parsed: { code?: string; message?: string; details?: unknown } = {};
+      try {
+        parsed = JSON.parse(xhr.responseText);
+      } catch {
+        // non-JSON body
+      }
+      if (xhr.status >= 200 && xhr.status < 300) return resolve(parsed as T);
+      if (xhr.status === 401) {
+        clearToken();
+        window.location.assign('/login');
+      }
+      reject(new ApiError(xhr.status, parsed.code ?? 'HTTP_ERROR', parsed.message ?? xhr.statusText, parsed.details ?? null));
+    };
+    xhr.send(form);
+  });
+}
+
+/** Opens an authorised file (e.g. a PDF preview) in a new tab via a blob URL. */
+export async function apiOpenInTab(path: string): Promise<void> {
+  const tab = window.open('', '_blank');
+  try {
+    const res = await send(path, {});
+    const url = URL.createObjectURL(await res.blob());
+    if (tab) tab.location.href = url;
+    else window.location.assign(url);
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch (err) {
+    tab?.close();
+    throw err;
+  }
 }

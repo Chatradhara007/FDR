@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatINR, formatINRCompact } from '../src/format';
+import { amountInWords, formatDate, formatINR, formatINRCompact } from '../src/format';
 
 describe('formatINR', () => {
   it('groups in Indian style with paise', () => {
@@ -29,5 +29,16 @@ describe('formatDate', () => {
     expect(formatDate('2027-03-31')).toBe('31 Mar 2027');
     expect(formatDate('2026-01-05T10:00:00Z')).toBe('5 Jan 2026');
     expect(() => formatDate('2026-13-01')).toThrow();
+  });
+});
+
+describe('amountInWords', () => {
+  it('uses Indian units', () => {
+    expect(amountInWords('2500000.00')).toBe('Twenty-five lakh rupees');
+    expect(amountInWords('1000000000.00')).toBe('One hundred crore rupees');
+    expect(amountInWords('12345678.50')).toBe('One crore twenty-three lakh forty-five thousand six hundred seventy-eight rupees and fifty paise');
+    expect(amountInWords('1')).toBe('One rupee');
+    expect(amountInWords('0')).toBe('Zero rupees');
+    expect(amountInWords('100000')).toBe('One lakh rupees');
   });
 });
