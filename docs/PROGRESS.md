@@ -7,6 +7,7 @@ Claude Code updates this file at the end of every phase. Read it first in every 
 | 00 | Environment and skeleton | done with known issues | (this commit) | AC1 (docker compose) not run: no Docker in build sandbox |
 | 01 | Foundation | done | (this commit) | All 11 checks pass (AC11 run in headless Chromium) |
 | 02 | Submission and documents | done | (this commit) | All 11 checks pass (AC11 run in headless Chromium) |
+| — | Stack migration: backend + mock bank → Python (D28) | done | (this commit) | Phases 00–02 ported 1:1; 100 backend pytest + 1 mock-bank + 7 shared vitest; UI checks re-run |
 | 03 | Scrutiny, mock bank, trust tiers | not started | | |
 | 04 | Rules engine, alerts, escalation | not started | | |
 | 05 | Renewal chain and passport | not started | | |
@@ -16,6 +17,61 @@ Claude Code updates this file at the end of every phase. Read it first in every 
 | 09 | Seed, demo tools, rehearsal, polish | not started | | |
 
 Status values: `not started` · `in progress` · `done` · `done with known issues`.
+
+## Stack migration to Python (after Phase 02, DECISIONS D28)
+
+Backend and mock bank rewritten in Python 3.12 (FastAPI, psycopg 3, pydantic v2, bcrypt, PyJWT,
+python-multipart, `filetype`, APScheduler, pytest, ruff, mypy --strict). Frontend unchanged (no source
+edits; same API paths, JSON shapes, status codes and `{ code, message, details }` errors). The SQL
+migrations moved with `git mv` to `backend/app/db/migrations/`, contents unchanged.
+
+File mapping (TypeScript removed after every ported test passed):
+
+| Was | Now |
+|---|---|
+| `backend/src/{app,server,config}.ts` | `backend/app/{main,server,config}.py` |
+| `backend/src/db/{pool,migrate}.ts` | `backend/app/db/{pool,migrate}.py` (`$1` SQL kept; translated for psycopg) |
+| `backend/src/domain/*.ts` | `backend/app/domain/{clock,audit,errors,access,token,state_machine}.py` + `canonical_json.py`, `normalize.py`, `fields.py`, `passwords.py` |
+| `backend/src/middleware/*.ts` | `backend/app/middleware/{auth,errors,validate,responses,rate_limit}.py` |
+| `backend/src/repositories/*Repo.ts` | `backend/app/repositories/*_repo.py` |
+| `backend/src/services/*.ts` | `backend/app/services/{auth,clock,document,health,instrument}_service.py`, `storage.py`, `submission.py` |
+| `backend/src/routes/*.ts` | `backend/app/routes/*.py` |
+| `backend/src/seed/*.ts` | `backend/app/seed/{base,__main__}.py` |
+| `shared/src/{enums,transitions,fields,banks,ruleDefaults,eventLabels}.ts` | `shared/constants.json` (+ `backend/app/shared_constants.py`, `shared/src/constants.ts`, generated `constants.gen.ts`) |
+| `shared/src/{schemas,canonicalJson,normalize,fields}.ts` logic | `backend/app/{schemas.py,domain/canonical_json.py,domain/normalize.py,domain/fields.py}`; TS keeps only `normAmount` (live preview), `format.ts`, API types |
+| `mock-bank/src/index.ts` | `mock-bank/mock_bank/main.py` |
+
+Test mapping: `phase00.health` → `test_phase00_health.py`; `phase00.infra` → `test_phase00_infra.py`;
+`phase01.{auth,access,clock,audit,stateMachine,sourceGuard}` → `test_phase01_{auth,access,clock,audit,state_machine,source_guard}.py`;
+`phase02.{submission,documents,list}` → `test_phase02_{submission,documents,list}.py`; shared
+`canonicalJson/normalize/schemas/transitions` tests → `test_canonical_json.py`, `test_normalize.py`,
+`test_schemas.py`, `test_shared_constants.py`. New: `test_hash_compat.py` (golden vectors generated from
+the TypeScript `canonicalJson`/`eventHash` before deletion, so chains written by the old backend still
+verify) and `test_shared_constants.py` (SQL enums == JSON, generated TS types up to date).
+`shared/tests/{format,normalize}.test.ts` stay in vitest (UI code).
+
+Deviations / choices in the port:
+- Hash compatibility: `canonical_json` reproduces `JSON.stringify` exactly, including JS number
+  formatting and JS key order (integer-like keys first). Found and fixed thanks to the golden vectors.
+  `clock.now()` is truncated to milliseconds (as a JS `Date` was) so stored and hashed times agree.
+- JSON responses are serialised by `ApiJSONResponse` (timestamps `…sss Z`, like `res.json`). FastAPI's
+  docs/OpenAPI routes are disabled so unknown paths stay 404; 405 (wrong method) also maps to 404 as in Express.
+- Validation reports one message per failing field (zod could list two for one field). Absent required
+  fields use the friendly messages (`Enter your password`, `version is required`, …).
+- Multipart filenames: browsers/httpx send `"` as `%22` (WHATWG); the upload route decodes `%22`, `%0D`,
+  `%0A` before sanitising, so `My "FDR".pdf` is shown as `My FDR.pdf` as before.
+- bcrypt: passwords are truncated to 72 bytes before hashing/checking (bcryptjs did this silently; the
+  Python library refuses longer input). Existing `$2a$` hashes verify unchanged.
+- IST is a fixed +05:30 offset (no tzdata needed in `python:3.12-slim`; India has no DST).
+- The login rate limiter is an in-process fixed window (5/min per IP+email) with draft-7 `RateLimit` headers.
+- `Literal` types in `shared_constants.py` repeat the JSON values for mypy; an import-time check fails
+  startup if they ever disagree.
+- Added libraries: `python-dotenv` (repo-root `.env`, never overriding real env vars), `httpx` (health
+  ping, TestClient). APScheduler is installed but unused until Phase 04.
+- `npm run test` = pytest (backend, mock bank) + the small shared vitest suite. `npm run typecheck` =
+  ruff (lint + format check) + mypy --strict + `tsc` for shared and frontend. Scripts call `.venv/bin/…`
+  (POSIX path; on Windows use WSL or adjust to `.venv\Scripts`).
+- Root `package.json` workspaces are now `shared`, `frontend`; `package-lock.json` regenerated.
 
 ## Endpoints added
 
@@ -156,6 +212,9 @@ Status values: `not started` · `in progress` · `done` · `done with known issu
 - ~~Phase 01: switch `migrate()`'s `appliedAt` to the app clock; move StatusChip statuses to the shared enum;
   add the `app_clock` row to `insertFixedRows()`~~ — resolved in Phase 01.
 - Phase 04: clock endpoints should run the evaluation job and return its summary.
+- Python migration: Docker images were not built here (no Docker). The backend and mock-bank image layouts were
+  simulated (same COPY paths, clean `python3.12` venv, non-editable install): constants, migrations and the DB
+  resolve. **`docker compose up --build` re-run pending, to be done by the user** (with `DB_HOST_PORT=55432`).
 
 ## Manual checks
 
@@ -175,11 +234,12 @@ Status values: `not started` · `in progress` · `done` · `done with known issu
 - Phase 00 check 2 (`npm run dev` + Postgres only): OK in cloud sandbox (Postgres 16 via
   `scripts/start-pg-sandbox.sh`). Headless Chromium on `http://localhost:5173` showed "API: up, Database: up,
   Mock bank: up" with no console errors; CORS header present for the frontend origin.
-- Phase 00 checks 3–6: `backend/tests/phase00.health.test.ts`. Check 7: `npm run typecheck` passes in all 4 workspaces.
-- Phase 01 checks 1–2: `backend/tests/phase01.auth.test.ts`; 3: `phase01.access.test.ts`; 4–5: `phase01.stateMachine.test.ts`;
-  6: `phase01.clock.test.ts`; 7–8: `phase01.audit.test.ts`; 9: `shared/tests/normalize.test.ts`; 10: `phase01.sourceGuard.test.ts`.
-- Phase 02 checks 1–3, 7–9: `backend/tests/phase02.submission.test.ts`; 4–6: `phase02.documents.test.ts`;
-  10: `phase02.list.test.ts`; schemas/`amountInWords`: `shared/tests/schemas.test.ts`, `format.test.ts`.
+- Phase 00 checks 3–6: `backend/tests/test_phase00_health.py`. Check 7: `npm run typecheck` (ruff, mypy, tsc) passes.
+- Phase 01 checks 1–2: `backend/tests/test_phase01_auth.py`; 3: `test_phase01_access.py`; 4–5: `test_phase01_state_machine.py`;
+  6: `test_phase01_clock.py`; 7–8: `test_phase01_audit.py`; 9: `test_normalize.py`; 10: `test_phase01_source_guard.py`.
+- Phase 02 checks 1–3, 7–9: `backend/tests/test_phase02_submission.py`; 4–6: `test_phase02_documents.py`;
+  10: `test_phase02_list.py`; schemas: `test_schemas.py`; `amountInWords`: `shared/tests/format.test.ts`.
+  (Before the Python migration these were the equivalent `*.test.ts` files.)
 - Phase 02 check 11 (UI), cloud sandbox, `npm run dev` + headless Chromium: Institution 1 → New instrument; invalid
   reference/amount/bank showed errors under each field; amount typed `2500000` shown as `25,00,000` with "Twenty-five lakh
   rupees"; Next saved the draft and moved to Documents; a text file named `.pdf` was rejected next to the file input; FDR
@@ -187,6 +247,15 @@ Status values: `not started` · `in progress` · `done` · `done with known issu
   said "Everything required is in place"; Submit → detail page with Submitted + Not verified chips and seven "Claimed by
   institution" chips. Two tabs editing the same draft: the second save showed "This record changed in another tab" and
   Reload loaded the other tab's value. Only console errors were the browser's log lines for the intentional 422s.
+- Python migration, cloud sandbox, `npm run seed` + `npm run dev` (uvicorn, Python mock bank, Vite) + headless
+  Chromium: Phase 01 check 11 and Phase 02 check 11 repeated in full against the Python backend. All six quick
+  sign-ins landed on their role homes with `Today · 25 Oct 2026`; officer `/admin` → `/officer` without clock
+  controls; admin +7d → `SIMULATED · 1 Nov 2026`, Set date → `SIMULATED · 12 Dec 2026`, Reset → `Today · …`;
+  wrong password / invalid email messages shown. Wizard: server field errors under reference, amount ("Amount must
+  be more than zero") and bank; "Twenty-five lakh rupees"; text file named `.pdf` rejected; FDR copy + bank letter
+  uploaded; duplicate warning; second tab got the stale-version banner and Reload showed the other tab's value;
+  Review "Everything required is in place"; Submit → detail with Submitted / Not verified and seven "Claimed by
+  institution" chips. No unexpected console errors. CORS preflight from `http://localhost:5173` allowed.
 - Phase 01 check 11 (UI), cloud sandbox, `npm run dev` + headless Chromium: each of the six quick buttons signed in and
   landed on its role home with name and `Today · 25 Oct 2026` badge; officer opening `/admin` was redirected to `/officer`
   and saw no clock controls; admin +7d → `SIMULATED · 1 Nov 2026`, Set date 2026-12-12 → `SIMULATED · 12 Dec 2026`,

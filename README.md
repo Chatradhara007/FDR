@@ -19,7 +19,13 @@ It is built around two questions an official asks about every deposit:
 cp .env.example .env
 docker compose up --build          # http://localhost:5173
 ```
-Development: `docker compose up -d db && npm install && npm run dev`.
+Development (Node 22, Python 3.12):
+
+```bash
+docker compose up -d db
+npm install && npm run setup:py   # JS workspaces + .venv with backend and mock bank
+npm run dev                       # FastAPI :3000, mock bank :4000, Vite :5173
+```
 
 ## Demo users (password `Demo@123`)
 
@@ -35,7 +41,7 @@ Development: `docker compose up -d db && npm install && npm run dev`.
 
 ```mermaid
 flowchart LR
-  UI[React + Vite<br/>role-based views] -->|/api/v1 JSON, JWT| API[Express API<br/>routes → services → repositories]
+  UI[React + Vite<br/>role-based views] -->|/api/v1 JSON, JWT| API[FastAPI (Python)<br/>routes → services → repositories]
   API --> DB[(PostgreSQL 16<br/>instruments, provenance, alerts,<br/>hash-chained events)]
   API -->|verify| BANK[Mock bank service<br/>stand-in for authorised bank APIs]
   JOB[Evaluation job<br/>daily 06:00 IST or on clock change] --> DB

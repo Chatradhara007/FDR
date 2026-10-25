@@ -1,0 +1,253 @@
+{
+  "$comment": "Single source of truth for domain constants. Read by the Python backend at startup and imported by the frontend (shared/src/constants.ts). After editing, run `npm run gen:shared` to refresh shared/src/constants.gen.ts.",
+  "roles": [
+    "institution",
+    "officer",
+    "approver",
+    "admin",
+    "auditor"
+  ],
+  "roleLabels": {
+    "institution": "Institution",
+    "officer": "Scrutiny officer",
+    "approver": "Approver",
+    "admin": "Administrator",
+    "auditor": "Auditor"
+  },
+  "instrumentTypes": [
+    "FDR",
+    "SECURITY_DEPOSIT"
+  ],
+  "instrumentTypeLabels": {
+    "FDR": "Fixed Deposit Receipt",
+    "SECURITY_DEPOSIT": "Security deposit"
+  },
+  "instrumentStatuses": [
+    "DRAFT",
+    "SUBMITTED",
+    "UNDER_SCRUTINY",
+    "RETURNED",
+    "ACTIVE",
+    "EXPIRING",
+    "MATURED",
+    "RENEWED",
+    "LAPSED",
+    "RELEASE_REQUESTED",
+    "RELEASED"
+  ],
+  "statusLabels": {
+    "DRAFT": "Draft",
+    "SUBMITTED": "Submitted",
+    "UNDER_SCRUTINY": "Under scrutiny",
+    "RETURNED": "Returned",
+    "ACTIVE": "Active",
+    "EXPIRING": "Expiring",
+    "MATURED": "Matured",
+    "RENEWED": "Renewed",
+    "LAPSED": "Lapsed",
+    "RELEASE_REQUESTED": "Release requested",
+    "RELEASED": "Released"
+  },
+  "trustTiers": [
+    "CLAIMED",
+    "DOCUMENT",
+    "BANK_CONFIRMED"
+  ],
+  "trustTierLabels": {
+    "CLAIMED": "Claimed",
+    "DOCUMENT": "Document-checked",
+    "BANK_CONFIRMED": "Bank-confirmed"
+  },
+  "verificationStates": [
+    "UNVERIFIED",
+    "PENDING",
+    "CONFIRMED",
+    "MISMATCH",
+    "UNAVAILABLE"
+  ],
+  "verificationStateLabels": {
+    "UNVERIFIED": "Not verified",
+    "PENDING": "Bank response pending",
+    "CONFIRMED": "Bank-confirmed",
+    "MISMATCH": "Mismatch",
+    "UNAVAILABLE": "Bank unavailable"
+  },
+  "docTypes": [
+    "FDR_COPY",
+    "BANK_LETTER",
+    "DEPOSIT_CONFIRMATION",
+    "LIEN_LETTER",
+    "RELEASE_LETTER",
+    "COMPLIANCE_CERTIFICATE",
+    "OTHER"
+  ],
+  "docTypeLabels": {
+    "FDR_COPY": "FDR copy",
+    "BANK_LETTER": "Bank letter",
+    "DEPOSIT_CONFIRMATION": "Deposit confirmation",
+    "LIEN_LETTER": "Lien letter",
+    "RELEASE_LETTER": "Release letter",
+    "COMPLIANCE_CERTIFICATE": "Compliance certificate",
+    "OTHER": "Other"
+  },
+  "allowedTransitions": {
+    "DRAFT": [
+      "SUBMITTED"
+    ],
+    "SUBMITTED": [
+      "UNDER_SCRUTINY",
+      "RETURNED"
+    ],
+    "UNDER_SCRUTINY": [
+      "ACTIVE",
+      "RETURNED"
+    ],
+    "RETURNED": [
+      "SUBMITTED"
+    ],
+    "ACTIVE": [
+      "EXPIRING",
+      "RELEASE_REQUESTED"
+    ],
+    "EXPIRING": [
+      "MATURED",
+      "RENEWED",
+      "RELEASE_REQUESTED"
+    ],
+    "MATURED": [
+      "RENEWED",
+      "LAPSED",
+      "RELEASE_REQUESTED"
+    ],
+    "LAPSED": [
+      "RENEWED",
+      "RELEASE_REQUESTED"
+    ],
+    "RELEASE_REQUESTED": [
+      "RELEASED",
+      "ACTIVE",
+      "EXPIRING",
+      "MATURED",
+      "LAPSED"
+    ],
+    "RENEWED": [],
+    "RELEASED": []
+  },
+  "liveStatuses": [
+    "ACTIVE",
+    "EXPIRING",
+    "MATURED",
+    "LAPSED",
+    "RELEASE_REQUESTED"
+  ],
+  "terminalStatuses": [
+    "RENEWED",
+    "RELEASED"
+  ],
+  "trackedFields": [
+    "reference_no",
+    "issuing_bank",
+    "amount",
+    "issue_date",
+    "maturity_date",
+    "beneficiary_name",
+    "lien_marked"
+  ],
+  "fieldLabels": {
+    "reference_no": "Reference number",
+    "issuing_bank": "Issuing bank",
+    "amount": "Amount",
+    "issue_date": "Issue date",
+    "maturity_date": "Maturity date",
+    "beneficiary_name": "Beneficiary name",
+    "lien_marked": "Lien marked in favour of AICTE"
+  },
+  "trackedFieldKeys": {
+    "reference_no": "referenceNo",
+    "issuing_bank": "issuingBank",
+    "amount": "amount",
+    "issue_date": "issueDate",
+    "maturity_date": "maturityDate",
+    "beneficiary_name": "beneficiaryName",
+    "lien_marked": "lienMarked"
+  },
+  "banks": [
+    "State Bank of India",
+    "Punjab National Bank",
+    "Bank of Baroda",
+    "Canara Bank",
+    "Union Bank of India",
+    "HDFC Bank",
+    "ICICI Bank",
+    "Axis Bank",
+    "Bank of India",
+    "Indian Overseas Bank",
+    "Kotak Mahindra Bank"
+  ],
+  "ruleDefaults": [
+    {
+      "key": "required_docs",
+      "name": "Required documents",
+      "type": "required_docs",
+      "config": {
+        "FDR": [
+          "FDR_COPY",
+          "BANK_LETTER"
+        ],
+        "SECURITY_DEPOSIT": [
+          "DEPOSIT_CONFIRMATION"
+        ]
+      }
+    },
+    {
+      "key": "lien_required",
+      "name": "Lien in favour of AICTE required",
+      "type": "lien_required",
+      "config": {
+        "FDR": true,
+        "SECURITY_DEPOSIT": false
+      }
+    }
+  ],
+  "eventLabels": {
+    "STATUS_DRAFT": "Status changed to Draft",
+    "STATUS_SUBMITTED": "Status changed to Submitted",
+    "STATUS_UNDER_SCRUTINY": "Status changed to Under scrutiny",
+    "STATUS_RETURNED": "Status changed to Returned",
+    "STATUS_ACTIVE": "Status changed to Active",
+    "STATUS_EXPIRING": "Status changed to Expiring",
+    "STATUS_MATURED": "Status changed to Matured",
+    "STATUS_RENEWED": "Status changed to Renewed",
+    "STATUS_LAPSED": "Status changed to Lapsed",
+    "STATUS_RELEASE_REQUESTED": "Status changed to Release requested",
+    "STATUS_RELEASED": "Status changed to Released",
+    "CLOCK_ADVANCED": "App clock advanced",
+    "CLOCK_SET": "App clock set",
+    "CLOCK_RESET": "App clock reset to real time",
+    "INSTRUMENT_CREATED": "Draft created",
+    "INSTRUMENT_EDITED": "Details edited",
+    "INSTRUMENT_SUBMITTED": "Submitted for scrutiny",
+    "INSTRUMENT_DRAFT_DELETED": "Draft deleted",
+    "DOCUMENT_UPLOADED": "Document uploaded",
+    "DOCUMENT_REMOVED": "Document removed",
+    "DOCUMENT_ACCESSED": "Document opened"
+  },
+  "institutionVisibleActions": [
+    "STATUS_DRAFT",
+    "STATUS_SUBMITTED",
+    "STATUS_UNDER_SCRUTINY",
+    "STATUS_RETURNED",
+    "STATUS_ACTIVE",
+    "STATUS_EXPIRING",
+    "STATUS_MATURED",
+    "STATUS_RENEWED",
+    "STATUS_LAPSED",
+    "STATUS_RELEASE_REQUESTED",
+    "STATUS_RELEASED",
+    "INSTRUMENT_CREATED",
+    "INSTRUMENT_EDITED",
+    "INSTRUMENT_SUBMITTED",
+    "DOCUMENT_UPLOADED",
+    "DOCUMENT_REMOVED"
+  ]
+}

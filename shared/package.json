@@ -9,6 +9,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p ."
   },
-  "dependencies": { "zod": "^4.0.0" },
-  "devDependencies": { "vitest": "^5.0.0" }
+  "devDependencies": {
+    "vitest": "^5.0.0"
+  }
 }

@@ -1,14 +1,26 @@
 {
   "name": "fdr-portal",
   "private": true,
-  "workspaces": ["shared", "backend", "mock-bank", "frontend"],
-  "engines": { "node": ">=22" },
+  "workspaces": [
+    "shared",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "dev": "concurrently -n backend,bank,web -c blue,magenta,green \"npm run dev -w backend\" \"npm run dev -w mock-bank\" \"npm run dev -w frontend\"",
-    "test": "npm run test -w shared && npm run test -w backend",
-    "typecheck": "npm run typecheck -w shared && npm run typecheck -w backend && npm run typecheck -w mock-bank && npm run typecheck -w frontend",
-    "seed": "npm run seed -w backend",
-    "db:reset": "npm run db:reset -w backend"
+    "setup:py": "python3.12 -m venv .venv && .venv/bin/pip install -e 'backend[dev]' -e mock-bank",
+    "dev": "concurrently -n backend,bank,web -c blue,magenta,green \"npm run dev:backend\" \"npm run dev:bank\" \"npm run dev -w frontend\"",
+    "dev:backend": "cd backend && ../.venv/bin/python -m app.server --reload",
+    "dev:bank": "cd mock-bank && ../.venv/bin/python -m mock_bank.main --reload",
+    "test": "npm run test:py && npm run test -w shared",
+    "test:py": "cd backend && ../.venv/bin/pytest && cd ../mock-bank && ../.venv/bin/pytest",
+    "typecheck": "npm run lint:py && npm run typecheck:py && npm run typecheck -w shared && npm run typecheck -w frontend",
+    "lint:py": ".venv/bin/ruff check --config backend/pyproject.toml backend mock-bank scripts && .venv/bin/ruff format --check --config backend/pyproject.toml backend mock-bank scripts",
+    "typecheck:py": "cd backend && ../.venv/bin/mypy && cd ../mock-bank && ../.venv/bin/mypy",
+    "gen:shared": ".venv/bin/python scripts/gen_shared_types.py",
+    "seed": "cd backend && ../.venv/bin/python -m app.seed",
+    "db:reset": "cd backend && ../.venv/bin/python -m app.db.migrate --reset"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",

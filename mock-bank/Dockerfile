@@ -1,13 +1,10 @@
 # Build context is the repo root (see docker-compose.yml).
-FROM node:22-alpine
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
-COPY package.json package-lock.json tsconfig.base.json ./
-COPY shared/package.json shared/
-COPY backend/package.json backend/
-COPY mock-bank/package.json mock-bank/
-COPY frontend/package.json frontend/
-RUN npm ci --no-audit --no-fund
-COPY mock-bank ./mock-bank
+COPY mock-bank/pyproject.toml mock-bank/pyproject.toml
+COPY mock-bank/mock_bank mock-bank/mock_bank
+RUN pip install --no-cache-dir ./mock-bank
 WORKDIR /app/mock-bank
 EXPOSE 4000
-CMD ["npx", "tsx", "src/index.ts"]
+CMD ["python", "-m", "mock_bank.main"]

@@ -1,0 +1,183 @@
+{
+  "canonical": [
+    {
+      "value": null,
+      "json": "null"
+    },
+    {
+      "value": true,
+      "json": "true"
+    },
+    {
+      "value": 0,
+      "json": "0"
+    },
+    {
+      "value": -3,
+      "json": "-3"
+    },
+    {
+      "value": 42,
+      "json": "42"
+    },
+    {
+      "value": 1.5,
+      "json": "1.5"
+    },
+    {
+      "value": 0.1,
+      "json": "0.1"
+    },
+    {
+      "value": 1e+21,
+      "json": "1e+21"
+    },
+    {
+      "value": 123456789012,
+      "json": "123456789012"
+    },
+    {
+      "value": 2500000.5,
+      "json": "2500000.5"
+    },
+    {
+      "value": "plain",
+      "json": "\"plain\""
+    },
+    {
+      "value": "",
+      "json": "\"\""
+    },
+    {
+      "value": "quote \" backslash \\ slash / tab \t nl \n cr \r",
+      "json": "\"quote \\\" backslash \\\\ slash / tab \\t nl \\n cr \\r\""
+    },
+    {
+      "value": "ctrl \u0001 \u001f del ",
+      "json": "\"ctrl \\u0001 \\u001f del \""
+    },
+    {
+      "value": "rupee ₹ hindi नमस्ते emoji 😀",
+      "json": "\"rupee ₹ hindi नमस्ते emoji 😀\""
+    },
+    {
+      "value": "ls   ps  ",
+      "json": "\"ls   ps  \""
+    },
+    {
+      "value": [],
+      "json": "[]"
+    },
+    {
+      "value": {},
+      "json": "{}"
+    },
+    {
+      "value": [
+        1,
+        "a",
+        null,
+        {
+          "z": 1,
+          "a": [
+            2,
+            {
+              "y": "x",
+              "b": null
+            }
+          ]
+        }
+      ],
+      "json": "[1,\"a\",null,{\"a\":[2,{\"b\":null,\"y\":\"x\"}],\"z\":1}]"
+    },
+    {
+      "value": {
+        "2": "num2",
+        "10": "num-key",
+        "b": 1,
+        "a": {
+          "d": [
+            3,
+            2
+          ],
+          "c": "ć"
+        },
+        "A": "upper",
+        "_u": 0
+      },
+      "json": "{\"2\":\"num2\",\"10\":\"num-key\",\"A\":\"upper\",\"_u\":0,\"a\":{\"c\":\"ć\",\"d\":[3,2]},\"b\":1}"
+    },
+    {
+      "value": {
+        "status": "SUBMITTED",
+        "amount": "2500000.00",
+        "referenceNo": "SBI/FD/0042",
+        "lienMarked": false
+      },
+      "json": "{\"amount\":\"2500000.00\",\"lienMarked\":false,\"referenceNo\":\"SBI/FD/0042\",\"status\":\"SUBMITTED\"}"
+    }
+  ],
+  "events": [
+    {
+      "actor_id": "11111111-1111-4111-8111-111111111111",
+      "actor_label": "Officer One (officer)",
+      "action": "STATUS_SUBMITTED",
+      "entity_type": "instrument",
+      "entity_id": "22222222-2222-4222-8222-222222222222",
+      "instrument_id": "22222222-2222-4222-8222-222222222222",
+      "id": 1,
+      "before_json": null,
+      "after_json": null,
+      "created_at": "2026-10-25T04:30:00.123Z",
+      "prev_hash": null,
+      "hash": "68a7a82f024e973a5bfb9002b94fb0cef6712b993c05faa64b0d00ca5c150ecd"
+    },
+    {
+      "actor_id": null,
+      "actor_label": "system",
+      "action": "CLOCK_ADVANCED",
+      "entity_type": "app_clock",
+      "entity_id": "1",
+      "instrument_id": null,
+      "id": 2,
+      "before_json": {
+        "now": "2026-10-25T04:30:00.123Z"
+      },
+      "after_json": {
+        "now": "2026-11-04T04:30:00.123Z",
+        "days": 10
+      },
+      "created_at": "2026-11-04T04:30:00.123Z",
+      "prev_hash": "68a7a82f024e973a5bfb9002b94fb0cef6712b993c05faa64b0d00ca5c150ecd",
+      "hash": "7e8ac40a107ec38856c1b296d4ec7ed7c6eb7f338e95201e306c7bb7fec42478"
+    },
+    {
+      "actor_id": "11111111-1111-4111-8111-111111111111",
+      "actor_label": "Officer One (officer)",
+      "action": "INSTRUMENT_EDITED",
+      "entity_type": "instrument",
+      "entity_id": "22222222-2222-4222-8222-222222222222",
+      "instrument_id": "22222222-2222-4222-8222-222222222222",
+      "id": 3,
+      "before_json": {
+        "amount": "2500000.00",
+        "beneficiaryName": "नमस्ते ₹ \"q\"",
+        "n": 1.5
+      },
+      "after_json": {
+        "z": [
+          1,
+          2,
+          {
+            "b": true,
+            "a": null
+          }
+        ],
+        "amount": "2600000.00"
+      },
+      "created_at": "2026-11-04T04:30:00.000Z",
+      "prev_hash": "7e8ac40a107ec38856c1b296d4ec7ed7c6eb7f338e95201e306c7bb7fec42478",
+      "hash": "0bf6ef9b1e600f8e39dddd9e1c8cd3c8045795d18ecb18b3eecc6d8a81811d73"
+    }
+  ]
+}

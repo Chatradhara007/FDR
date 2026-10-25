@@ -9,3 +9,10 @@ mock-bank/data/records.json
 playwright-report/
 test-results/
 .vite/
+# Python
+.venv/
+__pycache__/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
