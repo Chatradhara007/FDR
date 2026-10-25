@@ -1,4 +1,4 @@
-import { AlertTriangle, BadgeCheck, CircleHelp, FileCheck2, Hourglass, Landmark, MessageSquareQuote, WifiOff, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, Circle, CircleHelp, FileCheck2, Hourglass, ShieldCheck, WifiOff, type LucideIcon } from 'lucide-react';
 import { TRUST_TIER_LABELS, VERIFICATION_STATE_LABELS, type TrustTier, type VerificationState } from '@fdr/shared';
 import { Badge, type Tone } from './Badge';
 
@@ -22,18 +22,32 @@ export function VerificationChip({ state }: { state: VerificationState }) {
 }
 
 const TIER: Record<TrustTier, { tone: Tone; icon: LucideIcon; label: string }> = {
-  CLAIMED: { tone: 'neutral', icon: MessageSquareQuote, label: 'Claimed by institution' },
+  CLAIMED: { tone: 'neutral', icon: Circle, label: 'Claimed by institution' },
   DOCUMENT: { tone: 'info', icon: FileCheck2, label: TRUST_TIER_LABELS.DOCUMENT },
-  BANK_CONFIRMED: { tone: 'success', icon: Landmark, label: TRUST_TIER_LABELS.BANK_CONFIRMED },
+  BANK_CONFIRMED: { tone: 'success', icon: ShieldCheck, label: TRUST_TIER_LABELS.BANK_CONFIRMED },
 };
 
-/** Trust tier of one field. */
-export function TrustChip({ tier }: { tier: TrustTier }) {
+/** Trust tier of one field: Claimed (outline circle), Document-checked (file check), Bank-confirmed (shield check). */
+export function TrustBadge({ tier, short }: { tier: TrustTier; short?: boolean }) {
   const t = TIER[tier];
   const Icon = t.icon;
   return (
     <Badge tone={t.tone} icon={<Icon className="size-3.5" aria-hidden />}>
-      {t.label}
+      {short ? TRUST_TIER_LABELS[tier] : t.label}
     </Badge>
+  );
+}
+
+/** Kept for the institution pages (Phase 02 name). */
+export const TrustChip = TrustBadge;
+
+/** The instrument's headline tier: the weakest of its seven fields. */
+export function WeakestTierBadge({ tier }: { tier: TrustTier | null }) {
+  if (!tier) return null;
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-slate-600">
+      <span>Weakest field:</span>
+      <TrustBadge tier={tier} short />
+    </span>
   );
 }

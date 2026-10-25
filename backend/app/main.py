@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import config
 from .middleware.errors import RequestIdMiddleware, install_error_handlers
 from .middleware.responses import ApiJSONResponse
-from .routes import clock, demo, health, instruments, meta
+from .routes import clock, demo, health, instruments, meta, scrutiny
 from .routes.auth import auth_router
 
 
@@ -38,6 +38,7 @@ def create_app(mount_test_routes: Callable[[APIRouter], None] | None = None) -> 
     api.include_router(auth_router())
     api.include_router(clock.router)
     api.include_router(instruments.router)
+    api.include_router(scrutiny.router)
     api.include_router(meta.router)
     if config.demo_mode:
         api.include_router(demo.router)

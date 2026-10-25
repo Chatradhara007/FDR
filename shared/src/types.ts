@@ -1,4 +1,6 @@
-import type { DocType, InstrumentStatus, InstrumentType, Role, TrackedField, TrustTier, VerificationState } from './constants.gen';
+import type {
+  DocType, InstrumentStatus, InstrumentType, ObservationSeverity, Role, TrackedField, TrustTier, VerificationResult, VerificationState,
+} from './constants.gen';
 
 /** API shapes (camelCase) shared by backend responses and the frontend. */
 
@@ -74,6 +76,8 @@ export interface InstrumentListItem {
   region: string;
   /** Calendar days from the app clock's today to maturity; null while the draft has no maturity date. */
   daysToMaturity: number | null;
+  /** Lowest trust tier among the seven tracked fields; null before the first submission. */
+  weakestTier: TrustTier | null;
   version: number;
   updatedAt: string;
 }
@@ -114,6 +118,11 @@ export interface InstrumentDetail extends Instrument {
   requiredDocs: DocType[];
   missingDocs: DocType[];
   lienRequired: boolean;
+  weakestTier: TrustTier | null;
+  /** Why the instrument was sent back, newest first. */
+  returns: ReturnRecord[];
+  /** Institution users only receive observations marked visible to them (D24). */
+  observations: Observation[];
 }
 
 export interface UploadResponse {
@@ -157,4 +166,152 @@ export interface InstrumentCreateInput extends InstrumentFieldsInput {
 export interface InstrumentPatchInput extends InstrumentFieldsInput {
   type?: InstrumentType;
   version: number;
+}
+
+// ---- Phase 03: scrutiny ----
+
+export interface ReturnRecord {
+  id: string;
+  instrumentId: string;
+  officerId: string;
+  officerName: string | null;
+  reason: string;
+  createdAt: string;
+}
+
+export interface Observation {
+  id: string;
+  instrumentId: string;
+  authorId: string | null;
+  authorName: string | null;
+  text: string;
+  severity: ObservationSeverity;
+  visibleToInstitution: boolean;
+  status: 'OPEN' | 'RESOLVED';
+  resolutionNote: string | null;
+  resolvedBy: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+}
+
+export interface Discrepancy {
+  id: string;
+  instrumentId: string;
+  verificationId: string | null;
+  fieldName: TrackedField;
+  claimedValue: string;
+  confirmedValue: string | null;
+  reason: string;
+  status: 'OPEN' | 'RESOLVED';
+  resolutionNote: string | null;
+  resolvedBy: string | null;
+  resolvedByName: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+}
+
+export interface BankField {
+  submitted: string;
+  confirmed: string;
+  match: boolean;
+}
+
+/** What the bank answered (stored verbatim in verifications.response_payload). */
+export interface BankResponse {
+  result: Exclude<VerificationResult, 'STALE'>;
+  bank?: string;
+  response_id?: string;
+  responded_at?: string;
+  fields?: Partial<Record<TrackedField, BankField>>;
+  note?: string;
+  retry_after_seconds?: number;
+  reason?: string;
+}
+
+export interface Verification {
+  id: string;
+  instrumentId: string;
+  source: string;
+  requestPayload: Record<string, string>;
+  responsePayload: BankResponse | null;
+  result: VerificationResult;
+  requestedBy: string;
+  requestedByName: string | null;
+  requestedAt: string;
+  respondedAt: string | null;
+}
+
+export interface Gap {
+  code: string;
+  message: string;
+  severity: 'blocker' | 'warning';
+  ref?: string;
+}
+
+export interface ReviewField {
+  fieldName: TrackedField;
+  value: string;
+  tier: TrustTier;
+  /** 'institution', 'document:<docId>' or 'bank:<responseId>'. */
+  source: string | null;
+  updatedAt: string | null;
+}
+
+/** GET /instruments/:id/review — everything the officer review page needs. */
+export interface ReviewPayload {
+  instrument: InstrumentDetail;
+  assignedOfficerName: string | null;
+  fields: ReviewField[];
+  verifications: Verification[];
+  discrepancies: Discrepancy[];
+  observations: Observation[];
+  gaps: Gap[];
+  canAccept: boolean;
+  /** Only the missing bank confirmation stands in the way; an override note lifts it (D4). */
+  canAcceptWithOverride: boolean;
+  acceptBlockers: string[];
+}
+
+export interface VerifyResponse {
+  result: VerificationResult;
+  verificationId: string;
+  mismatchedFields: TrackedField[];
+  retryAfterSeconds: number | null;
+  reason?: string;
+  review: ReviewPayload;
+}
+
+export interface DocumentCheckResponse {
+  unchanged: boolean;
+  review: ReviewPayload;
+}
+
+export interface QueueItem {
+  id: string;
+  referenceNo: string | null;
+  issuingBank: string | null;
+  amount: string | null;
+  maturityDate: string | null;
+  verificationState: VerificationState;
+  status: InstrumentStatus;
+  assignedOfficerId: string | null;
+  assignedOfficerName: string | null;
+  institution: string;
+  region: string;
+  openDiscrepancies: number;
+  submittedAt: string | null;
+  ageingDays: number | null;
+}
+
+export interface QueueResponse {
+  items: QueueItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface ObservationInput {
+  text: string;
+  severity: ObservationSeverity;
+  visibleToInstitution: boolean;
 }

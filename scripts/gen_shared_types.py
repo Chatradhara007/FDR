@@ -24,6 +24,8 @@ UNIONS = {
     "DocType": "docTypes",
     "TrackedField": "trackedFields",
     "Bank": "banks",
+    "VerificationResult": "verificationResults",
+    "ObservationSeverity": "observationSeverities",
 }
 
 

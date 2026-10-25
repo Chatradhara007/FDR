@@ -1,9 +1,9 @@
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { ArrowLeft, Pencil, Undo2 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { FIELD_LABELS, INSTRUMENT_TYPE_LABELS, TRACKED_FIELDS, formatDate, formatINR, type ProvenanceRow, type TrackedField } from '@fdr/shared';
 import { useInstrument } from '@/api/instruments';
 import {
-  Button, Card, DateText, DocChecklist, DocumentList, EmptyState, KeyValue, Money, PageHeader, StatusChip, TrustChip, VerificationChip,
+  Button, Card, DateText, DocChecklist, DocumentList, EmptyState, KeyValue, Money, ObservationItem, PageHeader, StatusChip, TrustChip, VerificationChip,
 } from '@/components';
 import { DaysLeft } from './InstitutionHome';
 
@@ -13,6 +13,20 @@ function displayValue(field: TrackedField, value: string): string {
   if (field === 'issue_date' || field === 'maturity_date') return formatDate(value);
   if (field === 'lien_marked') return value === 'true' ? 'Marked' : 'Not marked';
   return value;
+}
+
+/** Why the officer sent the instrument back (shown on the detail page and in the wizard). */
+export function ReturnBanner({ reason }: { reason: string }) {
+  return (
+    <div role="alert" className="mb-4 flex items-start gap-2 rounded-md border border-warning-600/30 bg-warning-50 px-4 py-3 text-sm text-warning-700">
+      <Undo2 className="mt-0.5 size-4 shrink-0" aria-hidden />
+      <div>
+        <p className="font-medium">Returned by the AICTE officer — action needed</p>
+        <p>Reason: “{reason}”</p>
+        <p>Correct the details or documents, then submit again. Values you do not change keep their trust level.</p>
+      </div>
+    </div>
+  );
 }
 
 /** Simple instrument page (becomes the passport in Phase 5). */
@@ -45,6 +59,7 @@ export function InstrumentView() {
           </>
         }
       />
+      {d.status === 'RETURNED' && d.returns[0] && <ReturnBanner reason={d.returns[0].reason} />}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card title="Details" className="lg:col-span-2">
           <KeyValue
@@ -94,6 +109,11 @@ export function InstrumentView() {
         <Card title="Documents" className="lg:col-span-3">
           <DocumentList documents={d.documents} />
         </Card>
+        {d.observations.length > 0 && (
+          <Card title="Observations from AICTE" className="lg:col-span-3">
+            <ul className="space-y-2">{d.observations.map((o) => <ObservationItem key={o.id} o={o} />)}</ul>
+          </Card>
+        )}
       </div>
     </>
   );

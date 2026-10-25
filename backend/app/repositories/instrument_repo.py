@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Literal, TypedDict, cast
 
 from ..db.pool import Db, exec_, many, maybe_one, one
-from ..shared_constants import InstrumentStatus, InstrumentType, VerificationState
+from ..shared_constants import InstrumentStatus, InstrumentType, TrustTier, VerificationState
 
 
 class InstrumentRow(TypedDict):
@@ -157,6 +157,33 @@ def set_submission_meta(
     )
 
 
+def set_assigned_officer(db: Db, instrument_id: str, officer_id: str, at: datetime) -> None:
+    exec_(
+        db,
+        "UPDATE instruments SET assigned_officer_id = $2, version = version + 1, updated_at = $3 WHERE id = $1",
+        [instrument_id, officer_id, at],
+    )
+
+
+def set_verification_state(db: Db, instrument_id: str, state: VerificationState, at: datetime) -> None:
+    """Every applied bank result bumps the version (§3.3), even when the state is unchanged."""
+    exec_(
+        db,
+        "UPDATE instruments SET verification_state = $2, version = version + 1, updated_at = $3 WHERE id = $1",
+        [instrument_id, state, at],
+    )
+
+
+def set_acceptance(db: Db, instrument_id: str, by: str, override_note: str | None, at: datetime) -> None:
+    """Acceptance bookkeeping (D13); the status itself changes only through transition()."""
+    exec_(
+        db,
+        """UPDATE instruments SET accepted_at = $3, accepted_by = $2, accepted_with_override = ($4::text IS NOT NULL),
+            override_note = $4, version = version + 1, updated_at = $3 WHERE id = $1""",
+        [instrument_id, by, at, override_note],
+    )
+
+
 def delete_instrument(db: Db, instrument_id: str) -> None:
     """Hard delete (DRAFT only, checked by the service); provenance and document rows cascade, files stay on disk."""
     exec_(db, "DELETE FROM instruments WHERE id = $1", [instrument_id])
@@ -234,6 +261,7 @@ class ListItem(TypedDict):
     institutionName: str
     region: str
     daysToMaturity: int | None
+    weakestTier: TrustTier | None
     version: int
     updatedAt: datetime
 
@@ -274,6 +302,7 @@ def list_instruments(
             i.issue_date AS "issueDate", i.maturity_date AS "maturityDate", i.status,
             i.verification_state AS "verificationState", i.institution_id AS "institutionId",
             inst.name AS "institutionName", inst.region, (i.maturity_date - $1::date) AS "daysToMaturity",
+            (SELECT min(fp.tier) FROM field_provenance fp WHERE fp.instrument_id = i.id) AS "weakestTier",
             i.version, i.updated_at AS "updatedAt", count(*) OVER () AS total
        FROM instruments i JOIN institutions inst ON inst.id = i.institution_id
       WHERE {" AND ".join(where)}

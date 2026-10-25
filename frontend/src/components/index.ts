@@ -18,3 +18,4 @@ export * from './SystemStatus';
 export * from './TrustChips';
 export * from './DocumentList';
 export * from './DocChecklist';
+export * from './ObservationItem';

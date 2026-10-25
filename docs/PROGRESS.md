@@ -8,7 +8,7 @@ Claude Code updates this file at the end of every phase. Read it first in every 
 | 01 | Foundation | done | (this commit) | All 11 checks pass (AC11 run in headless Chromium) |
 | 02 | Submission and documents | done | (this commit) | All 11 checks pass (AC11 run in headless Chromium) |
 | — | Stack migration: backend + mock bank → Python (D28) | done | (this commit) | Phases 00–02 ported 1:1; 100 backend pytest + 1 mock-bank + 7 shared vitest; UI checks re-run |
-| 03 | Scrutiny, mock bank, trust tiers | not started | | |
+| 03 | Scrutiny, mock bank, trust tiers | done | (this commit) | All 15 checks pass (AC15 run in headless Chromium) |
 | 04 | Rules engine, alerts, escalation | not started | | |
 | 05 | Renewal chain and passport | not started | | |
 | 06 | Release workflow | not started | | |
@@ -116,6 +116,23 @@ Deviations / choices in the port:
 - `GET /instruments/:id/documents/:docId/download` and `/preview` (all roles, scoped; each logs `DOCUMENT_ACCESSED`)
 - `GET /meta` (all roles) → banks, doc types, instrument types, regions, `requiredDocs`, `lienRequired`
 
+**Phase 03** (all under `/api/v1`)
+- `GET /scrutiny/queue` (officer, approver, admin, auditor) — filters `region`, `bank`, `verificationState`, `assigned`
+  (`me`/`unassigned`/`all`), `page`, `pageSize` → `{ items, total, page, pageSize }`; items carry `ageingDays` (app clock),
+  `openDiscrepancies`, `assignedOfficerName`
+- `GET /instruments/:id/review` (officer, approver, admin, auditor) → `{ instrument, assignedOfficerName, fields, verifications,
+  discrepancies, observations, gaps, canAccept, canAcceptWithOverride, acceptBlockers }`
+- Officer only (institution → 403): `POST /instruments/:id/claim`, `POST /instruments/:id/verify` → `{ result, verificationId,
+  mismatchedFields, retryAfterSeconds, reason?, review }` (409 `INSTRUMENT_CHANGED` when D9 stores a STALE result),
+  `POST /instruments/:id/fields/:field/check-document {documentId, note?}` → `{ unchanged, review }`,
+  `POST /instruments/:id/observations {text, severity, visibleToInstitution}` (201), `POST /observations/:id/resolve {note}`,
+  `POST /instruments/:id/return {reason}`, `POST /instruments/:id/accept {overrideNote?}` (409 `ACCEPT_BLOCKED`,
+  `details.reasons`), `POST /discrepancies/:id/resolve {note}`; each returns the review payload
+- `GET /instruments` items and `GET /instruments/:id` gain `weakestTier`; the detail gains `returns` (newest first) and
+  `observations` (institution users: only those visible to them)
+- Mock bank (Python): `POST /verify`, `GET /records`, `POST /records/load {records}`, `POST /reload`, `GET /health`;
+  dev data `mock-bank/data/records.example.json` (used until `records.json` is written by a load)
+
 ## Pages added
 
 (append per phase)
@@ -145,6 +162,20 @@ Deviations / choices in the port:
 - `/institution/instruments/:id`: simple detail page (fields, required documents, "What is proven" table with trust chips,
   documents with preview/download)
 - New components: `VerificationChip`, `TrustChip`, `DocumentList`, `DocChecklist`
+
+**Phase 03**
+- `/officer/queue` (officer; read-only for approver/admin/auditor): filters (region, bank, verification, assigned), columns
+  institution, reference + status, bank, amount, submitted · ageing (amber > 5 d, red > 10 d, icon + text), verification chip,
+  open discrepancies, assigned officer; Claim on unassigned submitted rows. Officer sidebar gains "Scrutiny queue".
+- `/officer/review/:id`: header (reference, bank, amount, institution, status, verification, weakest-tier badge); action bar
+  (Verify / Re-verify with bank with spinner, PENDING countdown banner, neutral UNAVAILABLE banner, Add observation, Return,
+  Accept disabled with the blocker list, Accept with override + warning modal, "the decision is yours" copy); discrepancy
+  cards "Institution claimed" vs "Bank confirmed" with Resolve with note / Return; "What is proven" (7 fields, TrustBadge,
+  source label); completeness checklist; tabs Documents (preview, per-field "Checked against this document"), Verification
+  history (result chip, mismatched fields, raw JSON), Observations (add with severity + visibility, resolve)
+- Institution: detail page and wizard show the return reason and observations marked visible
+- New components: `TrustBadge` (Claimed outline circle / Document-checked file-check / Bank-confirmed shield-check;
+  `TrustChip` is now an alias), `WeakestTierBadge`, `ObservationItem` + `SeverityChip`
 
 ## Deviations / choices
 
@@ -212,6 +243,35 @@ Deviations / choices in the port:
 - Frontend: `ApiError.fieldErrors()` also reads `details.fields` and single-`field` 409s; added `missingDocumentsOf()`,
   `apiUpload()` (XHR for upload progress) and `apiOpenInTab()` (authorised preview via blob URL).
 
+**Phase 03**
+- Mock bank: Python FastAPI, same contract as §3.1. It keeps its own copy of the normalisers (`mock_bank/normalize.py`) rather
+  than importing the backend: it stands in for an external system. Env vars (offline/slow banks, slow seconds) are read per
+  request; data file `MOCK_BANK_DATA_FILE` (default `mock-bank/data/records.json`, gitignored), falling back to
+  `records.example.json`. The example file includes demo A1 (`SBIN/FDR/2026/00731`, ₹20 L) so demo steps 1–2 work before Phase 9.
+- A CLOSED deposit whose fields all match still gets an OPEN discrepancy on `reference_no` with reason "Deposit closed at bank"
+  (otherwise a MISMATCH would have nothing to resolve).
+- Re-verification: a field that was BANK_CONFIRMED and is now contradicted by the bank drops to CLAIMED (source `institution`)
+  besides getting the discrepancy — keeping a confirmation the bank now disputes would overstate the proof. Fields that were
+  CLAIMED/DOCUMENT keep their tier as specified. A MISMATCH response also auto-resolves open discrepancies of fields that now match.
+- `verifications.requested_at` / `responded_at` come from the app clock (rule 2); the bank's own `responded_at` stays in
+  `response_payload`. VERIFICATION_REQUESTED is written in the apply transaction (with the request time), so no transaction is
+  open during the bank call (rule 9). STALE (D9): the row and events are committed, then 409 is raised.
+- Every applied bank result bumps `version` (also PENDING/UNAVAILABLE). Claim and accept bump it too; document checks,
+  observations and discrepancy resolutions do not touch the instrument row.
+- Accept blockers: missing required documents, open discrepancies, open BLOCKING observations, lien (D8) and status ≠
+  UNDER_SCRUTINY cannot be overridden; "not confirmed by the bank" is lifted by `overrideNote`. A note sent while CONFIRMED is
+  ignored (no override recorded). "Field not bank-confirmed" and open CONCERN observations are checklist warnings.
+- Gap messages use field labels ("Open discrepancy: Amount (Amount mismatch)") instead of raw column names.
+- Claim only from SUBMITTED (409 otherwise); any officer may act on any case (no per-officer lock yet). Return from SUBMITTED or
+  UNDER_SCRUTINY. Observations can be added in any status but DRAFT.
+- Queue and review GETs are open to approver/admin/auditor (read-only UI); every mutation is officer-only.
+- Document check on a DOCUMENT or BANK_CONFIRMED field → 200 `unchanged: true`; unknown field → 404; a document not attached
+  to the instrument → 422 on `documentId`.
+- `shared/constants.json` gains `verifiableStatuses`, `verificationResults` (+ labels), `observationSeverities` (+ labels),
+  `discrepancyReasons`, new event labels; `institutionVisibleActions` += INSTRUMENT_RETURNED, INSTRUMENT_ACCEPTED,
+  VERIFICATION_RESULT (D24). `gen_shared_types.py` emits `VerificationResult` and `ObservationSeverity`.
+- `after_accept(tx, inst)` hook in `scrutiny_service.py` is a no-op for Phases 4/5.
+
 ## Known issues / follow-ups
 
 (things to fix later; mark resolved when fixed)
@@ -265,6 +325,15 @@ Deviations / choices in the port:
   uploaded; duplicate warning; second tab got the stale-version banner and Reload showed the other tab's value;
   Review "Everything required is in place"; Submit → detail with Submitted / Not verified and seven "Claimed by
   institution" chips. No unexpected console errors. CORS preflight from `http://localhost:5173` allowed.
+- Phase 03 checks 1–14: `backend/tests/test_phase03_scrutiny.py` (real mock bank under uvicorn on a free port; AC12 stubs the
+  bank client to bump the version); `find_gaps`: `test_gaps.py`; mock bank contract: `mock-bank/tests/test_phase03_mock_bank.py`.
+- Phase 03 check 15 (UI), cloud sandbox, `npm run dev` + headless Chromium (demo steps 1–2): Institution 1's `SBIN/FDR/2026/00731`
+  at ₹25 L → Officer → Scrutiny queue → Claim → Verify with bank → discrepancy card "Institution claimed ₹25,00,000.00 · Bank
+  confirmed ₹20,00,000.00", six fields "Bank-confirmed" (shield icon), amount "Claimed by institution", weakest field Claimed,
+  Accept disabled listing "Open discrepancy: Amount (Amount mismatch)" and "Not confirmed by the bank"; Return to institution
+  (prefilled reason) → Institution 1 sees the reason on the RETURNED banner; corrected to ₹20 L and resubmitted → Officer claims,
+  verifies → all green, checklist "Everything is in place" → Accept → Active; verification history shows both calls. Slow bank
+  (Bank of India) showed "Bank is processing — retry in 10s". No console errors.
 - Phase 01 check 11 (UI), cloud sandbox, `npm run dev` + headless Chromium: each of the six quick buttons signed in and
   landed on its role home with name and `Today · 25 Oct 2026` badge; officer opening `/admin` was redirected to `/officer`
   and saw no clock controls; admin +7d → `SIMULATED · 1 Nov 2026`, Set date 2026-12-12 → `SIMULATED · 12 Dec 2026`,

@@ -37,3 +37,12 @@ def upsert_provenance(
      DO UPDATE SET value = EXCLUDED.value, tier = EXCLUDED.tier, source = EXCLUDED.source, updated_at = EXCLUDED.updated_at""",
         [instrument_id, field_name, value, tier, source, at],
     )
+
+
+def set_tier(db: Db, instrument_id: str, field_name: TrackedField, tier: TrustTier, source: str, at: datetime) -> None:
+    """Changes the trust tier (and its source) of one field, keeping its value."""
+    exec_(
+        db,
+        "UPDATE field_provenance SET tier = $3, source = $4, updated_at = $5 WHERE instrument_id = $1 AND field_name = $2",
+        [instrument_id, field_name, tier, source, at],
+    )

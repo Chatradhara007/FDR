@@ -11,7 +11,7 @@ const COPY: Record<Role, { title: string; subtitle: string; next: string }> = {
   officer: {
     title: 'Scrutiny desk',
     subtitle: 'Instruments waiting for verification, observations and discrepancies.',
-    next: 'Your scrutiny queue appears here once instruments can be submitted.',
+    next: 'Open the scrutiny queue to claim submitted instruments, verify them with the bank and accept or return them.',
   },
   approver: {
     title: 'Approvals',
