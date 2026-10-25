@@ -19,8 +19,8 @@ export class NotFound extends AppError {
 }
 
 export class Unauthorized extends AppError {
-  constructor(message = 'Authentication required', details: ErrorDetails = null) {
-    super('UNAUTHORIZED', message, details, 401);
+  constructor(message = 'Authentication required', details: ErrorDetails = null, code = 'UNAUTHORIZED') {
+    super(code, message, details, 401);
   }
 }
 
@@ -50,5 +50,11 @@ export class ValidationFailed extends AppError {
 export class InvalidTransition extends AppError {
   constructor(from: string, to: string, message?: string) {
     super('INVALID_TRANSITION', message ?? `Cannot move from ${from} to ${to}`, { from, to }, 409);
+  }
+}
+
+export class TooManyRequests extends AppError {
+  constructor(message: string) {
+    super('RATE_LIMITED', message, null, 429);
   }
 }

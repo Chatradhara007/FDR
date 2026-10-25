@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: fdr
       POSTGRES_DB: fdr
       TZ: Asia/Kolkata
-    ports: ["55432:5432"]
+    ports: ["${DB_HOST_PORT:-5432}:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/db-init:/docker-entrypoint-initdb.d   # creates fdr_test

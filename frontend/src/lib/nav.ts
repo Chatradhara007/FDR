@@ -1,6 +1,5 @@
-import { Home, type LucideIcon } from 'lucide-react';
-
-export type Role = 'institution' | 'officer' | 'approver' | 'admin' | 'auditor';
+import { Building2, ClipboardCheck, Gavel, Settings, ShieldCheck, type LucideIcon } from 'lucide-react';
+import type { Role } from '@fdr/shared';
 
 export interface NavItem {
   to: string;
@@ -8,14 +7,11 @@ export interface NavItem {
   icon: LucideIcon;
 }
 
-const common: NavItem[] = [{ to: '/', label: 'Home', icon: Home }];
-
-/** Sidebar entries per role; later phases add their pages here. */
-export const NAV: Record<Role | 'anonymous', NavItem[]> = {
-  anonymous: common,
-  institution: common,
-  officer: common,
-  approver: common,
-  admin: common,
-  auditor: common,
+/** Sidebar entries per role. Only pages that exist are listed; later phases add theirs here. */
+export const NAV: Record<Role, NavItem[]> = {
+  institution: [{ to: '/institution', label: 'My institution', icon: Building2 }],
+  officer: [{ to: '/officer', label: 'Scrutiny desk', icon: ClipboardCheck }],
+  approver: [{ to: '/approver', label: 'Approvals', icon: Gavel }],
+  admin: [{ to: '/admin', label: 'Administration', icon: Settings }],
+  auditor: [{ to: '/auditor', label: 'Audit', icon: ShieldCheck }],
 };
