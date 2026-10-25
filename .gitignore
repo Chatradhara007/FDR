@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+storage/
+*.log
+.DS_Store
+coverage/
+mock-bank/data/records.json
+playwright-report/
+test-results/
+.vite/
