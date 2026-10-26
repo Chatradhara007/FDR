@@ -15,7 +15,7 @@ export function Layout() {
   const items = user ? NAV[user.role] : [];
   return (
     <div className="flex min-h-screen">
-      <aside className="hidden w-60 shrink-0 flex-col bg-primary-900 text-primary-100 md:flex">
+      <aside className="hidden w-60 print:hidden! shrink-0 flex-col bg-primary-900 text-primary-100 md:flex">
         <div className="flex items-center gap-2 px-5 py-4 text-white">
           <Landmark className="size-5" aria-hidden />
           <div className="leading-tight">
@@ -43,7 +43,7 @@ export function Layout() {
         </nav>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-surface px-6 py-2">
+        <header className="print:hidden flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-surface px-6 py-2">
           <div className="flex flex-wrap items-center gap-3">
             <p className="text-sm font-medium text-slate-700 md:hidden">FDR Portal — AICTE</p>
             <ClockBadge />
@@ -71,7 +71,7 @@ export function Layout() {
             </div>
           )}
         </header>
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 print:p-0">
           <Outlet />
         </main>
       </div>

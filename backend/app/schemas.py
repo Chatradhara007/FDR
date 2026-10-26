@@ -11,7 +11,7 @@ from collections.abc import Mapping
 from itertools import pairwise
 from typing import Any, ClassVar, Literal, TypedDict
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, ValidationInfo, field_validator
 from pydantic.alias_generators import to_camel
 from pydantic_core import PydanticCustomError
 
@@ -25,6 +25,9 @@ from .shared_constants import (
     DOC_TYPES,
     INSTRUMENT_TYPES,
     OBSERVATION_SEVERITIES,
+    RELEASE_AUTO_CONDITIONS,
+    RELEASE_LEVEL_ACTIONS,
+    RELEASE_REQUEST_STATUSES,
     ROLES,
     VERIFICATION_STATES,
     AlertKind,
@@ -32,6 +35,8 @@ from .shared_constants import (
     InstrumentStatus,
     InstrumentType,
     ObservationSeverity,
+    ReleaseLevelAction,
+    ReleaseRequestStatus,
     Role,
     VerificationState,
 )
@@ -751,6 +756,122 @@ class RenewalChecksRule(ApiModel):
         return _whole_days(v)
 
 
+_CONDITION_CODE = re.compile(r"^[A-Z][A-Z0-9_]{1,59}$")
+
+
+class ReleaseConditionConfig(ApiModel):
+    code: str
+    auto: bool
+    mandatory: bool
+    description: str
+
+    @field_validator("code", mode="before")
+    @classmethod
+    def _code(cls, v: object) -> str:
+        if not isinstance(v, str) or not _CONDITION_CODE.match(v):
+            raise fail("Use an UPPER_SNAKE code")
+        return v
+
+    @field_validator("auto", "mandatory", mode="before")
+    @classmethod
+    def _flag(cls, v: object) -> bool:
+        if not isinstance(v, bool):
+            raise fail("Choose yes or no")
+        return v
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def _description(cls, v: object) -> str:
+        return _required_text(v, 300, "Describe the condition", "Description")
+
+
+class ReleaseConditionsRule(ApiModel):
+    """key 'release_conditions' (Phase 6): copied into every new release request. Auto conditions are evaluated live,
+    so only the codes the system knows how to evaluate may be marked auto."""
+
+    conditions: list[ReleaseConditionConfig]
+
+    @field_validator("conditions", mode="after")
+    @classmethod
+    def _conditions(cls, v: list[ReleaseConditionConfig]) -> list[ReleaseConditionConfig]:
+        if len({c.code for c in v}) != len(v):
+            raise fail("Each condition code once")
+        unknown = [c.code for c in v if c.auto and c.code not in RELEASE_AUTO_CONDITIONS]
+        if unknown:
+            raise fail(f"No automatic check exists for {', '.join(unknown)}")
+        return v
+
+
+def _level_role(v: object) -> Role:
+    if v not in ("officer", "approver", "admin"):
+        raise fail("Choose officer, approver or admin")
+    return v
+
+
+def _level_action(v: object) -> ReleaseLevelAction:
+    if v not in RELEASE_LEVEL_ACTIONS:
+        raise fail("Use RECOMMEND or DECIDE")
+    return v
+
+
+class ApprovalLevelConfig(ApiModel):
+    role: Role
+    action: ReleaseLevelAction
+    label: str
+
+    @field_validator("role", mode="before")
+    @classmethod
+    def _role(cls, v: object) -> Role:
+        return _level_role(v)
+
+    @field_validator("action", mode="before")
+    @classmethod
+    def _action(cls, v: object) -> ReleaseLevelAction:
+        return _level_action(v)
+
+    @field_validator("label", mode="before")
+    @classmethod
+    def _label(cls, v: object) -> str:
+        return _required_text(v, 200, "Name the level", "Label")
+
+
+class NumberedApprovalLevel(ApprovalLevelConfig):
+    level: int
+
+    @field_validator("level", mode="before")
+    @classmethod
+    def _level(cls, v: object) -> int:
+        return _whole_days(v, 1)
+
+
+class ApprovalLevelsRule(ApiModel):
+    """key 'approval_levels' (Phase 6 §6.4): the release chain; `extraLevel` is appended above `extraApprovalAbove`."""
+
+    levels: list[NumberedApprovalLevel]
+    extra_approval_above: str | None = None
+    extra_level: ApprovalLevelConfig | None = None
+
+    @field_validator("levels", mode="after")
+    @classmethod
+    def _levels(cls, v: list[NumberedApprovalLevel]) -> list[NumberedApprovalLevel]:
+        if [x.level for x in v] != list(range(1, len(v) + 1)):
+            raise fail("Levels must be numbered 1, 2, 3 … in order")
+        if v[-1].action != "DECIDE":
+            raise fail("The last level must decide")
+        return v
+
+    @field_validator("extra_approval_above", mode="before")
+    @classmethod
+    def _above(cls, v: object) -> str | None:
+        v = _blank_to_none(v)
+        if v is None:
+            return None
+        try:
+            return norm_amount(str(v))
+        except ValueError:
+            raise fail("Enter an amount") from None
+
+
 RULE_CONFIG_MODELS: dict[str, type[ApiModel]] = {
     "reminder": ReminderRule,
     "pending_verification": AfterDaysRule,
@@ -759,6 +880,8 @@ RULE_CONFIG_MODELS: dict[str, type[ApiModel]] = {
     "release_pending": AfterDaysRule,
     "escalation": EscalationRule,
     "renewal_checks": RenewalChecksRule,
+    "release_conditions": ReleaseConditionsRule,
+    "approval_levels": ApprovalLevelsRule,
 }
 
 AlertStatusFilter = Literal["open", "OPEN", "ACKNOWLEDGED", "ESCALATED", "RESOLVED", "all"]
@@ -831,6 +954,154 @@ class AlertListQuery(ApiModel):
 class PageQuery(ApiModel):
     page: int = 1
     page_size: int = Field(default=25)
+
+    @field_validator("page", mode="before")
+    @classmethod
+    def _page(cls, v: object) -> int:
+        return _coerce_int(v, 1, None)
+
+    @field_validator("page_size", mode="before")
+    @classmethod
+    def _page_size(cls, v: object) -> int:
+        return _coerce_int(v, 1, 100)
+
+
+# ---- Phase 06: release requests ----------------------------------------------------------------
+
+
+class ReleaseRequestCreate(ApiModel):
+    MISSING_MESSAGES: ClassVar[dict[str, str]] = {"reason": "Enter the reason for the release"}
+
+    reason: str
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def _reason(cls, v: object) -> str:
+        return _required_text(v, 2000, "Enter the reason for the release", "Reason")
+
+
+class ConditionUpdate(ApiModel):
+    MISSING_MESSAGES: ClassVar[dict[str, str]] = {"met": "Say whether the condition is met"}
+
+    met: bool
+    remarks: str | None = Field(default=None, validate_default=True)
+
+    @field_validator("met", mode="before")
+    @classmethod
+    def _met(cls, v: object) -> bool:
+        if not isinstance(v, bool):
+            raise fail("Say whether the condition is met")
+        return v
+
+    @field_validator("remarks", mode="before")
+    @classmethod
+    def _remarks(cls, v: object, info: ValidationInfo) -> str | None:
+        remarks = _optional_text(v, 1000, "Remarks")
+        if remarks is None and info.data.get("met") is True:
+            raise fail("Enter remarks: what did you check?")
+        return remarks
+
+
+def _expected_level(v: object) -> int | None:
+    v = _blank_to_none(v)
+    if v is None:
+        return None
+    if isinstance(v, bool) or not isinstance(v, int) or v < 1:
+        raise fail("Not a valid level")
+    return v
+
+
+class RecommendInput(ApiModel):
+    MISSING_MESSAGES: ClassVar[dict[str, str]] = {"remarks": "Enter your remarks"}
+
+    remarks: str
+    level: int | None = None  # the level the client saw; a different current level means someone acted first
+
+    @field_validator("remarks", mode="before")
+    @classmethod
+    def _remarks(cls, v: object) -> str:
+        return _required_text(v, 2000, "Enter your remarks", "Remarks")
+
+    @field_validator("level", mode="before")
+    @classmethod
+    def _level(cls, v: object) -> int | None:
+        return _expected_level(v)
+
+
+ReleaseDecisionInput = Literal["APPROVE", "REJECT", "RETURN"]
+
+
+class DecideInput(ApiModel):
+    MISSING_MESSAGES: ClassVar[dict[str, str]] = {
+        "decision": "Choose Approve, Return or Reject",
+        "remarks": "Enter your remarks",
+    }
+
+    decision: ReleaseDecisionInput
+    remarks: str
+    refund_reference: str | None = None
+    level: int | None = None
+
+    @field_validator("decision", mode="before")
+    @classmethod
+    def _decision(cls, v: object) -> ReleaseDecisionInput:
+        if v not in ("APPROVE", "REJECT", "RETURN"):
+            raise fail("Choose Approve, Return or Reject")
+        return v
+
+    @field_validator("remarks", mode="before")
+    @classmethod
+    def _remarks(cls, v: object) -> str:
+        return _required_text(v, 2000, "Enter your remarks", "Remarks")
+
+    @field_validator("refund_reference", mode="before")
+    @classmethod
+    def _refund(cls, v: object) -> str | None:
+        return _optional_text(v, 100, "Refund reference")
+
+    @field_validator("level", mode="before")
+    @classmethod
+    def _level(cls, v: object) -> int | None:
+        return _expected_level(v)
+
+
+class ReleaseListQuery(ApiModel):
+    status: list[ReleaseRequestStatus] | None = None
+    awaiting_me: bool = False
+    instrument_id: str | None = None
+    page: int = 1
+    page_size: int = Field(default=25)
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def _status(cls, v: object) -> list[ReleaseRequestStatus] | None:
+        v = _blank_to_none(v)
+        if v is None:
+            return None
+        items = [x for part in (v if isinstance(v, list) else [v]) for x in str(part).split(",") if x]
+        if any(x not in RELEASE_REQUEST_STATUSES for x in items):
+            raise fail("Unknown release request status")
+        return items or None  # type: ignore[return-value]
+
+    @field_validator("awaiting_me", mode="before")
+    @classmethod
+    def _awaiting(cls, v: object) -> bool:
+        v = _blank_to_none(v)
+        if v in (None, False, "false", "0"):
+            return False
+        if v in (True, "true", "1"):
+            return True
+        raise fail("Use true or false")
+
+    @field_validator("instrument_id", mode="before")
+    @classmethod
+    def _instrument_id(cls, v: object) -> str | None:
+        v = _blank_to_none(v)
+        if v is None:
+            return None
+        if not isinstance(v, str) or not _UUID.match(v):
+            raise fail("Not a valid id")
+        return v
 
     @field_validator("page", mode="before")
     @classmethod

@@ -12,7 +12,7 @@ from .config import config
 from .jobs.scheduler import start_scheduler
 from .middleware.errors import RequestIdMiddleware, install_error_handlers
 from .middleware.responses import ApiJSONResponse
-from .routes import alerts, clock, demo, health, instruments, jobs, meta, scrutiny
+from .routes import alerts, clock, demo, health, instruments, jobs, meta, releases, scrutiny
 from .routes.auth import auth_router
 
 
@@ -50,6 +50,7 @@ def create_app(mount_test_routes: Callable[[APIRouter], None] | None = None) -> 
     api.include_router(clock.router)
     api.include_router(instruments.router)
     api.include_router(scrutiny.router)
+    api.include_router(releases.router)
     api.include_router(meta.router)
     api.include_router(alerts.router)
     api.include_router(jobs.router)

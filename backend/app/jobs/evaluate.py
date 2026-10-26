@@ -38,9 +38,11 @@ from ..repositories.alert_repo import (
     sweep_candidates,
 )
 from ..repositories.outbox_repo import NewOutboxMessage, insert_outbox
+from ..repositories.release_repo import release_pending_candidates
 from ..shared_constants import (
     ALERT_KIND_LABELS,
     FIELD_LABELS,
+    RELEASE_REQUEST_STATUS_LABELS,
     ROLE_LABELS,
     AlertKind,
     AlertResolution,
@@ -285,7 +287,23 @@ def _overdue_renewal(tx: Conn, as_of: str, rules: Rules, batch: _Batch) -> None:
 
 
 def _release_pending(tx: Conn, as_of: str, rules: Rules, batch: _Batch) -> None:
-    """Phase 6 fills this in (release requests do not exist yet)."""
+    """Phase 6 §6.5: a request waiting at its current level for `afterDays` goes to the role whose turn it is. The alert
+    starts at that role's rung of the escalation ladder (officer L1, approver L2), so it climbs from there (D11); a
+    request that moves to its next level gets a new alert and the old one clears."""
+    r = rules.release_pending
+    ladder = {lv.role: lv.level for lv in sorted(rules.escalation.levels, key=lambda lv: -lv.level)}
+    for c in release_pending_candidates(tx, as_of, r.after_days):
+        role = c["level"]["role"]
+        age = clock.days_between(c["stageDate"], as_of)
+        what = describe(c["type"], c["referenceNo"], c["amount"], c["issuingBank"])
+        message = (
+            f"Release request for {what} from {c['institutionName']} has waited {days_text(age)} at level "
+            f"{c['currentLevel']} ({c['level']['label']}; {RELEASE_REQUEST_STATUS_LABELS[c['status']].lower()})."
+        )
+        subject = email_subject("Action needed", f"release request pending for {c['referenceNo'] or 'an instrument'}")
+        due = clock.add_days(c["stageDate"], r.after_days)
+        batch.add(c, "RELEASE_PENDING", f"release_pending:{c['currentLevel']}", role, due, message, subject,
+                  subject_id=c["requestId"], level=ladder.get(role, 1))  # fmt: skip
 
 
 Creator = Callable[[Conn, str, Rules, _Batch], None]
@@ -303,7 +321,11 @@ KIND_HANDLERS: dict[AlertKind, tuple[Creator, str]] = {
         "EXISTS (SELECT 1 FROM discrepancies d WHERE d.id::text = a.subject_id AND d.status = 'OPEN')",
     ),
     "OVERDUE_RENEWAL": (_overdue_renewal, "i.status IN ('MATURED','LAPSED')"),
-    "RELEASE_PENDING": (_release_pending, "true"),
+    "RELEASE_PENDING": (
+        _release_pending,
+        "EXISTS (SELECT 1 FROM release_requests r WHERE r.id::text = a.subject_id"
+        " AND r.status IN ('PENDING_CONDITIONS','PENDING_APPROVAL') AND a.rule_key = 'release_pending:' || r.current_level)",
+    ),
 }
 
 

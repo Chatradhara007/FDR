@@ -1,5 +1,6 @@
 import type {
-  AlertKind, AlertResolution, AlertStatus, DocType, InstrumentStatus, InstrumentType, ObservationSeverity, Role, TrackedField, TrustTier, VerificationResult, VerificationState,
+  AlertKind, AlertResolution, AlertStatus, DocType, InstrumentStatus, InstrumentType, ObservationSeverity, ReleaseDecision, ReleaseLevelAction,
+  ReleaseRequestStatus, Role, TrackedField, TrustTier, VerificationResult, VerificationState,
 } from './constants.gen';
 
 /** API shapes (camelCase) shared by backend responses and the frontend. */
@@ -102,6 +103,8 @@ export interface DocumentInfo {
   sha256: string;
   uploadedBy: string;
   uploadedAt: string;
+  /** Set on documents attached to a release request (Phase 6). */
+  releaseRequestId?: string | null;
 }
 
 export interface ProvenanceRow {
@@ -433,7 +436,7 @@ export interface PassportVerification {
 
 export type TimelineIcon =
   | 'status' | 'renewal' | 'view' | 'document' | 'bank' | 'discrepancy' | 'observation' | 'alert' | 'return' | 'accept' | 'edit'
-  | 'clock' | 'event';
+  | 'clock' | 'release' | 'event';
 
 export interface TimelineEvent {
   id: number;
@@ -468,7 +471,138 @@ export interface Passport {
   observations: Observation[];
   returns: ReturnRecord[];
   alerts: Alert[];
-  releaseRequests: unknown[];
+  releaseRequests: ReleaseView[];
   summary: PassportSummary;
   timeline: TimelineEvent[];
+}
+
+// ---- Phase 06: release requests ----
+
+/** One level of a request's approval chain, frozen when the request was made. */
+export interface ReleaseLevel {
+  level: number;
+  role: Role;
+  action: ReleaseLevelAction;
+  label: string;
+}
+
+export interface ReleaseRequest {
+  id: string;
+  instrumentId: string;
+  institutionId: string;
+  requestedBy: string;
+  requestedByName: string;
+  reason: string;
+  status: ReleaseRequestStatus;
+  requiredLevels: ReleaseLevel[];
+  currentLevel: number;
+  returnMessage: string | null;
+  refundReference: string | null;
+  requestedAt: string;
+  stageStartedAt: string;
+  closedAt: string | null;
+}
+
+export interface ConditionLink {
+  type: 'discrepancy' | 'observation' | 'verification' | 'documents';
+  id?: string;
+  field?: TrackedField;
+}
+
+/** Auto conditions are evaluated live on every read; manual ones as an officer recorded them. */
+export interface ReleaseCondition {
+  id: string;
+  code: string;
+  description: string;
+  mandatory: boolean;
+  auto: boolean;
+  met: boolean;
+  reason: string | null;
+  link: ConditionLink | null;
+  checkedByName: string | null;
+  checkedAt: string | null;
+  remarks: string | null;
+  metAtRecommendation: boolean | null;
+  changedSinceRecommendation: boolean;
+}
+
+export interface SnapshotCondition {
+  code: string;
+  description: string;
+  mandatory: boolean;
+  auto: boolean;
+  met: boolean;
+  reason: string | null;
+}
+
+export interface ReleaseApproval {
+  id: string;
+  level: number;
+  label: string;
+  role: Role;
+  approverName: string;
+  approverDesignation: string | null;
+  decision: ReleaseDecision;
+  /** Institutions only get the remarks of returns and rejections (D24). */
+  remarks: string | null;
+  conditionsSnapshot: SnapshotCondition[] | null;
+  decidedAt: string;
+}
+
+/** GET /release-requests/:id (and each entry of the passport's releaseRequests). */
+export interface ReleaseView {
+  request: ReleaseRequest;
+  statusLabel: string;
+  currentLevelInfo: ReleaseLevel | null;
+  instrument: InstrumentDetail;
+  documents: DocumentInfo[];
+  conditions: ReleaseCondition[];
+  blocked: boolean;
+  blockers: string[];
+  approvals: ReleaseApproval[];
+  orderNumber: string | null;
+  canRecommend: boolean;
+  canDecide: boolean;
+  canApprove: boolean;
+  /** Why the signed-in user cannot recommend / approve right now. */
+  actionBlockers: string[];
+  canEditConditions: boolean;
+  canUploadDocuments: boolean;
+  canResubmit: boolean;
+  canCancel: boolean;
+}
+
+export interface ReleaseListItem {
+  id: string;
+  instrumentId: string;
+  status: ReleaseRequestStatus;
+  currentLevel: number;
+  requiredLevels: ReleaseLevel[];
+  reason: string;
+  requestedAt: string;
+  stageStartedAt: string;
+  closedAt: string | null;
+  ageDays: number;
+  referenceNo: string | null;
+  instrumentType: InstrumentType;
+  instrumentStatus: InstrumentStatus;
+  issuingBank: string | null;
+  amount: string | null;
+  maturityDate: string | null;
+  institutionId: string;
+  institutionName: string;
+}
+
+export interface ReleaseListResponse {
+  items: ReleaseListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface DecideInput {
+  decision: 'APPROVE' | 'REJECT' | 'RETURN';
+  remarks: string;
+  refundReference?: string;
+  level?: number;
 }

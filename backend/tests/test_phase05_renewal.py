@@ -270,10 +270,12 @@ def test_no_concerns_for_an_overlapping_same_amount_replacement(c: Ctx) -> None:
 
 
 def test_ac5_d6_renew_refused_while_a_release_request_is_open(c: Ctx) -> None:
-    parent = make_instrument("RELEASE_REQUESTED", "2026-12-01")
+    # A real open request (release_requests table, Phase 6), not just the RELEASE_REQUESTED status.
+    parent = expiring_parent()
+    ok(post(c.inst1, f"/instruments/{parent}/release-requests", {"reason": "Obligation fulfilled"}), 201)
     res = post(c.inst1, f"/instruments/{parent}/renew")
     assert res.status_code == 409 and res.json()["code"] == "NOT_RENEWABLE"
-    assert "release request" in res.json()["message"]
+    assert "open release request (checking conditions" in res.json()["message"]
 
 
 def test_ac5_d6_child_accept_refused_when_the_parent_is_no_longer_renewable(c: Ctx) -> None:

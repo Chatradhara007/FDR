@@ -20,12 +20,13 @@ class DocumentRow(TypedDict):
     sha256: str
     uploadedBy: str
     uploadedAt: datetime
+    releaseRequestId: str | None
 
 
 COLUMNS = """
   d.id, d.instrument_id AS "instrumentId", d.doc_type AS "docType", d.filename, d.storage_path AS "storagePath",
   d.mime_type AS "mimeType", d.size_bytes AS "sizeBytes", d.sha256, d.uploaded_by AS "uploadedBy",
-  d.uploaded_at AS "uploadedAt\""""
+  d.uploaded_at AS "uploadedAt", d.release_request_id AS "releaseRequestId\""""
 
 
 class NewDocument(TypedDict):
@@ -38,29 +39,42 @@ class NewDocument(TypedDict):
     sha256: str
     uploadedBy: str
     uploadedAt: datetime
+    releaseRequestId: str | None
 
 
 def insert_document(db: Db, d: NewDocument) -> DocumentRow:
     row = one(
         db,
         f"""WITH ins AS (
-       INSERT INTO documents (instrument_id, doc_type, filename, storage_path, mime_type, size_bytes, sha256, uploaded_by, uploaded_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *)
+       INSERT INTO documents (instrument_id, doc_type, filename, storage_path, mime_type, size_bytes, sha256, uploaded_by,
+                              uploaded_at, release_request_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *)
      SELECT {COLUMNS} FROM ins d""",
         [
             d["instrumentId"], d["docType"], d["filename"], d["storagePath"], d["mimeType"], d["sizeBytes"],
-            d["sha256"], d["uploadedBy"], d["uploadedAt"],
+            d["sha256"], d["uploadedBy"], d["uploadedAt"], d["releaseRequestId"],
         ],
     )  # fmt: skip
     return cast(DocumentRow, row)
 
 
 def list_live_documents(db: Db, instrument_id: str) -> list[DocumentRow]:
+    """The instrument's own documents (release documents belong to their release request, Phase 6)."""
     rows = many(
         db,
         f"SELECT {COLUMNS} FROM documents d WHERE d.instrument_id = $1 AND d.deleted_at IS NULL"
-        " ORDER BY d.uploaded_at, d.id",
+        " AND d.release_request_id IS NULL ORDER BY d.uploaded_at, d.id",
         [instrument_id],
+    )
+    return cast(list[DocumentRow], rows)
+
+
+def list_release_documents(db: Db, release_request_id: str) -> list[DocumentRow]:
+    rows = many(
+        db,
+        f"SELECT {COLUMNS} FROM documents d WHERE d.release_request_id = $1 AND d.deleted_at IS NULL"
+        " ORDER BY d.uploaded_at, d.id",
+        [release_request_id],
     )
     return cast(list[DocumentRow], rows)
 

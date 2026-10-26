@@ -29,6 +29,9 @@ UNIONS = {
     "AlertKind": "alertKinds",
     "AlertStatus": "alertStatuses",
     "AlertResolution": "alertResolutions",
+    "ReleaseRequestStatus": "releaseRequestStatuses",
+    "ReleaseDecision": "releaseDecisions",
+    "ReleaseLevelAction": "releaseLevelActions",
 }
 
 

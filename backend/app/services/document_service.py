@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, TypedDict, cast
 
-from ..db.pool import get_pool, transaction
+from ..db.pool import Conn, get_pool, transaction
 from ..domain import clock
 from ..domain.access import AuthUser, actor_of, assert_can_see
 from ..domain.audit import record_event
@@ -19,6 +20,7 @@ from ..repositories.document_repo import (
 )
 from ..repositories.instrument_repo import find_instrument_by_id
 from ..schemas import FieldIssue, doc_type_or_none
+from ..shared_constants import DOC_TYPES, DocType
 from . import storage
 from .instrument_service import DocumentInfo, lock_own_editable
 
@@ -50,22 +52,45 @@ def upload_document(
 ) -> UploadResponse:
     """2.4: detect the real type, store the file (outside the transaction), then record it under the
     instrument lock. Upload only in DRAFT/RETURNED. Same checksum -> accepted, `duplicateOf` set."""
+
+    def visible() -> str:
+        inst = find_instrument_by_id(get_pool(), instrument_id)
+        if inst is None:
+            raise NotFound("Instrument not found")
+        assert_can_see(user, inst["institutionId"])
+        return instrument_id
+
+    def lock(tx: Conn) -> None:
+        lock_own_editable(tx, user, instrument_id, "changed")
+
+    return store_document(user, raw_doc_type, file, DOC_TYPES, visible, lock, None)
+
+
+def store_document(
+    user: AuthUser,
+    raw_doc_type: object,
+    file: IncomingFile | None,
+    allowed_types: Sequence[DocType],
+    visible: Callable[[], str],
+    lock: Callable[[Conn], None],
+    release_request_id: str | None,
+) -> UploadResponse:
+    """The upload steps shared by instrument and release documents (Phase 6). `visible` checks access and returns the
+    instrument id (a stranger learns nothing and nothing is stored for them); `lock` re-locks and re-checks the state
+    inside the recording transaction."""
     doc_type = doc_type_or_none(raw_doc_type)
     issues: list[FieldIssue] = []
     if file is None:
         issues.append({"field": "file", "message": "Choose a file to upload"})
-    if doc_type is None:
+    if doc_type is None or doc_type not in allowed_types:
         issues.append({"field": "docType", "message": "Choose a document type"})
-    if file is None or doc_type is None:
+    if file is None or doc_type is None or doc_type not in allowed_types:
         if file is not None:
             storage.remove_temp(file.path)
         raise ValidationFailed(issues)
     # Visibility first, so a stranger learns nothing and nothing is stored for them.
     try:
-        inst = find_instrument_by_id(get_pool(), instrument_id)
-        if inst is None:
-            raise NotFound("Instrument not found")
-        assert_can_see(user, inst["institutionId"])
+        instrument_id = visible()
     except Exception:
         storage.remove_temp(file.path)
         raise
@@ -86,7 +111,7 @@ def upload_document(
     stored = storage.save_upload(file.path, instrument_id, detected.ext)
     try:
         with transaction() as tx:
-            lock_own_editable(tx, user, instrument_id, "changed")
+            lock(tx)
             duplicate = find_live_by_checksum(tx, instrument_id, stored.sha256)
             doc = insert_document(
                 tx,
@@ -100,8 +125,18 @@ def upload_document(
                     "sha256": stored.sha256,
                     "uploadedBy": user.id,
                     "uploadedAt": clock.now(tx),
+                    "releaseRequestId": release_request_id,
                 },
             )
+            after: dict[str, object] = {
+                "docType": doc_type,
+                "filename": doc["filename"],
+                "sizeBytes": doc["sizeBytes"],
+                "sha256": doc["sha256"],
+                "duplicateOf": duplicate["id"] if duplicate else None,
+            }
+            if release_request_id:
+                after["releaseRequestId"] = release_request_id
             record_event(
                 tx,
                 actor=actor_of(user),
@@ -109,13 +144,7 @@ def upload_document(
                 entity_type="document",
                 entity_id=doc["id"],
                 instrument_id=instrument_id,
-                after={
-                    "docType": doc_type,
-                    "filename": doc["filename"],
-                    "sizeBytes": doc["sizeBytes"],
-                    "sha256": doc["sha256"],
-                    "duplicateOf": duplicate["id"] if duplicate else None,
-                },
+                after=after,
             )
     except BaseException:
         storage.discard_unrecorded(stored.storage_path)

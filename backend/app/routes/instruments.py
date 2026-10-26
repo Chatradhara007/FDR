@@ -87,7 +87,7 @@ def passport(instrument_id: str, user: AuthUser = Depends(require_role(*ALL_ROLE
     return json_response(passport_service.get_passport(user, instrument_id))
 
 
-async def _receive_file(upload: UploadFile) -> IncomingFile:
+async def receive_file(upload: UploadFile) -> IncomingFile:
     """Copies the multipart file to a temp file, enforcing the 10 MB limit."""
     os.makedirs(UPLOAD_TMP, exist_ok=True)
     tmp_path = os.path.join(UPLOAD_TMP, uuid.uuid4().hex)
@@ -121,7 +121,7 @@ async def upload(
     check_ids(instrument_id)
     async with request.form(max_files=1, max_fields=5) as form:
         raw_file = form.get("file")
-        file = await _receive_file(raw_file) if isinstance(raw_file, UploadFile) else None
+        file = await receive_file(raw_file) if isinstance(raw_file, UploadFile) else None
         doc_type = form.get("docType")
     result = await run_in_threadpool(document_service.upload_document, user, instrument_id, doc_type, file)
     return json_response(result, 201)

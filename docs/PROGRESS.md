@@ -11,7 +11,7 @@ Claude Code updates this file at the end of every phase. Read it first in every 
 | 03 | Scrutiny, mock bank, trust tiers | done | (this commit) | All 15 checks pass (AC15 run in headless Chromium) |
 | 04 | Rules engine, alerts, escalation | done | (this commit) | All 13 checks pass (AC13 run in headless Chromium) |
 | 05 | Renewal chain and passport | done | (this commit) | All 9 checks pass (AC9 run in headless Chromium) |
-| 06 | Release workflow | not started | | |
+| 06 | Release workflow | done | (this commit) | All 10 checks pass (AC10 run in headless Chromium) |
 | 07 | Dashboard, my day, reports, metrics | not started | | |
 | 08 | Admin, audit integrity, security | not started | | |
 | 09 | Seed, demo tools, rehearsal, polish | not started | | |
@@ -160,6 +160,32 @@ Deviations / choices in the port:
 - `POST /instruments/:id/accept` of a replacement: re-checks the maturity rule (422), then the parent → RENEWED (409
   `PARENT_NOT_RENEWABLE` rolls the whole accept back), `RENEWED_BY` / `RENEWS` events, parent's alerts auto-resolved at once
 
+**Phase 06** (all under `/api/v1`)
+- `POST /instruments/:id/release-requests {reason}` (institution, own) → 201 the request view; instrument → RELEASE_REQUESTED
+  (`status_before_release` kept). 409 `NOT_RELEASABLE` (not ACTIVE/EXPIRING/MATURED/LAPSED — RENEWED says only its live
+  replacement can be released — or a non-terminal successor exists, D6) / `RELEASE_ALREADY_REQUESTED`; other institution 404
+- `GET /release-requests` (all roles; institutions only their own) — `status` (repeat or comma list), `awaitingMe=true` (open and
+  the current level is the caller's role), `instrumentId`, `page`, `pageSize` → `{ items, total, page, pageSize }`; items carry
+  `ageDays` at the current level, instrument and institution columns
+- `GET /release-requests/:id` (all roles, scoped) → `{ request, statusLabel, currentLevelInfo, instrument, documents, conditions,
+  blocked, blockers, approvals, orderNumber, canRecommend, canDecide, canApprove, actionBlockers, canEditConditions,
+  canUploadDocuments, canResubmit, canCancel }`; conditions carry live `met`, `reason`, `link` (`discrepancy`/`observation`/
+  `verification`/`documents`), `metAtRecommendation`, `changedSinceRecommendation`
+- `POST /release-requests/:id/documents` (multipart, institution, PENDING_CONDITIONS or RETURNED; RELEASE_LETTER,
+  COMPLIANCE_CERTIFICATE, LIEN_REMOVAL_REQUEST, OTHER) → 201 `{ document, duplicateOf }`; download/preview through the
+  instrument's document routes
+- `PATCH /release-conditions/:id {met, remarks}` (officer, manual conditions, PENDING_CONDITIONS; remarks required when `met`)
+- `POST /release-requests/:id/recommend {remarks, level?}` (role of the current RECOMMEND level) — 409 `RELEASE_BLOCKED`
+  `details.reasons`
+- `POST /release-requests/:id/decide {decision: APPROVE|REJECT|RETURN, remarks, refundReference?, level?}` (role of the current
+  level) — 409 `RELEASE_BLOCKED` (APPROVE only), 409 `ALREADY_DECIDED`, 403 `SEPARATION_OF_DUTIES`, 403 another role's level
+- `POST /release-requests/:id/resubmit {note}` (institution, RETURNED), `POST /release-requests/:id/cancel` (institution,
+  PENDING_CONDITIONS or RETURNED)
+- `GET /instruments/:id/passport` `releaseRequests` is filled (one view per request, newest first)
+- `POST /instruments/:id/renew` now refuses (409 `NOT_RENEWABLE`) while a row in `release_requests` is open (PENDING_CONDITIONS,
+  PENDING_APPROVAL or RETURNED), naming its state and date
+- Evaluation job: `RELEASE_PENDING` alerts (see deviations)
+
 ## Pages added
 
 (append per phase)
@@ -233,6 +259,29 @@ Deviations / choices in the port:
 - Wizard: a renewal draft shows "Replacement for <ref> (matures …)" with the rule it must meet
 - New files: `pages/passport/{PassportPage,TimelineTab,ChainTab,DetailTabs}.tsx`, `pages/institution/ReturnBanner.tsx` (moved),
   `pages/institution/wizard/ReplacementBanner.tsx`
+
+**Phase 06**
+- `/officer/releases` (officer; read-only for approver/admin/auditor): tabs Waiting for me / Open / Closed / All; columns
+  institution, instrument, amount, request status chip, level ("L2 of 3 · Competent authority decision"), days waiting (amber
+  from 5 d, icon + text). Sidebar "Releases" (officer, admin, auditor), "All releases" (approver).
+- `/officer/releases/:id` and `/approver/releases/:id`: one release review / decision page — header (reference, institution,
+  bank, amount, request + instrument + verification chips, passport and scrutiny-review links), decision banner ("The portal
+  supports the decision; the decision rests with the competent authority"), red blocked banner listing failing conditions,
+  actions by whose turn it is (officer: Re-verify with bank, Recommend — disabled while blocked, with the reasons —, Return,
+  Reject; approver: Approve with remarks + refund reference, Return, Reject), conditions checklist (auto conditions live ✓/✗ with a
+  link to the cause, e.g. "Open discrepancy on amount →" to the review page's discrepancy card; manual conditions as checkbox +
+  remarks + Save for the officer; "Changed since recommendation" highlight), approval chain (levels, who, decision, remarks,
+  when), request facts, release documents, "At recommendation" snapshot with changed rows highlighted.
+- `/approver` home: "Decisions waiting for you" table and the open alerts addressed to the competent authority.
+- `/releases/:id/order` (all roles who can see the request): printable Release / Discharge Order — order number, instrument
+  details, conditions met, approval chain (last round), refund reference, "Generated by FDR Portal (demo)"; Print / save as PDF.
+  The sidebar, header and toasts are hidden when printing.
+- Passport: institution "Request release" (eligible statuses, no open request, no replacement in progress) → modal with reason,
+  document type and file; the Release tab lists every request (status, level, reason, return message, conditions in plain
+  wording, documents with upload while allowed, decisions, Resubmit / Cancel, release-order link; AICTE roles also "Open release
+  review"). Timeline release events use a new `release` icon.
+- New files: `api/releases.ts`, `components/ReleaseStatusChip.tsx`, `pages/releases/{ReleaseList,ReleaseReviewPage,ReleaseOrder,
+  RequestReleaseModal,ApproverHome,parts}.tsx`, `pages/passport/ReleaseTab.tsx`.
 
 ## Deviations / choices
 
@@ -363,9 +412,8 @@ Phase 04:
 Phase 05:
 - Chain query (§5.5): the `down` part starts at depth **1** (the spec's CTE gave the successor depth 0, the same as the
   instrument itself, so ordering by depth was ambiguous). Children are found with ids only, then joined to the full rows.
-- No `release_requests` table until Phase 6: "open release request" (D6) is the RELEASE_REQUESTED status, which Phase 6 sets
-  for every open request (it stays there while a request is RETURNED). Renew in RELEASE_REQUESTED → 409 `NOT_RENEWABLE` with
-  the D6 wording.
+- ~~No `release_requests` table until Phase 6: "open release request" (D6) is the RELEASE_REQUESTED status.~~ Replaced in
+  Phase 6 by a real check of `release_requests` (see Phase 06 below).
 - Coverage gap is flagged when `gapDays > flagCoverageGapDays` (default 0: any day between parent maturity and replacement
   issue). Lower amount compared in paise. Both observations are system ones (author null, CONCERN, visible to the
   institution, `OBSERVATION_ADDED` by `system`), deduplicated by exact text on the instrument. They are warnings, not accept
@@ -391,6 +439,53 @@ Phase 05:
   passport); `after_accept` takes the actor; `sourceLabel` accepts passport verifications; the mock-bank `bank_url` fixture
   moved from `test_phase03_scrutiny.py` to `conftest.py` (unchanged) for the renewal tests.
 - The passport page is keyed by instrument id so moving along the chain starts on the Timeline tab.
+
+Phase 06:
+- D6 both ways against the `release_requests` table: renew is refused while the instrument has an open request
+  (PENDING_CONDITIONS, PENDING_APPROVAL or RETURNED — the message names the state and request date); a release request is
+  refused while the instrument has a successor that is not RENEWED/RELEASED (a draft replacement counts; deleting it frees the
+  instrument). The Phase 05 test that faked the status now makes a real request.
+- Migration `006_release.sql` adds to the spec's tables: `release_requests.stage_started_at` (when the current level was reached;
+  RELEASE_PENDING age and the list's "waiting" column), `seq bigserial` on requests and approvals (the simulated clock can give
+  several decisions the same time, so order is by insertion), `release_conditions.position` (configured order) and
+  `UNIQUE (release_request_id, code)`, a CHECK on request status / decision, an index on `documents.release_request_id`.
+- New rules `release_conditions` and `approval_levels` (migration + `ruleDefaults`), validated by `ReleaseConditionsRule` (only
+  codes with an automatic check may be `auto`) and `ApprovalLevelsRule` (levels numbered 1…n, the last one DECIDE). The chain is
+  snapshotted into `required_levels`; `extraLevel` is appended when amount > `extraApprovalAbove` (paise; exactly ₹50 L stays at
+  two levels). Code loops over levels: a level's `action` is RECOMMEND (uses `/recommend`) or DECIDE (`/decide`).
+- `/decide` at a RECOMMEND level allows RETURN and REJECT (the officer can send a request back for missing papers); APPROVE there
+  is a 422 on `decision`. `level` in the body is the level the client saw: a different current level (or a closed request) →
+  409 `ALREADY_DECIDED` "This request was already decided by <name> (<decision>, level n)". Concurrency: request and instrument
+  rows are locked `FOR UPDATE` in every step (two simultaneous approvals: one 200, one 409 — tested with threads).
+- Separation of duties (D27) applies to every decision (recommend, approve, return, reject): a user who acted at another level of
+  the same request → 403 `SEPARATION_OF_DUTIES`. Acting again at the same level after a return is allowed. A user whose role is
+  not the current level's gets 403 `FORBIDDEN`.
+- Manual conditions can be changed only while PENDING_CONDITIONS; a request returned and resubmitted keeps its ticks (the officer
+  can untick). Auto conditions are never stored; a closed request shows its conditions as of its last decision's snapshot.
+- Release documents live in `documents` with `release_request_id` (same storage, magic-byte and size rules — the upload code is
+  shared via `document_service.store_document`); the instrument's own document list and required-document checks exclude them.
+  New doc type `LIEN_REMOVAL_REQUEST`. The upload event is `DOCUMENT_UPLOADED` with `releaseRequestId` (label "Release document
+  uploaded: …").
+- Events (entity `release_request`, labelled in `eventLabels`, icon `release`): RELEASE_REQUESTED, RELEASE_CONDITION_CHECKED
+  (entity `release_condition`), RELEASE_RECOMMENDED, RELEASE_LEVEL_APPROVED (non-final approval), RELEASE_APPROVED (after_json:
+  every condition, the whole approval chain, refund reference, order number, required levels), RELEASE_REJECTED,
+  RELEASE_RETURNED, RELEASE_RESUBMITTED, RELEASE_CANCELLED. Restoring transitions carry `releaseRequestId` and read "Status
+  changed to Active (release request closed)". Institution whitelist (D24): REQUESTED, REJECTED, RETURNED, RESUBMITTED, CANCELLED
+  — not RECOMMENDED / LEVEL_APPROVED / CONDITION_CHECKED (internal), and not APPROVED, whose chain carries internal remarks
+  (institutions see STATUS_RELEASED, the Release tab and the order). In the request view institutions get remarks only on
+  RETURN/REJECT decisions and no condition snapshots.
+- RELEASE_PENDING: requests in PENDING_CONDITIONS / PENDING_APPROVAL for `afterDays` (5) at their current level → alert to the
+  role of the current level (`subject_id` = request id, `rule_key` `release_pending:<level>`, due = level reached + afterDays),
+  starting at that role's rung of the escalation ladder (officer L1, approver L2) so it escalates per D11 from there. The rule's
+  `recipients` list is not used (§6.5 says the current level's role). It auto-resolves when the request leaves those states or
+  moves to another level; every release action also runs the targeted auto-resolve so screens are right at once.
+- Reject and cancel restore `status_before_release` through `transition()` and then run the targeted sweep (D20). Approval runs
+  the targeted auto-resolve, which closes every open alert of the RELEASED instrument.
+- Order number `AICTE/REL/<IST year>/<first 8 of the request id>` (derived, no column).
+- Base seed gains `approver2@demo.in` (Shri R. K. Malhotra, Deputy Secretary — second approver above ₹50 L), as in
+  `docs/seed-spec.md`; the login page's quick buttons are unchanged.
+- `routes/instruments._receive_file` renamed `receive_file` (shared with the release upload route). Layout/Toast gained
+  `print:hidden` classes for the order.
 
 ## Known issues / follow-ups
 
@@ -485,3 +580,23 @@ Phase 05:
   RENEWED highlighted); Alerts tab: reminder "Resolved · Condition cleared", 0 open. Officer passport: Verification tab with
   per-field matches and the raw payload toggle, "Open review" button, internal events in the timeline. No console errors
   besides the browser's log line for the intentional 422. Dev DB reset and re-seeded, `mock-bank/data/records.json` removed.
+- Phase 06 checks 1–9: `backend/tests/test_phase06_release.py` (also: request validation and access, release document types and
+  separation from instrument documents, manual-condition remarks, blocking observation and override, chain from the rule,
+  exactly-₹50 L boundary, threaded concurrent approvals, returned request blocks renewal, list scoping/`awaitingMe`, passport
+  Release tab, D24 filtering and labels for every release event). Phase 05 AC5 test now uses a real release request.
+- Phase 06 check 10 (UI), cloud sandbox, `npm run seed` + `npm run dev` + headless Chromium. Setup through the API: Institution
+  1's `SBIN/FDR/2026/00731` (₹20 L) submitted, verified (CONFIRMED) and accepted. Institution 1 → passport → **Request
+  release**: empty reason showed "Enter the reason for the release"; with reason + release letter → Release tab "Checking
+  conditions", level 1 of 2, red banner "Release blocked — 2 conditions are not met" (the two officer checks), Cancel request
+  shown, Request release gone. Officer → Releases → the request: Recommend disabled; ticked both manual conditions with remarks;
+  mock bank record changed to ₹25 L → **Re-verify with bank** → red banner listing "Open discrepancy on amount" and "Not confirmed
+  by the bank (Mismatch)", condition link "Open discrepancy on amount →" to `/officer/review/<id>`, Recommend still disabled;
+  record restored → Re-verify → all green → Recommend with remarks → "Awaiting approval". Approver home "Decisions waiting for
+  you (1)" → decision page with the competent-authority banner and "At recommendation" snapshot → Approve with empty remarks
+  showed "Remarks are required"; with remarks + refund reference → "Approved — released", instrument Released → **Release /
+  Discharge Order** (order no., details, six conditions met, two-level chain, refund reference, demo footer); print media hides
+  sidebar, header and toasts. Institution timeline: "Release approved…" not shown, "Status changed to Released", "Release
+  document uploaded: release letter", "Release requested". Second run (`CNRB/FD/2025/11842`, returned by the approver through the
+  API): institution saw "Returned by AICTE: …", no internal recommendation remarks, uploaded a compliance certificate, Resubmit
+  (empty note → "Note for AICTE is required") → "Checking conditions"; Cancel request → Cancelled, instrument back to Active,
+  Request release offered again. No console errors. Dev DB reset and re-seeded, `mock-bank/data/records.json` removed.
