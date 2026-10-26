@@ -12,7 +12,7 @@ from pydantic import ValidationError
 
 from ..db.pool import Db
 from ..repositories.rule_repo import get_rule_config
-from ..schemas import AfterDaysRule, EscalationRule, OverdueRenewalRule, ReminderRule
+from ..schemas import AfterDaysRule, EscalationRule, OverdueRenewalRule, ReminderRule, RenewalChecksRule
 from ..shared_constants import RULE_DEFAULTS
 from .errors import AppError
 
@@ -38,7 +38,9 @@ class Rules:
         return self.overdue_renewal.grace_days
 
 
-def _load[M: (ReminderRule, AfterDaysRule, OverdueRenewalRule, EscalationRule)](db: Db, key: str, model: type[M]) -> M:
+def _load[M: (ReminderRule, AfterDaysRule, OverdueRenewalRule, EscalationRule, RenewalChecksRule)](
+    db: Db, key: str, model: type[M]
+) -> M:
     config = get_rule_config(db, key)
     try:
         return model.model_validate(_DEFAULTS[key] if config is None else config)
@@ -55,3 +57,8 @@ def load_rules(db: Db) -> Rules:
         release_pending=_load(db, "release_pending", AfterDaysRule),
         escalation=_load(db, "escalation", EscalationRule),
     )
+
+
+def load_renewal_checks(db: Db) -> RenewalChecksRule:
+    """Rule 'renewal_checks' (Phase 5), read at the start of each submit / accept of a replacement."""
+    return _load(db, "renewal_checks", RenewalChecksRule)

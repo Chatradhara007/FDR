@@ -18,9 +18,8 @@ const TABS: { id: AlertStatus; label: string; empty: string }[] = [
 
 const RESOLVERS: Role[] = ['officer', 'approver', 'admin'];
 
-function instrumentPath(role: Role, id: string) {
-  return role === 'institution' ? `/institution/instruments/${id}` : `/officer/review/${id}`;
-}
+/** Every role opens the instrument's passport. */
+const instrumentPath = (id: string) => `/instruments/${id}`;
 
 interface Group { instrumentId: string; first: Alert; alerts: Alert[] }
 
@@ -66,7 +65,7 @@ export function AlertsInbox() {
             </span>
           }
           actions={
-            <Link to={instrumentPath(user.role, g.instrumentId)} className="inline-flex items-center gap-1 text-sm font-medium text-primary-700 hover:underline">
+            <Link to={instrumentPath(g.instrumentId)} className="inline-flex items-center gap-1 text-sm font-medium text-primary-700 hover:underline">
               <ExternalLink className="size-4" aria-hidden /> Open instrument
             </Link>
           }

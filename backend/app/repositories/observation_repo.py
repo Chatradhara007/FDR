@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal, TypedDict, cast
 
-from ..db.pool import Db, many, one
+from ..db.pool import Db, many, maybe_one, one
 from ..shared_constants import ObservationSeverity
 
 
@@ -80,4 +80,12 @@ def resolve_observation(db: Db, observation_id: str, note: str, by: str, at: dat
       WHERE id = $1 AND status = 'OPEN' RETURNING id""",
         [observation_id, note, by, at],
         "Observation not found",
+    )
+
+
+def observation_text_exists(db: Db, instrument_id: str, text: str) -> bool:
+    """System observations are not repeated: the same text on the same instrument counts as already raised."""
+    return (
+        maybe_one(db, "SELECT 1 AS x FROM observations WHERE instrument_id = $1 AND text = $2", [instrument_id, text])
+        is not None
     )

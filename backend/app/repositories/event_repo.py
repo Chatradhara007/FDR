@@ -62,3 +62,16 @@ def events_for_entity(db: Db, entity_type: str, entity_id: str) -> list[EventRow
             db, "SELECT * FROM events WHERE entity_type = $1 AND entity_id = $2 ORDER BY id", [entity_type, entity_id]
         ),
     )
+
+
+def events_for_instrument(db: Db, instrument_id: str, actions: list[str] | None = None) -> list[EventRow]:
+    """Events about one instrument, newest first; `actions` limits them to a whitelist (D24)."""
+    return cast(
+        list[EventRow],
+        many(
+            db,
+            """SELECT * FROM events WHERE instrument_id = $1 AND ($2::text[] IS NULL OR action = ANY($2::text[]))
+          ORDER BY id DESC""",
+            [instrument_id, actions],
+        ),
+    )

@@ -190,6 +190,38 @@ def delete_instrument(db: Db, instrument_id: str) -> None:
     exec_(db, "DELETE FROM instruments WHERE id = $1", [instrument_id])
 
 
+def find_successor(db: Db, instrument_id: str) -> InstrumentRow | None:
+    """The instrument that replaces this one, if any (at most one: one_successor_per_instrument)."""
+    row = maybe_one(
+        db, f"SELECT {INSTRUMENT_COLUMNS} FROM instruments i WHERE i.parent_instrument_id = $1", [instrument_id]
+    )
+    return cast(InstrumentRow | None, row)
+
+
+class ChainRow(InstrumentRow):
+    depth: int
+
+
+def instrument_chain(db: Db, instrument_id: str) -> list[ChainRow]:
+    """Every instrument linked to this one by renewals, oldest link first (§5.5). Ordered by depth, not issue date:
+    a draft successor has no issue date yet. Successors start at depth 1 (the instrument itself is 0)."""
+    rows = many(
+        db,
+        f"""WITH RECURSIVE up AS (
+         SELECT i.id, i.parent_instrument_id, 0 AS depth FROM instruments i WHERE i.id = $1
+         UNION ALL
+         SELECT p.id, p.parent_instrument_id, up.depth - 1 FROM instruments p JOIN up ON up.parent_instrument_id = p.id
+       ), down AS (
+         SELECT i.id, 1 AS depth FROM instruments i WHERE i.parent_instrument_id = $1
+         UNION ALL
+         SELECT c.id, down.depth + 1 FROM instruments c JOIN down ON c.parent_instrument_id = down.id
+       ), chain AS (SELECT id, depth FROM up UNION SELECT id, depth FROM down)
+     SELECT {INSTRUMENT_COLUMNS}, chain.depth FROM chain JOIN instruments i ON i.id = chain.id ORDER BY chain.depth""",
+        [instrument_id],
+    )
+    return cast(list[ChainRow], rows)
+
+
 class DuplicateRef(TypedDict):
     id: str
     status: InstrumentStatus

@@ -369,8 +369,8 @@ def still_relevant_sql() -> str:
     return f"i.status NOT IN ('RELEASED','RENEWED') AND (CASE a.kind {cases} ELSE true END)"
 
 
-def resolve_cleared(tx: Conn) -> int:
-    resolved = auto_resolve(tx, still_relevant_sql(), clock.now(tx))
+def resolve_cleared(tx: Conn, instrument_id: str | None = None) -> int:
+    resolved = auto_resolve(tx, still_relevant_sql(), clock.now(tx), instrument_id)
     for r in resolved:
         _resolved_event(tx, r["id"], r["instrumentId"], "SYSTEM_CONDITION_CLEARED")
     return len(resolved)

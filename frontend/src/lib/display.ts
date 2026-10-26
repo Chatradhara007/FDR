@@ -1,4 +1,4 @@
-import { DOC_TYPE_LABELS, formatDate, formatINR, type DocumentInfo, type TrackedField, type Verification } from '@fdr/shared';
+import { DOC_TYPE_LABELS, formatDate, formatINR, type BankResponse, type DocumentInfo, type TrackedField } from '@fdr/shared';
 
 /** Human form of a canonical tracked-field value ('2500000.00' → ₹25,00,000.00). */
 export function fieldValue(field: TrackedField, value: string | null | undefined): string {
@@ -10,7 +10,11 @@ export function fieldValue(field: TrackedField, value: string | null | undefined
 }
 
 /** "Bank response rsp_8f3a · 26 Oct 2026", "Checked against FDR copy", "Claimed by institution". */
-export function sourceLabel(source: string | null, documents: DocumentInfo[], verifications: Verification[]): string {
+export function sourceLabel(
+  source: string | null,
+  documents: DocumentInfo[],
+  verifications: { requestedAt: string; responsePayload?: BankResponse | null }[],
+): string {
   if (!source || source === 'institution') return 'Claimed by institution';
   if (source.startsWith('document:')) {
     const doc = documents.find((d) => d.id === source.slice('document:'.length));

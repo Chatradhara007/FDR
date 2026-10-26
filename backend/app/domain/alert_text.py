@@ -71,3 +71,14 @@ def email_body(role: Role, message: str, level: int) -> str:
         "Open the alerts inbox in the AICTE FDR Portal to see the instrument and act on it.\n\n"
         "This is an automated message from the AICTE FDR Portal (simulated email — no message was sent)."
     )
+
+
+def fmt_inr(amount: str) -> str:
+    """'3500000.00' -> '₹35,00,000.00' (Indian grouping, two decimals; Decimal only)."""
+    paise = paise_of(amount)
+    return f"₹{_indian_grouping(paise // 100)}.{paise % 100:02d}"
+
+
+def paise_of(amount: str) -> int:
+    """Money compared as whole paise (CLAUDE.md rule 3), never as float."""
+    return int((Decimal(amount) * 100).to_integral_value())

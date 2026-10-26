@@ -25,6 +25,7 @@ function useRefreshAlerts() {
     void qc.invalidateQueries({ queryKey: ['alerts'] });
     void qc.invalidateQueries({ queryKey: ['alert-summary'] });
     void qc.invalidateQueries({ queryKey: ['instruments'] });
+    void qc.invalidateQueries({ queryKey: ['passport'] });
     void qc.invalidateQueries({ queryKey: ['queue'] });
   };
 }

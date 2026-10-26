@@ -1,18 +1,24 @@
-import { Outlet, Route, Routes } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes, useParams } from 'react-router-dom';
 import { ROLES } from '@fdr/shared';
 import { HomeRedirect, ProtectedRoute } from '@/auth/ProtectedRoute';
 import { Layout } from '@/components';
 import { EmptyState } from '@/components/EmptyState';
 import { ROLE_HOME } from '@/lib/roles';
 import { InstitutionHome } from '@/pages/institution/InstitutionHome';
-import { InstrumentView } from '@/pages/institution/InstrumentView';
 import { InstrumentWizard } from '@/pages/institution/wizard/InstrumentWizard';
 import { AlertsInbox } from '@/pages/alerts/AlertsInbox';
 import { Outbox } from '@/pages/admin/Outbox';
+import { PassportPage } from '@/pages/passport/PassportPage';
 import { Login } from '@/pages/Login';
 import { ReviewPage } from '@/pages/officer/ReviewPage';
 import { ScrutinyQueue } from '@/pages/officer/ScrutinyQueue';
 import { RoleHome } from '@/pages/RoleHome';
+
+/** The Phase 2 detail URL now opens the passport. */
+function ToPassport() {
+  const { id } = useParams();
+  return <Navigate to={`/instruments/${id}`} replace />;
+}
 
 export function App() {
   return (
@@ -27,8 +33,9 @@ export function App() {
           <Route index element={<InstitutionHome />} />
           <Route path="instruments/new" element={<InstrumentWizard key="new" />} />
           <Route path="instruments/:id/edit" element={<InstrumentWizard />} />
-          <Route path="instruments/:id" element={<InstrumentView />} />
+          <Route path="instruments/:id" element={<ToPassport />} />
         </Route>
+        <Route path="/instruments/:id" element={<PassportPage />} />
         <Route path="/officer/queue" element={<ProtectedRoute roles={['officer', 'approver', 'admin', 'auditor']}><ScrutinyQueue /></ProtectedRoute>} />
         <Route path="/officer/review/:id" element={<ProtectedRoute roles={['officer', 'approver', 'admin', 'auditor']}><ReviewPage /></ProtectedRoute>} />
         <Route path="/alerts" element={<AlertsInbox />} />

@@ -7,7 +7,8 @@ import {
   useCreateInstrument, useDeleteDraft, useInstrument, useMeta, usePatchInstrument, useSubmitInstrument,
 } from '@/api/instruments';
 import { Button, Card, EmptyState, Modal, ObservationItem, PageHeader, StatusChip, useToast } from '@/components';
-import { ReturnBanner } from '../InstrumentView';
+import { ReturnBanner } from '../ReturnBanner';
+import { ReplacementBanner } from './ReplacementBanner';
 import { cn } from '@/lib/cn';
 import { DetailsStep } from './DetailsStep';
 import { DocumentsStep } from './DocumentsStep';
@@ -143,7 +144,7 @@ export function InstrumentWizard() {
     submit.mutate(undefined, {
       onSuccess: () => {
         toast.success('Submitted for scrutiny');
-        navigate(`/institution/instruments/${saved.id}`);
+        navigate(`/instruments/${saved.id}`);
       },
       onError: handleError,
     });
@@ -164,7 +165,7 @@ export function InstrumentWizard() {
   }
   if (id && !detail) return <p className="text-sm text-slate-500">Loading…</p>;
   if (detail && detail.status !== 'DRAFT' && detail.status !== 'RETURNED') {
-    return <Navigate to={`/institution/instruments/${detail.id}`} replace />;
+    return <Navigate to={`/instruments/${detail.id}`} replace />;
   }
 
   const saving = create.isPending || patch.isPending;
@@ -176,6 +177,8 @@ export function InstrumentWizard() {
         subtitle="Save a draft at any time; submit when the details and documents are complete."
         actions={detail && <StatusChip status={detail.status} />}
       />
+
+      {detail?.parentInstrumentId && <ReplacementBanner parentId={detail.parentInstrumentId} />}
 
       {detail?.status === 'RETURNED' && (
         <>

@@ -7,11 +7,16 @@ real database (fdr_test) and run serially.
 from __future__ import annotations
 
 import os
+import socket
 import tempfile
+import threading
+import time
 from collections.abc import Iterator
 from pathlib import Path
 
+import httpx
 import pytest
+import uvicorn
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
@@ -38,3 +43,36 @@ def _schema() -> Iterator[None]:
     migrate()
     yield
     close_pool()
+
+
+# The real mock bank under uvicorn in a background thread (an external system on a real port), shared by the
+# scrutiny (Phase 03) and renewal (Phase 05) tests.
+BANK_ENV = {
+    "MOCK_BANK_OFFLINE_BANKS": "Indian Overseas Bank",
+    "MOCK_BANK_SLOW_BANKS": "Bank of India",
+    "MOCK_BANK_SLOW_SECONDS": "1",
+}
+
+
+@pytest.fixture(scope="session")
+def bank_url(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
+    os.environ.update(BANK_ENV)
+    os.environ["MOCK_BANK_DATA_FILE"] = str(tmp_path_factory.mktemp("bank") / "records.json")
+    from mock_bank.main import app as bank_app
+
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    server = uvicorn.Server(uvicorn.Config(bank_app, host="127.0.0.1", port=port, log_level="warning"))
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    url = f"http://127.0.0.1:{port}"
+    for _ in range(100):
+        try:
+            if httpx.get(f"{url}/health").status_code == 200:
+                break
+        except httpx.HTTPError:
+            time.sleep(0.05)
+    yield url
+    server.should_exit = True
+    thread.join(5)

@@ -170,6 +170,11 @@
     "RENEWED",
     "RELEASED"
   ],
+  "renewableStatuses": [
+    "EXPIRING",
+    "MATURED",
+    "LAPSED"
+  ],
   "verifiableStatuses": [
     "UNDER_SCRUTINY",
     "ACTIVE",
@@ -364,6 +369,16 @@
           "RELEASE_PENDING"
         ]
       }
+    },
+    {
+      "key": "renewal_checks",
+      "name": "Renewal and replacement checks",
+      "type": "renewal_checks",
+      "config": {
+        "requireLaterMaturity": true,
+        "flagCoverageGapDays": 0,
+        "flagLowerAmount": true
+      }
     }
   ],
   "alertKinds": [
@@ -438,7 +453,10 @@
     "JOB_EVALUATED": "Daily evaluation ran",
     "ALERT_ACKNOWLEDGED": "Alert acknowledged",
     "ALERT_ESCALATED": "Alert escalated",
-    "ALERT_RESOLVED": "Alert resolved"
+    "ALERT_RESOLVED": "Alert resolved",
+    "RENEWAL_STARTED": "Renewal started",
+    "RENEWED_BY": "Replaced by a renewal",
+    "RENEWS": "Renews an earlier instrument"
   },
   "institutionVisibleActions": [
     "STATUS_DRAFT",
@@ -459,6 +477,9 @@
     "DOCUMENT_REMOVED",
     "INSTRUMENT_RETURNED",
     "INSTRUMENT_ACCEPTED",
-    "VERIFICATION_RESULT"
+    "VERIFICATION_RESULT",
+    "RENEWAL_STARTED",
+    "RENEWED_BY",
+    "RENEWS"
   ]
 }

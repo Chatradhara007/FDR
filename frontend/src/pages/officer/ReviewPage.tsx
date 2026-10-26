@@ -44,6 +44,7 @@ export function ReviewPage() {
           <div>
             <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">{INSTRUMENT_TYPE_LABELS[inst.type]} · {inst.institutionName}</p>
             <h1 className="mt-1 text-xl font-semibold text-slate-900">{inst.referenceNo}</h1>
+            <Link to={`/instruments/${inst.id}`} className="text-xs text-primary-700 hover:underline">Open passport (timeline, chain, alerts)</Link>
             <p className="mt-1 text-sm text-slate-700">
               {inst.issuingBank}{inst.branch ? `, ${inst.branch}` : ''} · <span className="font-semibold"><Money amount={inst.amount} /></span> · matures <DateText value={inst.maturityDate} />
             </p>

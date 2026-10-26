@@ -18,7 +18,7 @@ from ..middleware.auth import ALL_ROLES, UUID, require_role
 from ..middleware.responses import json_response
 from ..middleware.validate import json_body, parse, query_dict
 from ..schemas import InstrumentCreate, InstrumentListQuery, InstrumentPatch
-from ..services import document_service, instrument_service
+from ..services import document_service, instrument_service, passport_service, renewal_service
 from ..services.document_service import IncomingFile
 from ..services.submission import submit_instrument
 
@@ -73,6 +73,18 @@ def delete(instrument_id: str, user: AuthUser = Depends(require_role("institutio
 def submit(instrument_id: str, user: AuthUser = Depends(require_role("institution"))) -> Response:
     check_ids(instrument_id)
     return json_response(submit_instrument(user, instrument_id))
+
+
+@router.post("/instruments/{instrument_id}/renew")
+def renew(instrument_id: str, user: AuthUser = Depends(require_role("institution"))) -> Response:
+    check_ids(instrument_id)
+    return json_response(renewal_service.renew(user, instrument_id), 201)
+
+
+@router.get("/instruments/{instrument_id}/passport")
+def passport(instrument_id: str, user: AuthUser = Depends(require_role(*ALL_ROLES))) -> Response:
+    check_ids(instrument_id)
+    return json_response(passport_service.get_passport(user, instrument_id))
 
 
 async def _receive_file(upload: UploadFile) -> IncomingFile:
