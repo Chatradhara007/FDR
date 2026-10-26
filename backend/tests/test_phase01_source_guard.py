@@ -40,6 +40,7 @@ def test_only_the_clock_and_listed_infrastructure_reads_wall_time() -> None:
         "domain/token.py",
         "middleware/rate_limit.py",
         "services/audit_service.py",  # 30 s integrity-check cache (infrastructure, not business time)
+        "seed/replay.py",  # demo reset reports its own duration (durationMs), not business time
     }
     wall_time = re.compile(
         r"datetime\.now\(|datetime\.utcnow\(|date\.today\(|datetime\.today\(|time\.time\(|time\.monotonic\("

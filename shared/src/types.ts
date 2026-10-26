@@ -150,6 +150,8 @@ export interface Meta {
   regions: string[];
   requiredDocs: Record<InstrumentType, DocType[]>;
   lienRequired: Record<InstrumentType, boolean>;
+  /** DEMO_MODE (D17): demo tools, quick sign-in and the header ribbon. */
+  demoMode: boolean;
 }
 
 /** Request bodies (validated server-side by backend/app/schemas.py). Blank strings and null clear a field. */
@@ -784,3 +786,35 @@ export interface DocumentAccessRow {
   mode: 'download' | 'preview' | null;
   role: Role | null;
 }
+
+// ---- Phase 9: demo tools (DEMO_MODE only) ----
+
+export interface DemoResetResult { d0: string; instruments: number; events: number; alerts: number; durationMs: number }
+
+export interface BankRecordView {
+  bank: string; referenceNo: string; amount: string; issueDate: string; maturityDate: string;
+  beneficiaryName: string; lienMarked: boolean; status: string;
+}
+
+export interface DemoAnchor {
+  code: string;
+  reference: string;
+  bank: string;
+  purpose: string;
+  signInAs: string;
+  signInAsName: string | null;
+  instrumentId: string | null;
+  status: InstrumentStatus | null;
+  verificationState: VerificationState | null;
+  maturityDate: string | null;
+  /** A1: the bank's record to type in step 1; A4: the replacement's record for step 6. */
+  bankRecord: BankRecordView | null;
+}
+
+export interface BankCorrectionInput {
+  bank: string;
+  referenceNo: string;
+  fields: { amount?: string; issueDate?: string; maturityDate?: string; beneficiaryName?: string; lienMarked?: boolean };
+}
+
+export interface BankCorrectionResult { before: BankRecordView; after: BankRecordView; instrumentId: string | null }

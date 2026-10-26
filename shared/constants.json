@@ -620,7 +620,9 @@
     "USER_DEACTIVATED": "User deactivated",
     "PASSWORD_RESET": "Password reset by administrator",
     "LOGIN_SUCCEEDED": "Signed in",
-    "LOGIN_FAILED": "Sign-in failed"
+    "LOGIN_FAILED": "Sign-in failed",
+    "DEMO_RESET": "Demo data reset",
+    "DEMO_BANK_CORRECTION": "Bank record corrected (demo)"
   },
   "institutionVisibleActions": [
     "STATUS_DRAFT",

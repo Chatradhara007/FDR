@@ -45,7 +45,7 @@ def test_ac3_risky_item_ranks_above_safe_one_with_reasons_and_actions() -> None:
     assert top["kind"] == "instrument" and top["link"] == f"/instruments/{risky}"
     assert top["reasons"][:3] == ["₹1.2 Cr at stake", "Matures in 5 days", "Bank mismatch: amount"]
     assert top["nextAction"] == "Resolve discrepancy on amount"
-    assert top["title"].startswith("CNRB/FD/TEST/") and "Vasavi College" in top["title"]
+    assert top["title"].startswith("CNRB/FD/TEST/") and "Vasavi Institute" in top["title"]
     low = got[ids.index(safe)]
     assert low["nextAction"] == "Chase renewal — matures in 80 days"
     for item in got:

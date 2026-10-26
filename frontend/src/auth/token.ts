@@ -40,3 +40,26 @@ export function clearToken(): void {
     // storage unavailable — nothing to clear
   }
 }
+
+const REASON_KEY = 'fdr.signOutReason';
+
+/** Why the user was signed out, shown once on the login page ("Demo data was reset, sign in again"). */
+export function setSignOutReason(message: string): void {
+  try {
+    sessionStorage.setItem(REASON_KEY, message);
+  } catch {
+    // storage unavailable — the login page simply shows no reason
+  }
+}
+
+export function getSignOutReason(): string | null {
+  return read(REASON_KEY);
+}
+
+export function clearSignOutReason(): void {
+  try {
+    sessionStorage.removeItem(REASON_KEY);
+  } catch {
+    // ignore
+  }
+}

@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { InstitutionHome } from '@/pages/institution/InstitutionHome';
 import { InstrumentWizard } from '@/pages/institution/wizard/InstrumentWizard';
 import { AlertsInbox } from '@/pages/alerts/AlertsInbox';
+import { DemoTools } from '@/pages/admin/DemoTools';
 import { Outbox } from '@/pages/admin/Outbox';
 import { RulesPage } from '@/pages/admin/rules/RulesPage';
 import { Users } from '@/pages/admin/Users';
@@ -66,6 +67,7 @@ export function App() {
         <Route path="/approver/releases/:id" element={<ProtectedRoute roles={['approver']}><ReleaseReviewPage /></ProtectedRoute>} />
         <Route path="/releases/:id/order" element={<ReleaseOrder />} />
         <Route path="/alerts" element={<AlertsInbox />} />
+        <Route path="/admin/demo" element={<ProtectedRoute roles={['admin']}><DemoTools /></ProtectedRoute>} />
         <Route path="/admin/outbox" element={<ProtectedRoute roles={['admin']}><Outbox /></ProtectedRoute>} />
         <Route path="*" element={<EmptyState title="Page not found" description="Check the address or use the menu." />} />
       </Route>

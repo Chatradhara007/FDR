@@ -17,13 +17,15 @@ class InstitutionRow(NewInstitution):
     id: str
 
 
-def upsert_institution(db: Db, i: NewInstitution) -> InstitutionRow:
+def upsert_institution(db: Db, i: NewInstitution, institution_id: str | None = None) -> InstitutionRow:
+    """Inserts unless the AICTE id exists. `institution_id` fixes the row id (the demo seed's stable ids)."""
     row = one(
         db,
-        """INSERT INTO institutions (aicte_id, name, region, state, contact_email) VALUES ($1, $2, $3, $4, $5)
+        """INSERT INTO institutions (id, aicte_id, name, region, state, contact_email)
+     VALUES (COALESCE($1::uuid, gen_random_uuid()), $2, $3, $4, $5, $6)
      ON CONFLICT (aicte_id) DO UPDATE SET aicte_id = EXCLUDED.aicte_id
      RETURNING *""",
-        [i["aicte_id"], i["name"], i["region"], i["state"], i["contact_email"]],
+        [institution_id, i["aicte_id"], i["name"], i["region"], i["state"], i["contact_email"]],
     )
     return cast(InstitutionRow, row)
 

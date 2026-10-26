@@ -6,7 +6,7 @@ reported as UNAVAILABLE, so the officer falls back to document checks and the ov
 
 from __future__ import annotations
 
-from typing import Literal, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict, cast
 
 import httpx
 
@@ -83,3 +83,49 @@ def verify_with_bank(payload: BankPayload, timeout_ms: int = 5000) -> BankResult
     if res.status_code != 200 or parsed is None:
         return {"result": "UNAVAILABLE", "reason": f"Unexpected bank response (HTTP {res.status_code})"}
     return parsed
+
+
+# ---- dev/demo only: the mock bank's record store (Phase 9 seed and the bank-correction demo tool) ----
+
+
+class BankRecord(TypedDict):
+    bank: str
+    reference_no: str
+    amount: str
+    issue_date: str
+    maturity_date: str
+    beneficiary_name: str
+    lien_marked: bool
+    lien_in_favour_of: str | None
+    status: Literal["LIVE", "CLOSED"]
+
+
+class BankUnreachable(Exception):
+    """The mock bank's record endpoints could not be used (not running, or an unexpected answer)."""
+
+
+def list_records(timeout_ms: int = 5000) -> list[BankRecord]:
+    try:
+        res = httpx.get(f"{config.mock_bank_url}/records", timeout=timeout_ms / 1000)
+        body = res.json()
+    except (httpx.HTTPError, ValueError) as err:
+        raise BankUnreachable(
+            f"mock bank at {config.mock_bank_url} could not be reached ({type(err).__name__})"
+        ) from err
+    if res.status_code != 200 or not isinstance(body, list):
+        raise BankUnreachable(f"mock bank answered HTTP {res.status_code} to GET /records")
+    return cast(list[BankRecord], body)
+
+
+def load_records(records: list[BankRecord], timeout_ms: int = 10000) -> int:
+    """Replaces every record the mock bank holds (POST /records/load)."""
+    try:
+        res = httpx.post(f"{config.mock_bank_url}/records/load", json={"records": records}, timeout=timeout_ms / 1000)
+        body = res.json()
+    except (httpx.HTTPError, ValueError) as err:
+        raise BankUnreachable(
+            f"mock bank at {config.mock_bank_url} could not be reached ({type(err).__name__})"
+        ) from err
+    if res.status_code != 200 or not isinstance(body, dict) or not isinstance(body.get("loaded"), int):
+        raise BankUnreachable(f"mock bank answered HTTP {res.status_code} to POST /records/load")
+    return int(body["loaded"])

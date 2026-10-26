@@ -20,7 +20,8 @@
     "typecheck:py": "node scripts/py.mjs --cwd backend -m mypy && node scripts/py.mjs --cwd mock-bank -m mypy",
     "gen:shared": "node scripts/py.mjs scripts/gen_shared_types.py",
     "seed": "node scripts/py.mjs --cwd backend -m app.seed",
-    "db:reset": "node scripts/py.mjs --cwd backend -m app.db.migrate --reset"
+    "db:reset": "node scripts/py.mjs --cwd backend -m app.db.migrate --reset",
+    "e2e": "node e2e/demo.mjs"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",

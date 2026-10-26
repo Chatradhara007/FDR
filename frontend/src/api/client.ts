@@ -1,4 +1,4 @@
-import { clearToken, getToken } from '@/auth/token';
+import { clearToken, getToken, setSignOutReason } from '@/auth/token';
 
 export const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1';
 
@@ -76,6 +76,8 @@ async function send(path: string, { method = 'GET', body, signal }: RequestOptio
     // non-JSON error body
   }
   if (res.status === 401) {
+    // A valid session that ended (e.g. its user was removed by a demo reset): tell the login page why.
+    if (parsed.code === 'SESSION_ENDED' && parsed.message) setSignOutReason(parsed.message);
     clearToken();
     if (window.location.pathname !== '/login') window.location.assign('/login');
   }
