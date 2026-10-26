@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 from ..domain.errors import ValidationFailed
 from ..schemas import ApiModel, Part, issues_from
+from .security import JSON_BODY_LIMIT, PayloadTooLarge
 
 M = TypeVar("M", bound=ApiModel)
 
@@ -24,6 +25,8 @@ def parse[M: ApiModel](model: type[M], data: object, part: Part = "body") -> M:
 async def json_body(request: Request) -> object:
     """The parsed JSON body ({} when there is none, like express.json()); malformed JSON is a 422."""
     raw = await request.body()
+    if len(raw) > JSON_BODY_LIMIT:  # a chunked body without Content-Length
+        raise PayloadTooLarge(JSON_BODY_LIMIT)
     content_type = request.headers.get("content-type", "")
     if not raw or "json" not in content_type:
         return {}

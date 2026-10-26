@@ -30,6 +30,8 @@ os.environ["MOCK_BANK_URL"] = os.environ.get(
 )  # unreachable unless a test starts one
 os.environ["SCHEDULER_ENABLED"] = "false"  # the real-clock daily job never runs inside tests
 os.environ["JWT_SECRET"] = "test-secret-at-least-32-bytes-long!"
+# A fixed test key for documents at rest (32 bytes, base64), so tests never depend on DEMO_MODE's derived key.
+os.environ["FILE_ENCRYPTION_KEY"] = "dGVzdC1maWxlLWtleS0zMi1ieXRlcy1sb25nLW9rISE="
 # Uploaded files go to a throwaway directory, never the dev storage.
 os.environ["STORAGE_DIR"] = os.path.join(tempfile.gettempdir(), f"fdr-test-storage-{os.getpid()}")
 

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Literal, TypedDict
 
-from ..db.pool import get_pool
+from ..db.pool import get_pool, transaction
 from ..domain.access import AuthUser
+from ..domain.audit import NIL_UUID, Actor, record_event
 from ..domain.errors import Unauthorized
 from ..domain.passwords import check_password, hash_password
 from ..domain.token import sign_token
@@ -50,14 +51,37 @@ def _to_session_user(u: UserRow) -> SessionUser:
     }
 
 
-def login(email: str, password: str) -> LoginResponse:
+FailReason = Literal["UNKNOWN_EMAIL", "BAD_PASSWORD", "INACTIVE"]
+
+
+def _record_login(user: UserRow | None, email: str, ip: str, reason: FailReason | None) -> None:
+    """LOGIN_SUCCEEDED / LOGIN_FAILED (§8.2). Unknown emails are logged against the nil UUID with the email typed."""
+    after: dict[str, object] = {"email": email, "ip": ip}
+    if reason:
+        after["reason"] = reason
+    actor = Actor(id=user["id"], label=user["name"]) if user else Actor(label="Unknown user")
+    with transaction() as tx:
+        record_event(
+            tx,
+            actor=actor,
+            action="LOGIN_FAILED" if reason else "LOGIN_SUCCEEDED",
+            entity_type="user",
+            entity_id=user["id"] if user else NIL_UUID,
+            after=after,
+        )
+
+
+def login(email: str, password: str, ip: str = "") -> LoginResponse:
     global _dummy_hash
     user = find_user_by_email(get_pool(), email)
     if _dummy_hash is None:
         _dummy_hash = hash_password("not-a-real-password")
     ok = check_password(password, user["password_hash"] if user else _dummy_hash)
     if user is None or not ok or not user["active"]:
+        reason: FailReason = "UNKNOWN_EMAIL" if user is None else "BAD_PASSWORD" if not ok else "INACTIVE"
+        _record_login(user, email, ip, reason)
         raise Unauthorized(INVALID, None, "INVALID_CREDENTIALS")
+    _record_login(user, email, ip, None)
     token = sign_token(user["id"], user["role"], user["institution_id"])
     return {"token": token, "user": _to_session_user(user)}
 

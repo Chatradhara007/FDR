@@ -27,7 +27,7 @@ def auth_router() -> APIRouter:
         if not allowed:
             raise TooManyRequests("Too many sign-in attempts. Wait a minute and try again.", headers)
         data = parse(LoginInput, body)
-        return json_response(auth_service.login(data.email, data.password), headers=headers)
+        return json_response(auth_service.login(data.email, data.password, ip), headers=headers)
 
     @router.get("/auth/me")
     def me(user: AuthUser = Depends(require_role(*ALL_ROLES))) -> Response:

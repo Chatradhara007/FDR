@@ -39,6 +39,11 @@ def today(db: Db) -> str:
     return ist_date(now(db))
 
 
+def ist_start(day: str) -> datetime:
+    """The instant a business date 'YYYY-MM-DD' begins in Asia/Kolkata."""
+    return datetime.fromisoformat(day).replace(tzinfo=IST)
+
+
 def ist_date(d: datetime) -> str:
     """Calendar date of an instant in Asia/Kolkata."""
     return d.astimezone(IST).date().isoformat()

@@ -11,7 +11,7 @@ from collections.abc import Mapping
 from itertools import pairwise
 from typing import Any, ClassVar, Literal, TypedDict
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, ValidationInfo, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, ValidationInfo, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 from pydantic_core import PydanticCustomError
 
@@ -26,8 +26,10 @@ from .shared_constants import (
     INSTRUMENT_TYPES,
     OBSERVATION_SEVERITIES,
     RELEASE_AUTO_CONDITIONS,
+    RELEASE_DOC_TYPES,
     RELEASE_LEVEL_ACTIONS,
     RELEASE_REQUEST_STATUSES,
+    REMINDER_RECIPIENT_ROLES,
     ROLES,
     VERIFICATION_STATES,
     AlertKind,
@@ -638,7 +640,10 @@ class ReminderOffset(ApiModel):
     @field_validator("recipients", mode="before")
     @classmethod
     def _recipients(cls, v: object) -> list[Role]:
-        return _recipients(v)
+        roles = _recipients(v)
+        if any(r not in REMINDER_RECIPIENT_ROLES for r in roles):
+            raise fail("Reminders go to institution, officer, approver or admin")
+        return roles
 
 
 class ReminderRule(ApiModel):
@@ -657,7 +662,7 @@ class ReminderRule(ApiModel):
 
 
 class AfterDaysRule(ApiModel):
-    """keys 'pending_verification', 'discrepancy_open', 'release_pending'."""
+    """keys 'pending_verification', 'discrepancy_open'."""
 
     after_days: int
     recipients: list[Role]
@@ -671,6 +676,23 @@ class AfterDaysRule(ApiModel):
     @classmethod
     def _recipients(cls, v: object) -> list[Role]:
         return _recipients(v)
+
+
+class ReleasePendingRule(ApiModel):
+    """key 'release_pending': the alert always goes to the role whose turn it is, so recipients cannot be set."""
+
+    after_days: int
+    recipients: None = None
+
+    @field_validator("after_days", mode="before")
+    @classmethod
+    def _after_days(cls, v: object) -> int:
+        return _whole_days(v)
+
+    @field_validator("recipients", mode="before")
+    @classmethod
+    def _no_recipients(cls, v: object) -> None:
+        raise fail("Release-pending alerts go to whoever must act at the current level; recipients cannot be set")
 
 
 class OverdueRenewalRule(ApiModel):
@@ -690,6 +712,12 @@ class OverdueRenewalRule(ApiModel):
         return _recipients(v)
 
 
+def _level_role(v: object) -> Role:
+    if v not in ("officer", "approver", "admin"):
+        raise fail("Choose officer, approver or admin")
+    return v
+
+
 class EscalationLevel(ApiModel):
     level: int
     role: Role
@@ -703,9 +731,7 @@ class EscalationLevel(ApiModel):
     @field_validator("role", mode="before")
     @classmethod
     def _role(cls, v: object) -> Role:
-        if v not in ROLES:
-            raise fail("Unknown role")
-        return v
+        return _level_role(v)
 
     @field_validator("after_days", mode="before")
     @classmethod
@@ -724,8 +750,8 @@ class EscalationRule(ApiModel):
     def _levels(cls, v: list[EscalationLevel]) -> list[EscalationLevel]:
         if [x.level for x in v] != list(range(1, len(v) + 1)):
             raise fail("Levels must be numbered 1, 2, 3 … in order")
-        if any(b.after_days < a.after_days for a, b in pairwise(v)):
-            raise fail("Each level must start no earlier than the one before")
+        if any(b.after_days <= a.after_days for a, b in pairwise(v)):
+            raise fail("Each level must start more days after the root alert than the one before")
         return v
 
     @field_validator("kinds", mode="before")
@@ -733,6 +759,8 @@ class EscalationRule(ApiModel):
     def _kinds(cls, v: object) -> list[AlertKind]:
         if not isinstance(v, list) or any(k not in ALERT_KINDS for k in v):
             raise fail("Unknown alert kind")
+        if len(set(v)) != len(v):
+            raise fail("Each alert kind once")
         return v
 
 
@@ -802,12 +830,6 @@ class ReleaseConditionsRule(ApiModel):
         return v
 
 
-def _level_role(v: object) -> Role:
-    if v not in ("officer", "approver", "admin"):
-        raise fail("Choose officer, approver or admin")
-    return v
-
-
 def _level_action(v: object) -> ReleaseLevelAction:
     if v not in RELEASE_LEVEL_ACTIONS:
         raise fail("Use RECOMMEND or DECIDE")
@@ -856,6 +878,8 @@ class ApprovalLevelsRule(ApiModel):
     def _levels(cls, v: list[NumberedApprovalLevel]) -> list[NumberedApprovalLevel]:
         if [x.level for x in v] != list(range(1, len(v) + 1)):
             raise fail("Levels must be numbered 1, 2, 3 … in order")
+        if v[0].role != "officer" or v[0].action != "RECOMMEND":
+            raise fail("Level 1 must be the scrutiny officer's recommendation")
         if v[-1].action != "DECIDE":
             raise fail("The last level must decide")
         return v
@@ -872,12 +896,53 @@ class ApprovalLevelsRule(ApiModel):
             raise fail("Enter an amount") from None
 
 
+_INSTRUMENT_DOC_TYPES = tuple(d for d in DOC_TYPES if d not in RELEASE_DOC_TYPES)
+
+
+def _doc_list(v: object) -> list[DocType]:
+    if not isinstance(v, list) or not v:
+        raise fail("Require at least one document")
+    if any(d not in _INSTRUMENT_DOC_TYPES for d in v):
+        raise fail("Unknown document type")
+    if len(set(v)) != len(v):
+        raise fail("Each document once")
+    return v
+
+
+class RequiredDocsRule(ApiModel):
+    """key 'required_docs': documents each instrument type must carry before submit and accept (D4)."""
+
+    fdr: list[DocType] = Field(alias="FDR")
+    security_deposit: list[DocType] = Field(alias="SECURITY_DEPOSIT")
+
+    @field_validator("fdr", "security_deposit", mode="before")
+    @classmethod
+    def _docs(cls, v: object) -> list[DocType]:
+        return _doc_list(v)
+
+
+class LienRequiredRule(ApiModel):
+    """key 'lien_required' (D8): whether a lien in favour of AICTE is required, per instrument type."""
+
+    fdr: bool = Field(alias="FDR")
+    security_deposit: bool = Field(alias="SECURITY_DEPOSIT")
+
+    @field_validator("fdr", "security_deposit", mode="before")
+    @classmethod
+    def _flag(cls, v: object) -> bool:
+        if not isinstance(v, bool):
+            raise fail("Choose yes or no")
+        return v
+
+
 RULE_CONFIG_MODELS: dict[str, type[ApiModel]] = {
+    "required_docs": RequiredDocsRule,
+    "lien_required": LienRequiredRule,
     "reminder": ReminderRule,
     "pending_verification": AfterDaysRule,
     "discrepancy_open": AfterDaysRule,
     "overdue_renewal": OverdueRenewalRule,
-    "release_pending": AfterDaysRule,
+    "release_pending": ReleasePendingRule,
     "escalation": EscalationRule,
     "renewal_checks": RenewalChecksRule,
     "release_conditions": ReleaseConditionsRule,
@@ -1155,6 +1220,13 @@ class RiskWeightsRule(ApiModel):
     def _horizon(cls, v: object) -> int:
         return _whole_days(v, 1)
 
+    @model_validator(mode="after")
+    def _sum_is_one(self) -> RiskWeightsRule:
+        total = self.amount + self.urgency + self.verification + self.discrepancy + self.escalation
+        if abs(total - 1) > 0.001:
+            raise fail(f"Weights must add up to 1.00 (now {total:.2f})")
+        return self
+
 
 class ImprovementBaselineRule(ApiModel):
     """key 'improvement_baseline' (Phase 7): assumed figures for the manual process (illustrative, D26)."""
@@ -1186,6 +1258,9 @@ class ImprovementBaselineRule(ApiModel):
     @classmethod
     def _note(cls, v: object) -> str:
         return _required_text(v, 500, "Note is required", "Note")
+
+
+RULE_CONFIG_MODELS.update({"risk_weights": RiskWeightsRule, "improvement_baseline": ImprovementBaselineRule})
 
 
 class DashboardQuery(ApiModel):
@@ -1292,3 +1367,246 @@ class ReportQuery(ApiModel):
     @classmethod
     def _all(cls, v: object) -> bool:
         return v in (True, "true", "1")
+
+
+# ---- Phase 08: rules administration, users, audit ----------------------------------------------
+
+
+def _version_value(v: object) -> int:
+    n = _positive_int(v, "version is required")
+    if n <= 0:
+        raise fail("version must be a positive whole number")
+    return n
+
+
+class RuleUpdateInput(ApiModel):
+    """PUT /rules/:key. `config` is validated with the rule's own model by the service (field paths `config.…`)."""
+
+    MISSING_MESSAGES: ClassVar[dict[str, str]] = {"config": "config is required", "version": "version is required"}
+
+    config: object
+    active: bool = True
+    version: int
+
+    @field_validator("active", mode="before")
+    @classmethod
+    def _active(cls, v: object) -> bool:
+        if not isinstance(v, bool):
+            raise fail("Choose yes or no")
+        return v
+
+    @field_validator("version", mode="before")
+    @classmethod
+    def _version(cls, v: object) -> int:
+        return _version_value(v)
+
+
+_PASSWORD_LETTER = re.compile(r"[A-Za-z]")
+_PASSWORD_DIGIT = re.compile(r"\d")
+
+
+def password_policy(v: object) -> str:
+    """At least 8 characters with a letter and a digit (§8.2)."""
+    if not isinstance(v, str) or len(v) < 8 or not _PASSWORD_LETTER.search(v) or not _PASSWORD_DIGIT.search(v):
+        raise fail("Use at least 8 characters with a letter and a digit")
+    if len(v) > 200:
+        raise fail("Password must be at most 200 characters")
+    return v
+
+
+class UserCreateInput(ApiModel):
+    MISSING_MESSAGES: ClassVar[dict[str, str]] = {
+        "name": "Enter the name",
+        "email": "Enter a valid email address",
+        "role": "Choose a role",
+        "password": "Use at least 8 characters with a letter and a digit",
+    }
+
+    name: str
+    email: str
+    role: Role
+    institution_id: str | None = None
+    designation: str | None = None
+    password: str
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _name(cls, v: object) -> str:
+        return _required_text(v, 200, "Enter the name", "Name")
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _email(cls, v: object) -> str:
+        if not isinstance(v, str) or not _EMAIL.match(v.strip().lower()) or len(v.strip()) > 200:
+            raise fail("Enter a valid email address")
+        return v.strip().lower()
+
+    @field_validator("role", mode="before")
+    @classmethod
+    def _role(cls, v: object) -> Role:
+        if v not in ROLES:
+            raise fail("Choose a role")
+        return v
+
+    @field_validator("institution_id", mode="before")
+    @classmethod
+    def _institution_id(cls, v: object) -> str | None:
+        v = _blank_to_none(v)
+        if v is None:
+            return None
+        if not isinstance(v, str) or not _UUID.match(v):
+            raise fail("Choose an institution")
+        return v
+
+    @field_validator("designation", mode="before")
+    @classmethod
+    def _designation(cls, v: object) -> str | None:
+        return _optional_text(v, 200, "Designation")
+
+    @field_validator("password", mode="before")
+    @classmethod
+    def _password(cls, v: object) -> str:
+        return password_policy(v)
+
+
+class UserPatchInput(ApiModel):
+    MISSING_MESSAGES: ClassVar[dict[str, str]] = {"version": "version is required"}
+
+    name: str | None = None
+    designation: str | None = None
+    active: bool | None = None
+    version: int
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _name(cls, v: object) -> str:
+        return _required_text(v, 200, "Enter the name", "Name")
+
+    @field_validator("designation", mode="before")
+    @classmethod
+    def _designation(cls, v: object) -> str | None:
+        return _optional_text(v, 200, "Designation")
+
+    @field_validator("active", mode="before")
+    @classmethod
+    def _active(cls, v: object) -> bool:
+        if not isinstance(v, bool):
+            raise fail("Choose yes or no")
+        return v
+
+    @field_validator("version", mode="before")
+    @classmethod
+    def _version(cls, v: object) -> int:
+        return _version_value(v)
+
+
+class PasswordResetInput(ApiModel):
+    MISSING_MESSAGES: ClassVar[dict[str, str]] = {"password": "Use at least 8 characters with a letter and a digit"}
+
+    password: str
+
+    @field_validator("password", mode="before")
+    @classmethod
+    def _password(cls, v: object) -> str:
+        return password_policy(v)
+
+
+def _optional_uuid(v: object) -> str | None:
+    v = _blank_to_none(v)
+    if v is None:
+        return None
+    if not isinstance(v, str) or not _UUID.match(v):
+        raise fail("Not a valid id")
+    return v
+
+
+class AuditEventsQuery(ApiModel):
+    """GET /audit/events. `from` / `to` are business dates (IST, inclusive)."""
+
+    actor_id: str | None = None
+    action: str | None = None
+    entity_type: str | None = None
+    instrument_id: str | None = None
+    event_id: int | None = None
+    from_: str | None = Field(default=None, alias="from")
+    to: str | None = None
+    q: str | None = None
+    include_sign_ins: bool = True
+    format: Literal["json", "csv"] = "json"
+    page: int = 1
+    page_size: int = Field(default=50)
+
+    @field_validator("actor_id", "instrument_id", mode="before")
+    @classmethod
+    def _ids(cls, v: object) -> str | None:
+        return _optional_uuid(v)
+
+    @field_validator("action", "entity_type", "q", mode="before")
+    @classmethod
+    def _text(cls, v: object) -> str | None:
+        return _optional_query_text(v)
+
+    @field_validator("from_", "to", mode="before")
+    @classmethod
+    def _dates(cls, v: object) -> str | None:
+        return _optional_date(v)
+
+    @field_validator("event_id", mode="before")
+    @classmethod
+    def _event_id(cls, v: object) -> int | None:
+        v = _blank_to_none(v)
+        return None if v is None else _coerce_int(v, 1, None)
+
+    @field_validator("include_sign_ins", mode="before")
+    @classmethod
+    def _sign_ins(cls, v: object) -> bool:
+        return v not in (False, "false", "0")
+
+    @field_validator("format", mode="before")
+    @classmethod
+    def _format(cls, v: object) -> object:
+        v = _blank_to_none(v)
+        return "json" if v is None else v
+
+    @field_validator("page", mode="before")
+    @classmethod
+    def _page(cls, v: object) -> int:
+        return _coerce_int(v, 1, None)
+
+    @field_validator("page_size", mode="before")
+    @classmethod
+    def _page_size(cls, v: object) -> int:
+        return _coerce_int(v, 1, 200)
+
+
+class DocumentAccessQuery(ApiModel):
+    instrument_id: str | None = None
+
+    @field_validator("instrument_id", mode="before")
+    @classmethod
+    def _id(cls, v: object) -> str | None:
+        return _optional_uuid(v)
+
+
+class IntegrityQuery(ApiModel):
+    fresh: bool = False
+
+    @field_validator("fresh", mode="before")
+    @classmethod
+    def _fresh(cls, v: object) -> bool:
+        return v in (True, "true", "1")
+
+
+class TamperInput(ApiModel):
+    event_id: int | None = None
+
+    @field_validator("event_id", mode="before")
+    @classmethod
+    def _event_id(cls, v: object) -> int | None:
+        v = _blank_to_none(v)
+        if v is None:
+            return None
+        n = _positive_int(v, "Enter an event number")
+        if n <= 0:
+            raise fail("Enter an event number")
+        return n

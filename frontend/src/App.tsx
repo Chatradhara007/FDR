@@ -7,11 +7,13 @@ import { InstitutionHome } from '@/pages/institution/InstitutionHome';
 import { InstrumentWizard } from '@/pages/institution/wizard/InstrumentWizard';
 import { AlertsInbox } from '@/pages/alerts/AlertsInbox';
 import { Outbox } from '@/pages/admin/Outbox';
+import { RulesPage } from '@/pages/admin/rules/RulesPage';
+import { Users } from '@/pages/admin/Users';
+import { AuditLog } from '@/pages/audit/AuditLog';
 import { PassportPage } from '@/pages/passport/PassportPage';
 import { Login } from '@/pages/Login';
 import { ReviewPage } from '@/pages/officer/ReviewPage';
 import { ScrutinyQueue } from '@/pages/officer/ScrutinyQueue';
-import { RoleHome } from '@/pages/RoleHome';
 import { Dashboard } from '@/pages/dashboard/Dashboard';
 import { InstitutionProfile, Institutions } from '@/pages/institutions/Institutions';
 import { OfficerHome } from '@/pages/myday/OfficerHome';
@@ -39,9 +41,11 @@ export function App() {
         <Route index element={<HomeRedirect />} />
         <Route path="/officer" element={<ProtectedRoute roles={['officer']}><OfficerHome /></ProtectedRoute>} />
         <Route path="/approver" element={<ProtectedRoute roles={['approver']}><ApproverHome /></ProtectedRoute>} />
-        {(['admin', 'auditor'] as const).map((role) => (
-          <Route key={role} path={`/${role}`} element={<ProtectedRoute roles={[role]}><RoleHome role={role} /></ProtectedRoute>} />
-        ))}
+        <Route path="/admin" element={<Navigate to="/admin/rules" replace />} />
+        <Route path="/auditor" element={<Navigate to="/audit" replace />} />
+        <Route path="/admin/rules" element={<ProtectedRoute roles={['admin', 'auditor']}><RulesPage /></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute roles={['admin']}><Users /></ProtectedRoute>} />
+        <Route path="/audit" element={<ProtectedRoute roles={['admin', 'auditor']}><AuditLog /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute roles={INTERNAL}><Dashboard /></ProtectedRoute>} />
         <Route path="/register" element={<ProtectedRoute roles={INTERNAL}><Register /></ProtectedRoute>} />
         <Route path="/institutions" element={<ProtectedRoute roles={INTERNAL}><Institutions /></ProtectedRoute>} />

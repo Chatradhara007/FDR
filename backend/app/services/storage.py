@@ -1,5 +1,7 @@
-"""The only module that touches uploaded files (2.4). Phase 8 adds encryption at rest here,
-without changing callers. Paths never contain the original filename.
+"""The only module that touches uploaded files (2.4). Paths never contain the original filename.
+
+Encryption at rest (Phase 8 §8.4): AES-256-GCM. Stored file = b"FDE1" + 12-byte IV + ciphertext + 16-byte tag.
+SHA-256 and size are of the plaintext. Files without the FDE1 marker (written before Phase 8) are read as plaintext.
 """
 
 from __future__ import annotations
@@ -12,8 +14,16 @@ from pathlib import Path
 from typing import Literal
 
 import filetype
+from cryptography.exceptions import InvalidTag
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from ..config import config
+from ..security import file_key
+
+MAGIC = b"FDE1"
+IV_BYTES = 12
+TAG_BYTES = 16
 
 
 @dataclass(frozen=True)
@@ -51,18 +61,23 @@ def resolve_stored(storage_path: str) -> Path:
 
 
 def save_upload(tmp_path: str, instrument_id: str, ext: str) -> StoredFile:
-    """Copies the temp upload into STORAGE_DIR while hashing it, then removes the temp file."""
+    """Encrypts the temp upload into STORAGE_DIR while hashing the plaintext, then removes the temp file."""
     storage_path = f"{instrument_id}/{uuid.uuid4()}.{ext}"
     dest = resolve_stored(storage_path)
     dest.parent.mkdir(parents=True, exist_ok=True)
     digest = hashlib.sha256()
     size = 0
+    iv = os.urandom(IV_BYTES)
+    encryptor = Cipher(algorithms.AES(file_key()), modes.GCM(iv)).encryptor()
     try:
         with open(tmp_path, "rb") as src, open(dest, "xb") as out:
+            out.write(MAGIC + iv)
             while chunk := src.read(64 * 1024):
                 digest.update(chunk)
                 size += len(chunk)
-                out.write(chunk)
+                out.write(encryptor.update(chunk))
+            out.write(encryptor.finalize())
+            out.write(encryptor.tag)
     except BaseException:
         dest.unlink(missing_ok=True)
         raise
@@ -71,8 +86,17 @@ def save_upload(tmp_path: str, instrument_id: str, ext: str) -> StoredFile:
     return StoredFile(storage_path, digest.hexdigest(), size)
 
 
-def path_for_read(storage_path: str) -> Path:
-    return resolve_stored(storage_path)
+def read_stored(storage_path: str) -> bytes:
+    """The original bytes. Decrypted fully in memory (uploads are at most 10 MB) so the GCM tag is checked before
+    a single byte is served; a file that fails the check raises instead of returning corrupted content."""
+    data = resolve_stored(storage_path).read_bytes()
+    if not data.startswith(MAGIC):
+        return data  # written before encryption at rest
+    iv = data[len(MAGIC) : len(MAGIC) + IV_BYTES]
+    try:
+        return AESGCM(file_key()).decrypt(iv, data[len(MAGIC) + IV_BYTES :], None)
+    except InvalidTag:
+        raise RuntimeError(f"stored file {storage_path} failed its integrity check") from None
 
 
 def discard_unrecorded(storage_path: str) -> None:

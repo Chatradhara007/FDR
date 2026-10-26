@@ -36,6 +36,7 @@ def authenticate(request: Request) -> AuthUser:
     user = load_session_user(sub)
     if user is None:
         raise Unauthorized("Invalid or expired session")
+    request.state.user_id = user.id  # for the request log
     return user
 
 

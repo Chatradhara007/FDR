@@ -19,6 +19,7 @@ from ..schemas import (
     ImprovementBaselineRule,
     OverdueRenewalRule,
     ReleaseConditionsRule,
+    ReleasePendingRule,
     ReminderRule,
     RenewalChecksRule,
     RiskWeightsRule,
@@ -35,7 +36,7 @@ class Rules:
     pending_verification: AfterDaysRule
     discrepancy_open: AfterDaysRule
     overdue_renewal: OverdueRenewalRule
-    release_pending: AfterDaysRule
+    release_pending: ReleasePendingRule
     escalation: EscalationRule
 
     @property
@@ -51,7 +52,7 @@ class Rules:
 def _load[
     M: (
         ReminderRule, AfterDaysRule, OverdueRenewalRule, EscalationRule, RenewalChecksRule, ReleaseConditionsRule,
-        ApprovalLevelsRule, RiskWeightsRule, ImprovementBaselineRule,
+        ApprovalLevelsRule, RiskWeightsRule, ImprovementBaselineRule, ReleasePendingRule,
     )
 ](db: Db, key: str, model: type[M]) -> M:  # fmt: skip
     config = get_rule_config(db, key)
@@ -67,7 +68,7 @@ def load_rules(db: Db) -> Rules:
         pending_verification=_load(db, "pending_verification", AfterDaysRule),
         discrepancy_open=_load(db, "discrepancy_open", AfterDaysRule),
         overdue_renewal=_load(db, "overdue_renewal", OverdueRenewalRule),
-        release_pending=_load(db, "release_pending", AfterDaysRule),
+        release_pending=_load(db, "release_pending", ReleasePendingRule),
         escalation=_load(db, "escalation", EscalationRule),
     )
 

@@ -34,6 +34,8 @@ services:
     environment:
       DATABASE_URL: postgres://fdr:fdr@db:5432/fdr
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      # Documents at rest (AES-256-GCM): 32 random bytes, base64. Empty is accepted only with DEMO_MODE=true.
+      FILE_ENCRYPTION_KEY: ${FILE_ENCRYPTION_KEY:-}
       MOCK_BANK_URL: http://mock-bank:4000
       STORAGE_DIR: /data/storage
       TZ: Asia/Kolkata

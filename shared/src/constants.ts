@@ -70,3 +70,9 @@ export const DASHBOARD_STATUS_GROUPS = c.dashboardStatusGroups as readonly Dashb
 export const REPORT_PRESETS = c.reportPresets as Record<string, string>;
 /** D26: every improvement figure carries this label. */
 export const SIMULATED_LABEL: string = c.simulatedLabel;
+
+/** Roles a maturity reminder may go to (the auditor is read-only). */
+export const REMINDER_RECIPIENT_ROLES = c.reminderRecipientRoles as readonly Role[];
+/** Audit actions for sign-ins; the audit log hides them unless asked. */
+export const SIGN_IN_ACTIONS = c.signInActions as readonly string[];
+export const RULE_NAMES = c.ruleNames as Record<string, string>;

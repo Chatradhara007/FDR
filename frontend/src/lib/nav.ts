@@ -1,6 +1,6 @@
 import {
-  Bell, Building2, FileSpreadsheet, Gauge, Gavel, HandCoins, Landmark, LayoutDashboard, ListChecks, Mail, Settings, ShieldCheck,
-  Table2, type LucideIcon,
+  Bell, Building2, FileSpreadsheet, Gauge, Gavel, HandCoins, Landmark, LayoutDashboard, ListChecks, Mail, ScrollText, Settings, ShieldCheck,
+  Table2, Users, type LucideIcon,
 } from 'lucide-react';
 import type { Role } from '@fdr/shared';
 
@@ -13,6 +13,8 @@ export interface NavItem {
 const ALERTS: NavItem = { to: '/alerts', label: 'Alerts', icon: Bell };
 const RELEASES: NavItem = { to: '/officer/releases', label: 'Releases', icon: HandCoins };
 const DASHBOARD: NavItem = { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard };
+const AUDIT: NavItem = { to: '/audit', label: 'Audit log', icon: ShieldCheck };
+const RULES: NavItem = { to: '/admin/rules', label: 'Rules', icon: Settings };
 /** Registers and reports (Phase 7), for every internal role. */
 const OVERSIGHT: NavItem[] = [
   { to: '/register', label: 'Register', icon: Table2 },
@@ -34,11 +36,14 @@ export const NAV: Record<Role, NavItem[]> = {
   approver: [DASHBOARD, { to: '/approver', label: 'Approvals', icon: Gavel }, { ...RELEASES, label: 'All releases' }, ALERTS, ...OVERSIGHT],
   admin: [
     DASHBOARD,
-    { to: '/admin', label: 'Administration', icon: Settings },
+    RULES,
+    { to: '/admin/users', label: 'Users', icon: Users },
     RELEASES,
     ALERTS,
     { to: '/admin/outbox', label: 'Outbox', icon: Mail },
+    AUDIT,
     ...OVERSIGHT,
   ],
-  auditor: [DASHBOARD, { to: '/auditor', label: 'Audit', icon: ShieldCheck }, RELEASES, ALERTS, ...OVERSIGHT],
+  /** Read-only: dashboard, audit log and reports first (§8.6); rules and releases to look at, never to change. */
+  auditor: [DASHBOARD, AUDIT, ...OVERSIGHT, { ...RULES, icon: ScrollText }, RELEASES, ALERTS],
 };

@@ -18,7 +18,7 @@ router = APIRouter()
 INTERNAL: tuple[Role, ...] = ("officer", "approver", "admin", "auditor")
 
 
-def _csv(filename: str, text: str) -> Response:
+def csv_response(filename: str, text: str) -> Response:
     return Response(
         text.encode("utf-8"),
         media_type="text/csv; charset=utf-8",
@@ -52,7 +52,7 @@ def institution(institution_id: str, user: AuthUser = Depends(require_role(*ALL_
 @router.get("/metrics/improvement")
 def improvement(request: Request, user: AuthUser = Depends(require_role(*INTERNAL))) -> Response:
     if query_dict(request).get("format") == "csv":
-        return _csv(*metrics_service.improvement_csv(user))
+        return csv_response(*metrics_service.improvement_csv(user))
     return json_response(metrics_service.improvement())
 
 
@@ -60,5 +60,5 @@ def improvement(request: Request, user: AuthUser = Depends(require_role(*INTERNA
 def report(preset: str, request: Request, user: AuthUser = Depends(require_role(*INTERNAL))) -> Response:
     q = parse(ReportQuery, query_dict(request), "query")
     if q.format == "csv":
-        return _csv(*report_service.export_csv(user, preset, q))
+        return csv_response(*report_service.export_csv(user, preset, q))
     return json_response(report_service.build_report(preset, q))

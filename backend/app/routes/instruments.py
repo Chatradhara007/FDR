@@ -10,7 +10,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, Request
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
-from starlette.responses import FileResponse, Response
+from starlette.responses import Response
 
 from ..domain.access import AuthUser
 from ..domain.errors import AppError, NotFound
@@ -143,8 +143,8 @@ def content_disposition(kind: Literal["attachment", "inline"], filename: str) ->
 def _send_document(user: AuthUser, instrument_id: str, doc_id: str, kind: Literal["attachment", "inline"]) -> Response:
     check_ids(instrument_id, doc_id)
     doc = document_service.open_document(user, instrument_id, doc_id, "preview" if kind == "inline" else "download")
-    return FileResponse(
-        doc.path,
+    return Response(
+        doc.content,
         media_type=doc.mime_type,
         headers={
             "Content-Disposition": content_disposition(kind, doc.filename),
