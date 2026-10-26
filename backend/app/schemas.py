@@ -1002,20 +1002,23 @@ class ConditionUpdate(ApiModel):
         return remarks
 
 
-def _expected_level(v: object) -> int | None:
+def _expected_level(v: object) -> int:
     v = _blank_to_none(v)
     if v is None:
-        return None
+        raise fail("Reload the request: the level you are acting at is required")
     if isinstance(v, bool) or not isinstance(v, int) or v < 1:
         raise fail("Not a valid level")
     return v
 
 
 class RecommendInput(ApiModel):
-    MISSING_MESSAGES: ClassVar[dict[str, str]] = {"remarks": "Enter your remarks"}
+    MISSING_MESSAGES: ClassVar[dict[str, str]] = {
+        "remarks": "Enter your remarks",
+        "level": "Reload the request: the level you are acting at is required",
+    }
 
     remarks: str
-    level: int | None = None  # the level the client saw; a different current level means someone acted first
+    level: int  # the level the client saw; a different current level means someone acted first
 
     @field_validator("remarks", mode="before")
     @classmethod
@@ -1024,7 +1027,7 @@ class RecommendInput(ApiModel):
 
     @field_validator("level", mode="before")
     @classmethod
-    def _level(cls, v: object) -> int | None:
+    def _level(cls, v: object) -> int:
         return _expected_level(v)
 
 
@@ -1035,12 +1038,13 @@ class DecideInput(ApiModel):
     MISSING_MESSAGES: ClassVar[dict[str, str]] = {
         "decision": "Choose Approve, Return or Reject",
         "remarks": "Enter your remarks",
+        "level": "Reload the request: the level you are acting at is required",
     }
 
     decision: ReleaseDecisionInput
     remarks: str
     refund_reference: str | None = None
-    level: int | None = None
+    level: int
 
     @field_validator("decision", mode="before")
     @classmethod
@@ -1061,7 +1065,7 @@ class DecideInput(ApiModel):
 
     @field_validator("level", mode="before")
     @classmethod
-    def _level(cls, v: object) -> int | None:
+    def _level(cls, v: object) -> int:
         return _expected_level(v)
 
 

@@ -303,11 +303,11 @@ def _already_decided(req: ReleaseRequestRow, approvals: list[ApprovalRow]) -> Al
 
 
 def _assert_turn(
-    user: AuthUser, req: ReleaseRequestRow, approvals: list[ApprovalRow], expected_level: int | None
+    user: AuthUser, req: ReleaseRequestRow, approvals: list[ApprovalRow], expected_level: int
 ) -> LevelSnapshot:
     """The request is waiting at the level the client saw, it is this role's level, and D27 holds."""
     level = _level(req)
-    if level is None or (expected_level is not None and expected_level != req["currentLevel"]):
+    if level is None or expected_level != req["currentLevel"]:
         raise _already_decided(req, approvals)
     if level["role"] != user.role:
         raise Forbidden(f"Level {level['level']} ({level['label']}) is for the {ROLE_LABELS[level['role']].lower()}")
@@ -530,6 +530,7 @@ def update_condition(user: AuthUser, condition_id: str, data: ConditionUpdate) -
         if cond is None:
             raise NotFound("Release condition not found")
         req = lock_request(tx, cond["releaseRequestId"])
+        lock_instrument(tx, req["instrumentId"])
         if cond["auto"]:
             raise InvalidState("This condition is checked automatically every time it is read")
         if req["status"] != "PENDING_CONDITIONS":

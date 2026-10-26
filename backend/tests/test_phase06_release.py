@@ -135,7 +135,7 @@ def recommended(c: Ctx, instrument_id: str) -> str:
     return str(rid)
 
 
-def approve(user: SeededUser, rid: str, level: int | None = None, **body: Any) -> Response:
+def approve(user: SeededUser, rid: str, level: int, **body: Any) -> Response:
     return post(user, f"/release-requests/{rid}/decide",
                 {"decision": "APPROVE", "remarks": "Approved for release", "level": level, **body})  # fmt: skip
 
@@ -218,7 +218,7 @@ def test_ac1_recommend_refused_while_a_condition_fails_then_succeeds(c: Ctx) -> 
     inst = live_instrument()
     view = request_release(c, inst)
     rid = view["request"]["id"]
-    res = post(c.officer, f"/release-requests/{rid}/recommend", {"remarks": "Looks fine"})
+    res = post(c.officer, f"/release-requests/{rid}/recommend", {"remarks": "Looks fine", "level": 1})
     assert res.status_code == 409 and res.json()["code"] == "RELEASE_BLOCKED"
     reasons = res.json()["details"]["reasons"]
     assert "At least one release document attached: No release document attached yet" in reasons
@@ -227,7 +227,7 @@ def test_ac1_recommend_refused_while_a_condition_fails_then_succeeds(c: Ctx) -> 
     assert ok(get(c.officer, f"/release-requests/{rid}"))["canRecommend"] is False
 
     view = tick_manual(c, view)
-    res = post(c.officer, f"/release-requests/{rid}/recommend", {"remarks": "Looks fine"})
+    res = post(c.officer, f"/release-requests/{rid}/recommend", {"remarks": "Looks fine", "level": 1})
     assert res.json()["details"]["reasons"] == [
         "At least one release document attached: No release document attached yet"
     ]
@@ -328,7 +328,7 @@ def test_ac3_approval_releases_resolves_alerts_and_records_the_snapshot(c: Ctx) 
 def test_ac4_rejection_restores_the_earlier_status(c: Ctx) -> None:
     inst = live_instrument()
     rid = recommended(c, inst)
-    res = post(c.approver, f"/release-requests/{rid}/decide", {"decision": "REJECT"})
+    res = post(c.approver, f"/release-requests/{rid}/decide", {"decision": "REJECT", "level": 2})
     assert res.status_code == 422 and res.json()["details"] == [{"field": "remarks", "message": "Enter your remarks"}]
     view = ok(
         post(
@@ -345,7 +345,9 @@ def test_ac4_targeted_sweep_corrects_the_restored_status_when_maturity_passed(c:
     inst = live_instrument("ACTIVE", "2027-01-31")  # 98 days after D0: ACTIVE
     rid = recommended(c, inst)
     set_today("2027-02-05")  # matured meanwhile, still inside the 15-day grace
-    view = ok(post(c.approver, f"/release-requests/{rid}/decide", {"decision": "REJECT", "remarks": "Not yet"}))
+    view = ok(
+        post(c.approver, f"/release-requests/{rid}/decide", {"decision": "REJECT", "remarks": "Not yet", "level": 2})
+    )
     assert view["request"]["status"] == "REJECTED"
     assert instrument_status(inst) == "MATURED"
     statuses = [e["after_json"]["status"] for e in many(
@@ -397,7 +399,7 @@ def recommended_existing(c: Ctx, view: dict[str, Any]) -> str:
     rid = view["request"]["id"]
     assert upload_release_doc(c.inst1, rid).status_code == 201
     tick_manual(c, view)
-    ok(post(c.officer, f"/release-requests/{rid}/recommend", {"remarks": "All conditions met"}))
+    ok(post(c.officer, f"/release-requests/{rid}/recommend", {"remarks": "All conditions met", "level": 1}))
     return str(rid)
 
 
@@ -424,6 +426,17 @@ def test_ac6_a_second_decision_on_the_same_level_is_already_decided(c: Ctx) -> N
     res = approve(c.approver2, rid, 2)  # approver2 still looking at level 2
     assert res.status_code == 409 and res.json()["code"] == "ALREADY_DECIDED"
     assert f"already decided by {c.approver.name}" in res.json()["message"]
+
+
+def test_ac6_the_level_the_client_saw_is_required(c: Ctx) -> None:
+    rid = ready_request(c, live_instrument())["request"]["id"]
+    message = "Reload the request: the level you are acting at is required"
+    for body in ({"remarks": "ok"}, {"remarks": "ok", "level": None}):
+        res = post(c.officer, f"/release-requests/{rid}/recommend", body)
+        assert res.status_code == 422 and res.json()["details"] == [{"field": "level", "message": message}]
+    ok(post(c.officer, f"/release-requests/{rid}/recommend", {"remarks": "ok", "level": 1}))
+    res = post(c.approver, f"/release-requests/{rid}/decide", {"decision": "APPROVE", "remarks": "ok"})
+    assert res.status_code == 422 and res.json()["details"] == [{"field": "level", "message": message}]
 
 
 def test_ac6_concurrent_decisions_one_wins(c: Ctx) -> None:
@@ -464,7 +477,7 @@ def test_ac7_return_resubmit_recommend_keeps_history(c: Ctx) -> None:
     assert mine["approvals"][0]["remarks"] is None  # internal recommendation remarks are not shown (D24)
     assert mine["approvals"][1]["remarks"] == "Attach the no-dues certificate"
     assert upload_release_doc(c.inst1, rid, "COMPLIANCE_CERTIFICATE").status_code == 201
-    assert post(c.officer, f"/release-requests/{rid}/recommend", {"remarks": "x"}).status_code == 409
+    assert post(c.officer, f"/release-requests/{rid}/recommend", {"remarks": "x", "level": 1}).status_code == 409
     view = ok(post(c.inst1, f"/release-requests/{rid}/resubmit", {"note": "No-dues certificate attached"}))
     assert view["request"]["status"] == "PENDING_CONDITIONS" and view["request"]["currentLevel"] == 1
     view = ok(post(c.officer, f"/release-requests/{rid}/recommend", {"remarks": "Certificate checked", "level": 1}))
@@ -528,7 +541,11 @@ def test_ac8_release_refused_while_a_non_terminal_successor_exists(c: Ctx) -> No
 def test_ac8_renew_refused_while_a_returned_request_is_open(c: Ctx) -> None:
     parent = live_instrument("EXPIRING", "2026-12-01")
     rid = recommended(c, parent)
-    ok(post(c.approver, f"/release-requests/{rid}/decide", {"decision": "RETURN", "remarks": "More papers"}))
+    ok(
+        post(
+            c.approver, f"/release-requests/{rid}/decide", {"decision": "RETURN", "remarks": "More papers", "level": 2}
+        )
+    )
     res = post(c.inst1, f"/instruments/{parent}/renew")
     assert res.status_code == 409 and res.json()["code"] == "NOT_RENEWABLE"
     assert "open release request (returned to institution" in res.json()["message"]
@@ -558,13 +575,13 @@ def test_ac9_release_pending_alert_appears_after_after_days_and_escalates(c: Ctx
     # Recommending moves the request to the approver's level: the officer's chain clears, a new one starts later.
     view = tick_manual(c, ok(get(c.officer, f"/release-requests/{rid}")))
     assert upload_release_doc(c.inst1, rid).status_code == 201
-    ok(post(c.officer, f"/release-requests/{rid}/recommend", {"remarks": "ok"}))
+    ok(post(c.officer, f"/release-requests/{rid}/recommend", {"remarks": "ok", "level": 1}))
     assert all(a["status"] == "RESOLVED" for a in alerts_of(inst) if a["kind"] == "RELEASE_PENDING")
     assert view["request"]["id"] == rid
     evaluate_on("2026-11-11")  # 5 days at level 2 -> approver alert, at the approver's rung of the ladder
     live = [a for a in alerts_of(inst) if a["kind"] == "RELEASE_PENDING" and a["status"] == "OPEN"]
     assert [(a["level"], a["recipient_role"], a["rule_key"]) for a in live] == [(2, "approver", "release_pending:2")]
-    ok(approve(c.approver, rid))
+    ok(approve(c.approver, rid, 2))
     assert all(a["status"] == "RESOLVED" for a in alerts_of(inst))
 
 
@@ -581,7 +598,7 @@ def test_list_is_scoped_and_awaiting_me_follows_the_current_level(c: Ctx) -> Non
     assert ok(get(c.approver, "/release-requests?awaitingMe=true"))["items"] == []
     view = tick_manual(c, ok(get(c.officer, f"/release-requests/{rid1}")))
     assert upload_release_doc(c.inst1, rid1).status_code == 201
-    ok(post(c.officer, f"/release-requests/{rid1}/recommend", {"remarks": "ok"}))
+    ok(post(c.officer, f"/release-requests/{rid1}/recommend", {"remarks": "ok", "level": 1}))
     assert [i["id"] for i in ok(get(c.approver, "/release-requests?awaitingMe=true"))["items"]] == [rid1]
     assert [i["id"] for i in ok(get(c.officer, "/release-requests?status=PENDING_APPROVAL"))["items"]] == [rid1]
     assert view["request"]["id"] == rid1
@@ -592,7 +609,13 @@ def test_list_is_scoped_and_awaiting_me_follows_the_current_level(c: Ctx) -> Non
 def test_passport_release_tab_and_labelled_release_events(c: Ctx) -> None:
     inst = live_instrument()
     rid = recommended(c, inst)
-    ok(post(c.approver, f"/release-requests/{rid}/decide", {"decision": "RETURN", "remarks": "Add the bank letter"}))
+    ok(
+        post(
+            c.approver,
+            f"/release-requests/{rid}/decide",
+            {"decision": "RETURN", "remarks": "Add the bank letter", "level": 2},
+        )
+    )
     p = ok(get(c.inst1, f"/instruments/{inst}/passport"))
     [req] = p["releaseRequests"]
     assert req["request"]["status"] == "RETURNED" and req["request"]["returnMessage"] == "Add the bank letter"
