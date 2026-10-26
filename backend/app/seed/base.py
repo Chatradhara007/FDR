@@ -52,6 +52,8 @@ USERS: tuple[SeedUser, ...] = (
      "designation": "Scrutiny Officer, Southern Region"},
     {"email": "approver@demo.in", "name": "Dr. S. Venkatesh", "role": "approver", "institution": None,
      "designation": "Deputy Director (Finance), AICTE"},
+    {"email": "approver2@demo.in", "name": "Shri R. K. Malhotra", "role": "approver", "institution": None,
+     "designation": "Deputy Secretary, AICTE — second approver above ₹50 L"},
     {"email": "admin@demo.in", "name": "Meera Iyer", "role": "admin", "institution": None,
      "designation": "System Administrator, AICTE"},
     {"email": "auditor@demo.in", "name": "Arvind Kulkarni", "role": "auditor", "institution": None,

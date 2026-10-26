@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { AlertTriangle, ArrowLeft, ClipboardCheck, Pencil, RefreshCcw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ClipboardCheck, HandCoins, Pencil, RefreshCcw } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { INSTRUMENT_TYPE_LABELS, RENEWABLE_STATUSES, type Passport } from '@fdr/shared';
+import {
+  INSTRUMENT_TYPE_LABELS, OPEN_RELEASE_REQUEST_STATUSES, RELEASABLE_STATUSES, RENEWABLE_STATUSES, TERMINAL_STATUSES, type Passport,
+} from '@fdr/shared';
 import { usePassport, useRenew } from '@/api/instruments';
 import { useAuth } from '@/auth/AuthContext';
 import {
@@ -10,8 +12,10 @@ import {
 } from '@/components';
 import { ROLE_HOME } from '@/lib/roles';
 import { ReturnBanner } from '@/pages/institution/ReturnBanner';
+import { RequestReleaseModal } from '@/pages/releases/RequestReleaseModal';
 import { ChainTab } from './ChainTab';
 import { AlertsTab, FieldsTab, VerificationTab } from './DetailTabs';
+import { ReleaseTab } from './ReleaseTab';
 import { TimelineTab } from './TimelineTab';
 
 function MaturityText({ days }: { days: number | null }) {
@@ -21,14 +25,18 @@ function MaturityText({ days }: { days: number | null }) {
   return <span className={days <= 90 ? 'font-medium text-warning-700' : 'text-slate-600'}>{days} d to maturity</span>;
 }
 
-/** Role-aware actions: the institution renews or edits; AICTE roles open the review screen. */
-function Actions({ p }: { p: Passport }) {
+/** Role-aware actions: the institution renews, requests release or edits; AICTE roles open the review screen. */
+function Actions({ p, onReleaseRequested }: { p: Passport; onReleaseRequested: () => void }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   const renew = useRenew();
+  const [releaseOpen, setReleaseOpen] = useState(false);
   const inst = p.instrument;
   const successor = p.chain.find((l) => l.depth === 1);
+  const openRelease = p.releaseRequests.some((r) => OPEN_RELEASE_REQUEST_STATUSES.includes(r.request.status));
+  // D6: no release while a replacement is in progress (the server checks again).
+  const canRequestRelease = RELEASABLE_STATUSES.includes(inst.status) && !openRelease && (!successor || TERMINAL_STATUSES.includes(successor.status));
   if (user?.role !== 'institution') {
     return (
       <Link to={`/officer/review/${inst.id}`}>
@@ -57,6 +65,11 @@ function Actions({ p }: { p: Passport }) {
           <Button size="sm" variant="secondary" icon={<RefreshCcw className="size-4" aria-hidden />}>Continue renewal</Button>
         </Link>
       )}
+      {canRequestRelease && (
+        <Button size="sm" variant="secondary" icon={<HandCoins className="size-4" aria-hidden />} onClick={() => setReleaseOpen(true)}>Request release</Button>
+      )}
+      <RequestReleaseModal open={releaseOpen} instrumentId={inst.id} onClose={() => setReleaseOpen(false)}
+        onDone={() => { setReleaseOpen(false); toast.success('Release requested — AICTE will check the conditions'); onReleaseRequested(); }} />
     </>
   );
 }
@@ -113,7 +126,7 @@ function PassportView({ id }: { id: string }) {
             {s.acceptedWithOverride && (
               <Badge tone="warning" icon={<AlertTriangle className="size-3.5" aria-hidden />}>Accepted without bank confirmation</Badge>
             )}
-            <div className="flex flex-wrap justify-end gap-2"><Actions p={p} /></div>
+            <div className="flex flex-wrap justify-end gap-2"><Actions p={p} onReleaseRequested={() => setTab('release')} /></div>
           </div>
         </div>
         {s.acceptedWithOverride && s.overrideNote && <p className="mt-3 text-sm text-warning-700">Officer’s note: “{s.overrideNote}”</p>}
@@ -156,7 +169,7 @@ function PassportView({ id }: { id: string }) {
             },
             { id: 'chain', label: `Chain (${p.chain.length})`, content: <ChainTab chain={p.chain} /> },
             { id: 'alerts', label: `Alerts (${s.openAlertCount} open)`, content: <AlertsTab alerts={p.alerts} /> },
-            { id: 'release', label: 'Release', content: <p className="text-sm text-slate-500">No release request has been made for this instrument.</p> },
+            { id: 'release', label: `Release (${p.releaseRequests.length})`, content: <ReleaseTab requests={p.releaseRequests} /> },
           ]}
         />
       </Card>

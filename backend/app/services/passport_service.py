@@ -21,6 +21,7 @@ from ..repositories.return_repo import ReturnRow
 from ..repositories.verification_repo import VerificationRow, list_verifications
 from ..shared_constants import INSTITUTION_VISIBLE_ACTIONS, InstrumentStatus, TrustTier, VerificationResult
 from .instrument_service import DocumentInfo, InstrumentDetail, ReviewField, doc_rules, field_rows, get_instrument
+from .release_service import ReleaseView, views_for_instrument
 from .renewal_service import coverage_gap_days
 
 GapKind = Literal["gap", "overlap", "continuous", "unknown"]
@@ -85,7 +86,7 @@ class Passport(TypedDict):
     observations: list[ObservationRow]
     returns: list[ReturnRow]
     alerts: list[AlertItem]
-    releaseRequests: list[object]
+    releaseRequests: list[ReleaseView]
     summary: PassportSummary
     timeline: list[TimelineEvent]
 
@@ -182,7 +183,7 @@ def get_passport(user: AuthUser, instrument_id: str) -> Passport:
         "observations": detail["observations"],
         "returns": detail["returns"],
         "alerts": alerts,
-        "releaseRequests": [],  # Phase 6
+        "releaseRequests": views_for_instrument(db, user, instrument_id),
         "summary": {
             "daysToMaturity": detail["daysToMaturity"],
             "weakestTier": detail["weakestTier"],

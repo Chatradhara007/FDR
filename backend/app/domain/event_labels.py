@@ -5,7 +5,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from ..shared_constants import FIELD_LABELS, ROLE_LABELS, VERIFICATION_RESULT_LABELS, event_label
+from ..shared_constants import (
+    DOC_TYPE_LABELS,
+    FIELD_LABELS,
+    ROLE_LABELS,
+    VERIFICATION_RESULT_LABELS,
+    event_label,
+)
 
 
 def _data(v: object) -> Mapping[str, object]:
@@ -32,13 +38,30 @@ def label_for(action: str, before: object, after: object, actor: str) -> str:
         return f"Escalated to {ROLE_LABELS[role].lower()}"
     if action == "DOCUMENT_ACCESSED":
         return f"Document viewed by {actor}"
+    if action == "DOCUMENT_UPLOADED" and a.get("releaseRequestId"):
+        doc_type = a.get("docType")
+        what = DOC_TYPE_LABELS.get(doc_type, "document") if isinstance(doc_type, str) else "document"  # type: ignore[call-overload]
+        return f"Release document uploaded: {what.lower()}"
+    if action == "RELEASE_CONDITION_CHECKED" and isinstance(a.get("description"), str):
+        return f"Release condition {'met' if a.get('met') else 'marked not met'}: {a['description']}"
+    if action == "RELEASE_LEVEL_APPROVED" and a.get("level"):
+        return f"Release approved at level {a['level']}" + (f" ({a['label']})" if a.get("label") else "")
+    if action == "RELEASE_RETURNED" or action == "RELEASE_REJECTED":
+        level = a.get("level")
+        return f"{base} at level {level}" if level else base
+    if action.startswith("STATUS_") and a.get("releaseRequestId") and action not in RELEASE_STATUS_ACTIONS:
+        return f"{base} (release request closed)"  # restored after a rejected or cancelled request
     return base
+
+
+RELEASE_STATUS_ACTIONS = ("STATUS_RELEASE_REQUESTED", "STATUS_RELEASED")
 
 
 # Icon key per action (prefix match, first wins); the UI maps each key to one icon.
 _ICONS: tuple[tuple[str, str], ...] = (
     ("STATUS_", "status"),
     ("RENEW", "renewal"),
+    ("RELEASE_", "release"),
     ("DOCUMENT_ACCESSED", "view"),
     ("DOCUMENT_", "document"),
     ("FIELD_DOCUMENT_CHECKED", "document"),

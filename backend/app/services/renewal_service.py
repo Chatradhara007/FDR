@@ -25,8 +25,9 @@ from ..repositories.instrument_repo import (
     lock_instrument,
 )
 from ..repositories.observation_repo import insert_observation, observation_text_exists
+from ..repositories.release_repo import find_open_request
 from ..schemas import FieldIssue
-from ..shared_constants import RENEWABLE_STATUSES, STATUS_LABELS
+from ..shared_constants import RELEASE_REQUEST_STATUS_LABELS, RENEWABLE_STATUSES, STATUS_LABELS
 from .instrument_service import FIELD_KEYS, InstrumentDetail, get_instrument
 
 
@@ -34,12 +35,16 @@ def _ref(inst: InstrumentRow) -> str:
     return inst["referenceNo"] or "the earlier instrument"
 
 
-def _not_renewable_reason(parent: InstrumentRow) -> str | None:
+def _not_renewable_reason(tx: Conn, parent: InstrumentRow) -> str | None:
+    release = find_open_request(tx, parent["id"])
+    if release is not None:
+        # D6: renewal and release are mutually exclusive.
+        return (
+            f"{_ref(parent)} has an open release request ({RELEASE_REQUEST_STATUS_LABELS[release['status']].lower()}, "
+            f"requested {fmt_date(clock.ist_date(release['requestedAt']))}); cancel it before starting a renewal"
+        )
     if parent["status"] in RENEWABLE_STATUSES:
         return None
-    if parent["status"] == "RELEASE_REQUESTED":
-        # D6: renewal and release are mutually exclusive (an open release request keeps the instrument here).
-        return f"{_ref(parent)} has an open release request; cancel it before starting a renewal"
     return (
         f"{_ref(parent)} is {STATUS_LABELS[parent['status']]}; only expiring, matured or lapsed instruments can be "
         "renewed"
@@ -51,7 +56,7 @@ def renew(user: AuthUser, parent_id: str) -> InstrumentDetail:
     with transaction() as tx:
         parent = lock_instrument(tx, parent_id)
         assert_can_see(user, parent["institutionId"])
-        reason = _not_renewable_reason(parent)
+        reason = _not_renewable_reason(tx, parent)
         if reason:
             raise Conflict(reason, {"status": parent["status"]}, "NOT_RENEWABLE")
         successor = find_successor(tx, parent_id)

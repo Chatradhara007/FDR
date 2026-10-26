@@ -65,6 +65,7 @@ class DocumentInfo(TypedDict):
     sha256: str
     uploadedBy: str
     uploadedAt: object
+    releaseRequestId: str | None
 
 
 class InstrumentDetail(InstrumentRow):

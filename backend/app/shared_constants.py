@@ -24,7 +24,8 @@ InstrumentStatus = Literal[
 TrustTier = Literal["CLAIMED", "DOCUMENT", "BANK_CONFIRMED"]
 VerificationState = Literal["UNVERIFIED", "PENDING", "CONFIRMED", "MISMATCH", "UNAVAILABLE"]
 DocType = Literal[
-    "FDR_COPY", "BANK_LETTER", "DEPOSIT_CONFIRMATION", "LIEN_LETTER", "RELEASE_LETTER", "COMPLIANCE_CERTIFICATE", "OTHER",
+    "FDR_COPY", "BANK_LETTER", "DEPOSIT_CONFIRMATION", "LIEN_LETTER", "RELEASE_LETTER", "COMPLIANCE_CERTIFICATE",
+    "LIEN_REMOVAL_REQUEST", "OTHER",
 ]  # fmt: skip
 VerificationResult = Literal["CONFIRMED", "MISMATCH", "NOT_FOUND", "PENDING", "UNAVAILABLE", "STALE"]
 ObservationSeverity = Literal["INFO", "CONCERN", "BLOCKING"]
@@ -37,6 +38,11 @@ AlertKind = Literal[
 ]
 AlertStatus = Literal["OPEN", "ACKNOWLEDGED", "ESCALATED", "RESOLVED"]
 AlertResolution = Literal["SYSTEM_CONDITION_CLEARED", "MANUAL", "SUPERSEDED"]
+ReleaseRequestStatus = Literal[
+    "PENDING_CONDITIONS", "PENDING_APPROVAL", "APPROVED", "REJECTED", "RETURNED", "CANCELLED"
+]
+ReleaseDecision = Literal["RECOMMEND", "APPROVE", "REJECT", "RETURN"]
+ReleaseLevelAction = Literal["RECOMMEND", "DECIDE"]
 
 
 class RuleDefault(TypedDict):
@@ -60,12 +66,14 @@ VERIFICATION_STATES: tuple[VerificationState, ...] = tuple(_data["verificationSt
 VERIFICATION_STATE_LABELS: dict[VerificationState, str] = _data["verificationStateLabels"]
 DOC_TYPES: tuple[DocType, ...] = tuple(_data["docTypes"])
 DOC_TYPE_LABELS: dict[DocType, str] = _data["docTypeLabels"]
+RELEASE_DOC_TYPES: tuple[DocType, ...] = tuple(_data["releaseDocTypes"])
 ALLOWED: dict[InstrumentStatus, tuple[InstrumentStatus, ...]] = {
     k: tuple(v) for k, v in _data["allowedTransitions"].items()
 }
 LIVE_STATUSES: tuple[InstrumentStatus, ...] = tuple(_data["liveStatuses"])
 TERMINAL_STATUSES: tuple[InstrumentStatus, ...] = tuple(_data["terminalStatuses"])
 RENEWABLE_STATUSES: tuple[InstrumentStatus, ...] = tuple(_data["renewableStatuses"])
+RELEASABLE_STATUSES: tuple[InstrumentStatus, ...] = tuple(_data["releasableStatuses"])
 VERIFIABLE_STATUSES: tuple[InstrumentStatus, ...] = tuple(_data["verifiableStatuses"])
 VERIFICATION_RESULTS: tuple[VerificationResult, ...] = tuple(_data["verificationResults"])
 VERIFICATION_RESULT_LABELS: dict[str, str] = _data["verificationResultLabels"]
@@ -80,6 +88,13 @@ ALERT_KINDS: tuple[AlertKind, ...] = tuple(_data["alertKinds"])
 ALERT_KIND_LABELS: dict[AlertKind, str] = _data["alertKindLabels"]
 ALERT_STATUSES: tuple[AlertStatus, ...] = tuple(_data["alertStatuses"])
 ALERT_RESOLUTIONS: tuple[AlertResolution, ...] = tuple(_data["alertResolutions"])
+RELEASE_REQUEST_STATUSES: tuple[ReleaseRequestStatus, ...] = tuple(_data["releaseRequestStatuses"])
+RELEASE_REQUEST_STATUS_LABELS: dict[ReleaseRequestStatus, str] = _data["releaseRequestStatusLabels"]
+OPEN_RELEASE_REQUEST_STATUSES: tuple[ReleaseRequestStatus, ...] = tuple(_data["openReleaseRequestStatuses"])
+RELEASE_DECISIONS: tuple[ReleaseDecision, ...] = tuple(_data["releaseDecisions"])
+RELEASE_DECISION_LABELS: dict[ReleaseDecision, str] = _data["releaseDecisionLabels"]
+RELEASE_LEVEL_ACTIONS: tuple[ReleaseLevelAction, ...] = tuple(_data["releaseLevelActions"])
+RELEASE_AUTO_CONDITIONS: tuple[str, ...] = tuple(_data["releaseAutoConditions"])
 EVENT_LABELS: dict[str, str] = _data["eventLabels"]
 INSTITUTION_VISIBLE_ACTIONS: tuple[str, ...] = tuple(_data["institutionVisibleActions"])
 
@@ -106,6 +121,9 @@ def _check_literals() -> None:
         (AlertKind, ALERT_KINDS),
         (AlertStatus, ALERT_STATUSES),
         (AlertResolution, ALERT_RESOLUTIONS),
+        (ReleaseRequestStatus, RELEASE_REQUEST_STATUSES),
+        (ReleaseDecision, RELEASE_DECISIONS),
+        (ReleaseLevelAction, RELEASE_LEVEL_ACTIONS),
     ):
         if get_args(literal) != values:
             raise RuntimeError(f"{CONSTANTS_PATH} does not match the Literal types in shared_constants.py: {values}")

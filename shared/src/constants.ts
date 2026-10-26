@@ -2,11 +2,13 @@
 // backend also reads); literal types come from the generated constants.gen.ts.
 import c from '../constants.json';
 import type {
-  AlertKind, AlertResolution, AlertStatus, Bank, DocType, InstrumentStatus, InstrumentType, ObservationSeverity, Role, TrackedField, TrustTier, VerificationResult, VerificationState,
+  AlertKind, AlertResolution, AlertStatus, Bank, DocType, InstrumentStatus, InstrumentType, ObservationSeverity, ReleaseDecision, ReleaseLevelAction,
+  ReleaseRequestStatus, Role, TrackedField, TrustTier, VerificationResult, VerificationState,
 } from './constants.gen';
 
 export type {
-  AlertKind, AlertResolution, AlertStatus, Bank, DocType, InstrumentStatus, InstrumentType, ObservationSeverity, Role, TrackedField, TrustTier, VerificationResult, VerificationState,
+  AlertKind, AlertResolution, AlertStatus, Bank, DocType, InstrumentStatus, InstrumentType, ObservationSeverity, ReleaseDecision, ReleaseLevelAction,
+  ReleaseRequestStatus, Role, TrackedField, TrustTier, VerificationResult, VerificationState,
 } from './constants.gen';
 
 export const ROLES = c.roles as readonly Role[];
@@ -21,6 +23,7 @@ export const ALLOWED = c.allowedTransitions as Record<InstrumentStatus, readonly
 export const LIVE_STATUSES = c.liveStatuses as readonly InstrumentStatus[];
 export const TERMINAL_STATUSES = c.terminalStatuses as readonly InstrumentStatus[];
 export const RENEWABLE_STATUSES = c.renewableStatuses as readonly InstrumentStatus[];
+export const RELEASABLE_STATUSES = c.releasableStatuses as readonly InstrumentStatus[];
 export const VERIFIABLE_STATUSES = c.verifiableStatuses as readonly InstrumentStatus[];
 
 export const TRUST_TIERS = c.trustTiers as readonly TrustTier[];
@@ -35,6 +38,7 @@ export const OBSERVATION_SEVERITY_LABELS = c.observationSeverityLabels as Record
 
 export const DOC_TYPES = c.docTypes as readonly DocType[];
 export const DOC_TYPE_LABELS = c.docTypeLabels as Record<DocType, string>;
+export const RELEASE_DOC_TYPES = c.releaseDocTypes as readonly DocType[];
 
 export const TRACKED_FIELDS = c.trackedFields as readonly TrackedField[];
 export const FIELD_LABELS = c.fieldLabels as Record<TrackedField, string>;
@@ -48,6 +52,11 @@ export const ALERT_KIND_LABELS = c.alertKindLabels as Record<AlertKind, string>;
 export const ALERT_STATUSES = c.alertStatuses as readonly AlertStatus[];
 export const ALERT_STATUS_LABELS = c.alertStatusLabels as Record<AlertStatus, string>;
 export const ALERT_RESOLUTION_LABELS = c.alertResolutionLabels as Record<AlertResolution, string>;
+
+export const RELEASE_REQUEST_STATUSES = c.releaseRequestStatuses as readonly ReleaseRequestStatus[];
+export const RELEASE_REQUEST_STATUS_LABELS = c.releaseRequestStatusLabels as Record<ReleaseRequestStatus, string>;
+export const OPEN_RELEASE_REQUEST_STATUSES = c.openReleaseRequestStatuses as readonly ReleaseRequestStatus[];
+export const RELEASE_DECISION_LABELS = c.releaseDecisionLabels as Record<ReleaseDecision, string>;
 
 export const EVENT_LABELS = c.eventLabels as Record<string, string>;
 export const INSTITUTION_VISIBLE_ACTIONS = c.institutionVisibleActions as readonly string[];

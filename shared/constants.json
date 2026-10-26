@@ -105,6 +105,7 @@
     "LIEN_LETTER",
     "RELEASE_LETTER",
     "COMPLIANCE_CERTIFICATE",
+    "LIEN_REMOVAL_REQUEST",
     "OTHER"
   ],
   "docTypeLabels": {
@@ -114,8 +115,15 @@
     "LIEN_LETTER": "Lien letter",
     "RELEASE_LETTER": "Release letter",
     "COMPLIANCE_CERTIFICATE": "Compliance certificate",
+    "LIEN_REMOVAL_REQUEST": "Lien removal request",
     "OTHER": "Other"
   },
+  "releaseDocTypes": [
+    "RELEASE_LETTER",
+    "COMPLIANCE_CERTIFICATE",
+    "LIEN_REMOVAL_REQUEST",
+    "OTHER"
+  ],
   "allowedTransitions": {
     "DRAFT": [
       "SUBMITTED"
@@ -171,6 +179,12 @@
     "RELEASED"
   ],
   "renewableStatuses": [
+    "EXPIRING",
+    "MATURED",
+    "LAPSED"
+  ],
+  "releasableStatuses": [
+    "ACTIVE",
     "EXPIRING",
     "MATURED",
     "LAPSED"
@@ -379,6 +393,78 @@
         "flagCoverageGapDays": 0,
         "flagLowerAmount": true
       }
+    },
+    {
+      "key": "release_conditions",
+      "name": "Release conditions",
+      "type": "release_conditions",
+      "config": {
+        "conditions": [
+          {
+            "code": "NO_OPEN_DISCREPANCY",
+            "auto": true,
+            "mandatory": true,
+            "description": "No open discrepancy on the instrument"
+          },
+          {
+            "code": "NO_BLOCKING_OBSERVATION",
+            "auto": true,
+            "mandatory": true,
+            "description": "No unresolved blocking observation"
+          },
+          {
+            "code": "INSTRUMENT_VERIFIED",
+            "auto": true,
+            "mandatory": true,
+            "description": "Bank-confirmed, or accepted with a recorded override"
+          },
+          {
+            "code": "REQUEST_DOCUMENTS_ATTACHED",
+            "auto": true,
+            "mandatory": true,
+            "description": "At least one release document attached"
+          },
+          {
+            "code": "COMPLIANCE_CONFIRMED",
+            "auto": false,
+            "mandatory": true,
+            "description": "The obligation the deposit secured is confirmed as fulfilled"
+          },
+          {
+            "code": "LIEN_REMOVAL_DOCUMENT",
+            "auto": false,
+            "mandatory": true,
+            "description": "Bank letter or request for lien removal is on file"
+          }
+        ]
+      }
+    },
+    {
+      "key": "approval_levels",
+      "name": "Release approval levels",
+      "type": "approval_levels",
+      "config": {
+        "levels": [
+          {
+            "level": 1,
+            "role": "officer",
+            "action": "RECOMMEND",
+            "label": "Scrutiny officer recommendation"
+          },
+          {
+            "level": 2,
+            "role": "approver",
+            "action": "DECIDE",
+            "label": "Competent authority decision"
+          }
+        ],
+        "extraApprovalAbove": "5000000.00",
+        "extraLevel": {
+          "role": "approver",
+          "action": "DECIDE",
+          "label": "Second competent authority (amount above ₹50 L)"
+        }
+      }
     }
   ],
   "alertKinds": [
@@ -417,6 +503,43 @@
     "MANUAL": "Resolved by hand",
     "SUPERSEDED": "Superseded by a closer reminder"
   },
+  "releaseRequestStatuses": [
+    "PENDING_CONDITIONS",
+    "PENDING_APPROVAL",
+    "APPROVED",
+    "REJECTED",
+    "RETURNED",
+    "CANCELLED"
+  ],
+  "releaseRequestStatusLabels": {
+    "PENDING_CONDITIONS": "Checking conditions",
+    "PENDING_APPROVAL": "Awaiting approval",
+    "APPROVED": "Approved — released",
+    "REJECTED": "Rejected",
+    "RETURNED": "Returned to institution",
+    "CANCELLED": "Cancelled"
+  },
+  "openReleaseRequestStatuses": [
+    "PENDING_CONDITIONS",
+    "PENDING_APPROVAL",
+    "RETURNED"
+  ],
+  "releaseDecisions": [
+    "RECOMMEND",
+    "APPROVE",
+    "REJECT",
+    "RETURN"
+  ],
+  "releaseDecisionLabels": {
+    "RECOMMEND": "Recommended",
+    "APPROVE": "Approved",
+    "REJECT": "Rejected",
+    "RETURN": "Returned to institution"
+  },
+  "releaseLevelActions": [
+    "RECOMMEND",
+    "DECIDE"
+  ],
   "eventLabels": {
     "STATUS_DRAFT": "Status changed to Draft",
     "STATUS_SUBMITTED": "Status changed to Submitted",
@@ -456,7 +579,16 @@
     "ALERT_RESOLVED": "Alert resolved",
     "RENEWAL_STARTED": "Renewal started",
     "RENEWED_BY": "Replaced by a renewal",
-    "RENEWS": "Renews an earlier instrument"
+    "RENEWS": "Renews an earlier instrument",
+    "RELEASE_REQUESTED": "Release requested",
+    "RELEASE_CONDITION_CHECKED": "Release condition checked",
+    "RELEASE_RECOMMENDED": "Release recommended by officer",
+    "RELEASE_LEVEL_APPROVED": "Release approved at one level",
+    "RELEASE_APPROVED": "Release approved — instrument released",
+    "RELEASE_REJECTED": "Release rejected",
+    "RELEASE_RETURNED": "Release request returned to institution",
+    "RELEASE_RESUBMITTED": "Release request resubmitted",
+    "RELEASE_CANCELLED": "Release request cancelled"
   },
   "institutionVisibleActions": [
     "STATUS_DRAFT",
@@ -480,6 +612,17 @@
     "VERIFICATION_RESULT",
     "RENEWAL_STARTED",
     "RENEWED_BY",
-    "RENEWS"
+    "RENEWS",
+    "RELEASE_REQUESTED",
+    "RELEASE_REJECTED",
+    "RELEASE_RETURNED",
+    "RELEASE_RESUBMITTED",
+    "RELEASE_CANCELLED"
+  ],
+  "releaseAutoConditions": [
+    "NO_OPEN_DISCREPANCY",
+    "NO_BLOCKING_OBSERVATION",
+    "INSTRUMENT_VERIFIED",
+    "REQUEST_DOCUMENTS_ATTACHED"
   ]
 }

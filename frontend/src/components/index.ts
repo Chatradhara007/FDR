@@ -21,3 +21,4 @@ export * from './DocChecklist';
 export * from './ObservationItem';
 export * from './AlertChips';
 export * from './AlertBell';
+export * from './ReleaseStatusChip';

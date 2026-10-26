@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Activity, BadgeCheck, Bell, ChevronDown, ChevronRight, Clock, Eye, FileText, FileWarning, Landmark, MessageSquareText, Pencil, RefreshCcw,
+  Activity, BadgeCheck, Bell, ChevronDown, ChevronRight, Clock, Eye, FileText, FileWarning, HandCoins, Landmark, MessageSquareText, Pencil, RefreshCcw,
   Undo2, type LucideIcon,
 } from 'lucide-react';
 import type { TimelineEvent, TimelineIcon } from '@fdr/shared';
@@ -8,7 +8,7 @@ import { cn } from '@/lib/cn';
 
 const ICONS: Record<TimelineIcon, LucideIcon> = {
   status: Activity, renewal: RefreshCcw, view: Eye, document: FileText, bank: Landmark, discrepancy: FileWarning,
-  observation: MessageSquareText, alert: Bell, return: Undo2, accept: BadgeCheck, edit: Pencil, clock: Clock, event: Activity,
+  observation: MessageSquareText, alert: Bell, return: Undo2, accept: BadgeCheck, edit: Pencil, clock: Clock, release: HandCoins, event: Activity,
 };
 
 const time = (iso: string) => new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });

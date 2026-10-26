@@ -12,7 +12,15 @@ from pydantic import ValidationError
 
 from ..db.pool import Db
 from ..repositories.rule_repo import get_rule_config
-from ..schemas import AfterDaysRule, EscalationRule, OverdueRenewalRule, ReminderRule, RenewalChecksRule
+from ..schemas import (
+    AfterDaysRule,
+    ApprovalLevelsRule,
+    EscalationRule,
+    OverdueRenewalRule,
+    ReleaseConditionsRule,
+    ReminderRule,
+    RenewalChecksRule,
+)
 from ..shared_constants import RULE_DEFAULTS
 from .errors import AppError
 
@@ -38,9 +46,12 @@ class Rules:
         return self.overdue_renewal.grace_days
 
 
-def _load[M: (ReminderRule, AfterDaysRule, OverdueRenewalRule, EscalationRule, RenewalChecksRule)](
-    db: Db, key: str, model: type[M]
-) -> M:
+def _load[
+    M: (
+        ReminderRule, AfterDaysRule, OverdueRenewalRule, EscalationRule, RenewalChecksRule, ReleaseConditionsRule,
+        ApprovalLevelsRule,
+    )
+](db: Db, key: str, model: type[M]) -> M:  # fmt: skip
     config = get_rule_config(db, key)
     try:
         return model.model_validate(_DEFAULTS[key] if config is None else config)
@@ -62,3 +73,13 @@ def load_rules(db: Db) -> Rules:
 def load_renewal_checks(db: Db) -> RenewalChecksRule:
     """Rule 'renewal_checks' (Phase 5), read at the start of each submit / accept of a replacement."""
     return _load(db, "renewal_checks", RenewalChecksRule)
+
+
+def load_release_conditions(db: Db) -> ReleaseConditionsRule:
+    """Rule 'release_conditions' (Phase 6), read when a release request is created."""
+    return _load(db, "release_conditions", ReleaseConditionsRule)
+
+
+def load_approval_levels(db: Db) -> ApprovalLevelsRule:
+    """Rule 'approval_levels' (Phase 6), read when a release request is created (the chain is then snapshotted)."""
+    return _load(db, "approval_levels", ApprovalLevelsRule)
