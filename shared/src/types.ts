@@ -604,5 +604,5 @@ export interface DecideInput {
   decision: 'APPROVE' | 'REJECT' | 'RETURN';
   remarks: string;
   refundReference?: string;
-  level?: number;
+  level: number;
 }

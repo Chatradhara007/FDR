@@ -175,10 +175,10 @@ Deviations / choices in the port:
   COMPLIANCE_CERTIFICATE, LIEN_REMOVAL_REQUEST, OTHER) → 201 `{ document, duplicateOf }`; download/preview through the
   instrument's document routes
 - `PATCH /release-conditions/:id {met, remarks}` (officer, manual conditions, PENDING_CONDITIONS; remarks required when `met`)
-- `POST /release-requests/:id/recommend {remarks, level?}` (role of the current RECOMMEND level) — 409 `RELEASE_BLOCKED`
+- `POST /release-requests/:id/recommend {remarks, level}` (role of the current RECOMMEND level) — 409 `RELEASE_BLOCKED`
   `details.reasons`
-- `POST /release-requests/:id/decide {decision: APPROVE|REJECT|RETURN, remarks, refundReference?, level?}` (role of the current
-  level) — 409 `RELEASE_BLOCKED` (APPROVE only), 409 `ALREADY_DECIDED`, 403 `SEPARATION_OF_DUTIES`, 403 another role's level
+- `POST /release-requests/:id/decide {decision: APPROVE|REJECT|RETURN, remarks, refundReference?, level}` (role of the current
+  level; `level` required since the Phase 06 verification, 422 when missing) — 409 `RELEASE_BLOCKED` (APPROVE only), 409 `ALREADY_DECIDED`, 403 `SEPARATION_OF_DUTIES`, 403 another role's level
 - `POST /release-requests/:id/resubmit {note}` (institution, RETURNED), `POST /release-requests/:id/cancel` (institution,
   PENDING_CONDITIONS or RETURNED)
 - `GET /instruments/:id/passport` `releaseRequests` is filled (one view per request, newest first)
@@ -484,6 +484,15 @@ Phase 06:
 - Order number `AICTE/REL/<IST year>/<first 8 of the request id>` (derived, no column).
 - Base seed gains `approver2@demo.in` (Shri R. K. Malhotra, Deputy Secretary — second approver above ₹50 L), as in
   `docs/seed-spec.md`; the login page's quick buttons are unchanged.
+- Verification fixes (Phase 06 verify): `level` is now **required** on `/recommend` and `/decide` (422 on `level`, "Reload
+  the request: the level you are acting at is required"). Before, a client that left it out could act at the next level
+  instead of getting 409 `ALREADY_DECIDED` (e.g. a second approver's click landing on level 3 of a ₹50 L+ request); the UI
+  always sent it. `shared` `DecideInput.level` is no longer optional. `PATCH /release-conditions/:id` now also locks the
+  instrument `FOR UPDATE`, so every release step locks both rows (§6.4).
+- `GET /release-requests` scoping differs from §6.3 step 6: institutions see only their own, but every AICTE role
+  (officer, approver, admin, auditor) sees every request by default and narrows with `status` / `awaitingMe`. The approver's
+  work list (approver home, "Waiting for me" tab) uses `awaitingMe=true`, which gives exactly the spec's set (open, current
+  level's role is approver). Kept because approvers also need the closed history and the read-only "All releases" view.
 - `routes/instruments._receive_file` renamed `receive_file` (shared with the release upload route). Layout/Toast gained
   `print:hidden` classes for the order.
 
@@ -582,7 +591,7 @@ Phase 06:
   besides the browser's log line for the intentional 422. Dev DB reset and re-seeded, `mock-bank/data/records.json` removed.
 - Phase 06 checks 1–9: `backend/tests/test_phase06_release.py` (also: request validation and access, release document types and
   separation from instrument documents, manual-condition remarks, blocking observation and override, chain from the rule,
-  exactly-₹50 L boundary, threaded concurrent approvals, returned request blocks renewal, list scoping/`awaitingMe`, passport
+  exactly-₹50 L boundary, threaded concurrent approvals, `level` required on recommend/decide, returned request blocks renewal, list scoping/`awaitingMe`, passport
   Release tab, D24 filtering and labels for every release event). Phase 05 AC5 test now uses a real release request.
 - Phase 06 check 10 (UI), cloud sandbox, `npm run seed` + `npm run dev` + headless Chromium. Setup through the API: Institution
   1's `SBIN/FDR/2026/00731` (₹20 L) submitted, verified (CONFIRMED) and accepted. Institution 1 → passport → **Request
