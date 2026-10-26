@@ -1116,3 +1116,179 @@ class ReleaseListQuery(ApiModel):
     @classmethod
     def _page_size(cls, v: object) -> int:
         return _coerce_int(v, 1, 100)
+
+
+# ---- Phase 07: dashboard, my day, reports ------------------------------------------------------
+
+
+def _weight(v: object) -> float:
+    if isinstance(v, bool) or not isinstance(v, int | float) or not 0 <= v <= 1:
+        raise fail("Enter a weight between 0 and 1")
+    return float(v)
+
+
+class RiskWeightsRule(ApiModel):
+    """key 'risk_weights' (Phase 7): how My day ranks work (D26)."""
+
+    amount: float
+    urgency: float
+    verification: float
+    discrepancy: float
+    escalation: float
+    amount_cap: str
+    urgency_horizon_days: int
+
+    @field_validator("amount", "urgency", "verification", "discrepancy", "escalation", mode="before")
+    @classmethod
+    def _weights(cls, v: object) -> float:
+        return _weight(v)
+
+    @field_validator("amount_cap", mode="before")
+    @classmethod
+    def _cap(cls, v: object) -> str:
+        if not isinstance(v, str) or not re.fullmatch(r"\d{1,12}\.\d{2}", v) or _paise(v) <= 0:
+            raise fail("Enter an amount like 10000000.00")
+        return v
+
+    @field_validator("urgency_horizon_days", mode="before")
+    @classmethod
+    def _horizon(cls, v: object) -> int:
+        return _whole_days(v, 1)
+
+
+class ImprovementBaselineRule(ApiModel):
+    """key 'improvement_baseline' (Phase 7): assumed figures for the manual process (illustrative, D26)."""
+
+    manual_steps_per_case: int
+    portal_steps_per_case: int
+    manual_verification_days: int
+    manual_lapse_detection_days: int
+    manual_caught_before_expiry_pct: int
+    note: str
+
+    @field_validator(
+        "manual_steps_per_case", "portal_steps_per_case", "manual_verification_days", "manual_lapse_detection_days",
+        mode="before",
+    )  # fmt: skip
+    @classmethod
+    def _count(cls, v: object) -> int:
+        return _whole_days(v)
+
+    @field_validator("manual_caught_before_expiry_pct", mode="before")
+    @classmethod
+    def _pct(cls, v: object) -> int:
+        n = _whole_days(v)
+        if n > 100:
+            raise fail("Must be at most 100")
+        return n
+
+    @field_validator("note", mode="before")
+    @classmethod
+    def _note(cls, v: object) -> str:
+        return _required_text(v, 500, "Note is required", "Note")
+
+
+class DashboardQuery(ApiModel):
+    region: str | None = None
+    type: InstrumentType | None = None
+
+    @field_validator("region", mode="before")
+    @classmethod
+    def _region(cls, v: object) -> str | None:
+        return _optional_query_text(v)
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def _type(cls, v: object) -> object:
+        return _blank_to_none(v)
+
+
+class InstitutionListQuery(ApiModel):
+    region: str | None = None
+    state: str | None = None
+    q: str | None = None
+    page: int = 1
+    page_size: int = Field(default=25)
+
+    @field_validator("region", "state", "q", mode="before")
+    @classmethod
+    def _text(cls, v: object) -> str | None:
+        return _optional_query_text(v)
+
+    @field_validator("page", mode="before")
+    @classmethod
+    def _page(cls, v: object) -> int:
+        return _coerce_int(v, 1, None)
+
+    @field_validator("page_size", mode="before")
+    @classmethod
+    def _page_size(cls, v: object) -> int:
+        return _coerce_int(v, 1, 100)
+
+
+class ReportQuery(ApiModel):
+    """Every preset's filters; each preset reads the ones it supports (the rest are ignored)."""
+
+    format: Literal["json", "csv"] = "json"
+    status: list[InstrumentStatus] | None = None
+    type: InstrumentType | None = None
+    region: str | None = None
+    bank: str | None = None
+    institution_id: str | None = None
+    maturity_from: str | None = None
+    maturity_to: str | None = None
+    days: int = 90
+    all: bool = False
+    from_: str | None = Field(default=None, alias="from")
+    to: str | None = None
+
+    @field_validator("format", mode="before")
+    @classmethod
+    def _format(cls, v: object) -> object:
+        v = _blank_to_none(v)
+        return "json" if v is None else v
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def _status(cls, v: object) -> list[str] | None:
+        if v is None or v == "":
+            return None
+        values = v if isinstance(v, list) else [v]
+        out = [s.strip() for x in values for s in str(x).split(",")]
+        return [s for s in out if s] or None
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def _type(cls, v: object) -> object:
+        return _blank_to_none(v)
+
+    @field_validator("region", "bank", mode="before")
+    @classmethod
+    def _text(cls, v: object) -> str | None:
+        return _optional_query_text(v)
+
+    @field_validator("institution_id", mode="before")
+    @classmethod
+    def _institution_id(cls, v: object) -> str | None:
+        v = _blank_to_none(v)
+        if v is None:
+            return None
+        if not isinstance(v, str) or not _UUID.match(v):
+            raise fail("Not a valid id")
+        return v
+
+    @field_validator("maturity_from", "maturity_to", "from_", "to", mode="before")
+    @classmethod
+    def _dates(cls, v: object) -> str | None:
+        return _optional_date(v)
+
+    @field_validator("days", mode="before")
+    @classmethod
+    def _days(cls, v: object) -> int:
+        v = _blank_to_none(v)
+        return 90 if v is None else _coerce_int(v, 1, 3650)
+
+    @field_validator("all", mode="before")
+    @classmethod
+    def _all(cls, v: object) -> bool:
+        return v in (True, "true", "1")

@@ -606,3 +606,109 @@ export interface DecideInput {
   refundReference?: string;
   level: number;
 }
+
+// ---- Phase 07: dashboard, my day, institutions, reports, improvement ----
+
+export interface CountAmount { count: number; amount: string }
+
+export interface Dashboard {
+  asOf: string;
+  filters: { region?: string | null; type?: InstrumentType | null };
+  kpis: {
+    live: CountAmount;
+    confirmedAmount: string;
+    confirmedPct: number | null;
+    pendingScrutiny: number;
+    openDiscrepancies: number;
+    openEscalations: number;
+  };
+  byStatus: Array<CountAmount & { key: string; label: string; statuses: InstrumentStatus[] }>;
+  verification: { byState: Record<VerificationState, number>; acceptedWithOverride: number };
+  maturityBuckets: Array<CountAmount & { key: 'overdue' | 'd0_30' | 'd31_60' | 'd61_90'; label: string }>;
+  maturityByMonth: Array<CountAmount & { month: string }>;
+  byRegion: Array<CountAmount & { region: string; atRisk: number }>;
+  byBank: Array<{
+    bank: string; count: number; verified: number; verifications: number; mismatches: number;
+    mismatchRate: number | null; unavailable: number; discrepancies: number;
+  }>;
+  alerts: { byKind: Record<AlertKind, number>; byLevel: Record<string, number>; total: number };
+}
+
+export interface RiskWeights {
+  amount: number; urgency: number; verification: number; discrepancy: number; escalation: number;
+  amountCap: string; urgencyHorizonDays: number;
+}
+
+export interface WorkItem {
+  kind: 'instrument' | 'release';
+  id: string;
+  instrumentId: string;
+  title: string;
+  institution: string;
+  referenceNo: string | null;
+  amount: string | null;
+  score: number;
+  components: { amount: number; urgency: number; verification: number; discrepancy: number; escalation: number };
+  daysLeft: number | null;
+  reasons: string[];
+  nextAction: string;
+  link: string;
+}
+
+export interface MyDay { asOf: string; weights: RiskWeights; items: WorkItem[] }
+
+export interface InstitutionSummary {
+  id: string;
+  aicteId: string;
+  name: string;
+  region: string;
+  state: string;
+  contactEmail: string | null;
+  byStatus: Partial<Record<InstrumentStatus, CountAmount>>;
+  liveCount: number;
+  liveAmount: string;
+  openProblems: { openDiscrepancies: number; overdue: number; returned: number; openAlerts: number; total: number };
+}
+
+export interface InstitutionListResponse { items: InstitutionSummary[]; total: number; page: number; pageSize: number }
+
+export interface InstitutionAlert {
+  id: string; instrumentId: string; referenceNo: string | null; kind: AlertKind; level: number; recipientRole: Role;
+  dueDate: string; message: string; status: AlertStatus;
+}
+
+export interface InstitutionProfile {
+  institution: InstitutionSummary;
+  asOf: string;
+  instruments: InstrumentListItem[];
+  alerts: InstitutionAlert[];
+  releaseRequests: ReleaseListItem[];
+}
+
+export type ReportColumnKind = 'text' | 'date' | 'amount' | 'int' | 'status' | 'verification' | 'result' | 'releaseStatus' | 'field';
+
+export interface Report {
+  preset: string;
+  title: string;
+  asOf: string;
+  filters: Record<string, unknown>;
+  columns: Array<{ key: string; label: string; kind: ReportColumnKind }>;
+  rows: Array<Record<string, unknown>>;
+  total: number;
+}
+
+export interface ImprovementFigure { value: number | null; display: string }
+
+export interface ImprovementMetric {
+  key: string;
+  title: string;
+  unit: string;
+  better: 'lower' | 'higher';
+  portal: ImprovementFigure;
+  manual: ImprovementFigure;
+  sampleSize: number | null;
+  explanation: string;
+  label: string;
+}
+
+export interface Improvement { label: string; asOf: string; baselineNote: string; metrics: ImprovementMetric[] }
