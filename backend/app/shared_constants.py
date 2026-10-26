@@ -52,6 +52,12 @@ class RuleDefault(TypedDict):
     config: object
 
 
+class DashboardStatusGroup(TypedDict):
+    key: str
+    label: str
+    statuses: list[InstrumentStatus]
+
+
 _data = json.loads(CONSTANTS_PATH.read_text(encoding="utf-8"))
 
 ROLES: tuple[Role, ...] = tuple(_data["roles"])
@@ -97,6 +103,9 @@ RELEASE_LEVEL_ACTIONS: tuple[ReleaseLevelAction, ...] = tuple(_data["releaseLeve
 RELEASE_AUTO_CONDITIONS: tuple[str, ...] = tuple(_data["releaseAutoConditions"])
 EVENT_LABELS: dict[str, str] = _data["eventLabels"]
 INSTITUTION_VISIBLE_ACTIONS: tuple[str, ...] = tuple(_data["institutionVisibleActions"])
+DASHBOARD_STATUS_GROUPS: tuple[DashboardStatusGroup, ...] = tuple(_data["dashboardStatusGroups"])
+REPORT_PRESETS: dict[str, str] = _data["reportPresets"]
+SIMULATED_LABEL: str = _data["simulatedLabel"]
 
 
 def can_transition(from_status: str, to_status: str) -> bool:

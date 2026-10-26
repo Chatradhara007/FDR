@@ -16,10 +16,12 @@ from ..schemas import (
     AfterDaysRule,
     ApprovalLevelsRule,
     EscalationRule,
+    ImprovementBaselineRule,
     OverdueRenewalRule,
     ReleaseConditionsRule,
     ReminderRule,
     RenewalChecksRule,
+    RiskWeightsRule,
 )
 from ..shared_constants import RULE_DEFAULTS
 from .errors import AppError
@@ -49,7 +51,7 @@ class Rules:
 def _load[
     M: (
         ReminderRule, AfterDaysRule, OverdueRenewalRule, EscalationRule, RenewalChecksRule, ReleaseConditionsRule,
-        ApprovalLevelsRule,
+        ApprovalLevelsRule, RiskWeightsRule, ImprovementBaselineRule,
     )
 ](db: Db, key: str, model: type[M]) -> M:  # fmt: skip
     config = get_rule_config(db, key)
@@ -83,3 +85,13 @@ def load_release_conditions(db: Db) -> ReleaseConditionsRule:
 def load_approval_levels(db: Db) -> ApprovalLevelsRule:
     """Rule 'approval_levels' (Phase 6), read when a release request is created (the chain is then snapshotted)."""
     return _load(db, "approval_levels", ApprovalLevelsRule)
+
+
+def load_risk_weights(db: Db) -> RiskWeightsRule:
+    """Rule 'risk_weights' (Phase 7), read at the start of each My day request."""
+    return _load(db, "risk_weights", RiskWeightsRule)
+
+
+def load_improvement_baseline(db: Db) -> ImprovementBaselineRule:
+    """Rule 'improvement_baseline' (Phase 7): the manual-process figures; changed only through the rules table."""
+    return _load(db, "improvement_baseline", ImprovementBaselineRule)

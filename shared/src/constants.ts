@@ -64,3 +64,9 @@ export const INSTITUTION_VISIBLE_ACTIONS = c.institutionVisibleActions as readon
 export function eventLabel(action: string): string {
   return EVENT_LABELS[action] ?? action;
 }
+
+export interface DashboardStatusGroup { key: string; label: string; statuses: readonly InstrumentStatus[] }
+export const DASHBOARD_STATUS_GROUPS = c.dashboardStatusGroups as readonly DashboardStatusGroup[];
+export const REPORT_PRESETS = c.reportPresets as Record<string, string>;
+/** D26: every improvement figure carries this label. */
+export const SIMULATED_LABEL: string = c.simulatedLabel;

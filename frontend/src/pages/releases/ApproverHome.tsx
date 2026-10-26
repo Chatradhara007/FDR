@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAlerts } from '@/api/alerts';
 import { useReleaseRequests } from '@/api/releases';
 import { AlertKindChip, AlertLevelChip, Card, PageHeader } from '@/components';
+import { MyDayList } from '@/pages/myday/MyDay';
 import { DecisionBanner } from './parts';
 import { ReleaseTable } from './ReleaseList';
 
@@ -16,6 +17,7 @@ export function ApproverHome() {
       <PageHeader title="Approvals" subtitle="Release requests and escalations that need a competent-authority decision." />
       <DecisionBanner />
       <div className="space-y-4">
+        <MyDayList limit={10} />
         <Card title={`Decisions waiting for you (${pending.data?.total ?? 0})`}>
           <ReleaseTable rows={pending.data?.items} loading={pending.isLoading} emptyTitle="No release decision is waiting for you" />
         </Card>

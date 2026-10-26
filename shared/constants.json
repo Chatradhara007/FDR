@@ -465,6 +465,33 @@
           "label": "Second competent authority (amount above ₹50 L)"
         }
       }
+    },
+    {
+      "key": "risk_weights",
+      "name": "My day risk weights",
+      "type": "risk_weights",
+      "config": {
+        "amount": 0.3,
+        "urgency": 0.3,
+        "verification": 0.2,
+        "discrepancy": 0.15,
+        "escalation": 0.05,
+        "amountCap": "10000000.00",
+        "urgencyHorizonDays": 90
+      }
+    },
+    {
+      "key": "improvement_baseline",
+      "name": "Improvement baseline (manual process)",
+      "type": "improvement_baseline",
+      "config": {
+        "manualStepsPerCase": 14,
+        "portalStepsPerCase": 5,
+        "manualVerificationDays": 21,
+        "manualLapseDetectionDays": 45,
+        "manualCaughtBeforeExpiryPct": 40,
+        "note": "Assumed manual process: spreadsheets, letters to banks, email reminders. Illustrative figures."
+      }
     }
   ],
   "alertKinds": [
@@ -588,7 +615,8 @@
     "RELEASE_REJECTED": "Release rejected",
     "RELEASE_RETURNED": "Release request returned to institution",
     "RELEASE_RESUBMITTED": "Release request resubmitted",
-    "RELEASE_CANCELLED": "Release request cancelled"
+    "RELEASE_CANCELLED": "Release request cancelled",
+    "REPORT_EXPORTED": "Report exported"
   },
   "institutionVisibleActions": [
     "STATUS_DRAFT",
@@ -624,5 +652,81 @@
     "NO_BLOCKING_OBSERVATION",
     "INSTRUMENT_VERIFIED",
     "REQUEST_DOCUMENTS_ATTACHED"
-  ]
+  ],
+  "dashboardStatusGroups": [
+    {
+      "key": "ACTIVE",
+      "label": "Active",
+      "statuses": [
+        "ACTIVE"
+      ]
+    },
+    {
+      "key": "EXPIRING",
+      "label": "Expiring",
+      "statuses": [
+        "EXPIRING"
+      ]
+    },
+    {
+      "key": "MATURED",
+      "label": "Matured",
+      "statuses": [
+        "MATURED"
+      ]
+    },
+    {
+      "key": "LAPSED",
+      "label": "Lapsed",
+      "statuses": [
+        "LAPSED"
+      ]
+    },
+    {
+      "key": "RENEWED",
+      "label": "Renewed",
+      "statuses": [
+        "RENEWED"
+      ]
+    },
+    {
+      "key": "RELEASE_REQUESTED",
+      "label": "Release requested",
+      "statuses": [
+        "RELEASE_REQUESTED"
+      ]
+    },
+    {
+      "key": "RELEASED",
+      "label": "Released",
+      "statuses": [
+        "RELEASED"
+      ]
+    },
+    {
+      "key": "PENDING",
+      "label": "Pending scrutiny",
+      "statuses": [
+        "SUBMITTED",
+        "UNDER_SCRUTINY"
+      ]
+    },
+    {
+      "key": "RETURNED",
+      "label": "Returned",
+      "statuses": [
+        "RETURNED"
+      ]
+    }
+  ],
+  "reportPresets": {
+    "register": "Instrument register",
+    "expiring": "Expiring instruments",
+    "pending-verification": "Pending verification",
+    "discrepancies": "Discrepancies",
+    "lapsed": "Lapsed and matured without renewal",
+    "releases": "Release requests",
+    "institution-summary": "Institution summary"
+  },
+  "simulatedLabel": "Simulated on demo data — illustrative, not real-world claims"
 }

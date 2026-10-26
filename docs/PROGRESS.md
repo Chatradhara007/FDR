@@ -12,7 +12,7 @@ Claude Code updates this file at the end of every phase. Read it first in every 
 | 04 | Rules engine, alerts, escalation | done | (this commit) | All 13 checks pass (AC13 run in headless Chromium) |
 | 05 | Renewal chain and passport | done | (this commit) | All 9 checks pass (AC9 run in headless Chromium) |
 | 06 | Release workflow | done | (this commit) | All 10 checks pass (AC10 run in headless Chromium) |
-| 07 | Dashboard, my day, reports, metrics | not started | | |
+| 07 | Dashboard, my day, reports, metrics | done | (this commit) | All 8 checks pass (AC8 run in headless Chromium) |
 | 08 | Admin, audit integrity, security | not started | | |
 | 09 | Seed, demo tools, rehearsal, polish | not started | | |
 
@@ -186,6 +186,23 @@ Deviations / choices in the port:
   PENDING_APPROVAL or RETURNED), naming its state and date
 - Evaluation job: `RELEASE_PENDING` alerts (see deviations)
 
+**Phase 07** (all under `/api/v1`)
+- `GET /dashboard?region=&type=` (officer, approver, admin, auditor) → `{ asOf, filters, kpis, byStatus (9 groups, always
+  present), verification, maturityBuckets, maturityByMonth (12), byRegion, byBank, alerts }`; drafts excluded
+- `GET /myday` (officer, approver, admin) → `{ asOf, weights, items }`; items `{ kind, id, instrumentId, title, institution,
+  referenceNo, amount, score, components, daysLeft, reasons, nextAction, link }`, top 50, score desc, then days left
+- `GET /institutions?region=&state=&q=&page=&pageSize=` (internal roles; institution 403) → summaries with `byStatus`, `liveCount`,
+  `liveAmount`, `openProblems`
+- `GET /institutions/:id` (all roles; institution users only their own, else 404) → `{ institution, asOf, instruments, alerts,
+  releaseRequests }`
+- `GET /reports/:preset?…&format=json|csv` (internal roles; institution 403, unknown preset 404) — presets `register`, `expiring`
+  (`days`), `pending-verification`, `discrepancies` (`all=true` includes resolved), `lapsed`, `releases` (`from`, `to`),
+  `institution-summary`; common filters `type`, `region`, `bank`, `institutionId`; register also `status`, `maturityFrom/To`.
+  JSON `{ preset, title, asOf, filters, columns, rows, total }`; CSV UTF-8 with BOM, `fdr-<preset>-<asOf>.csv`, writes `REPORT_EXPORTED`
+- `GET /metrics/improvement[?format=csv]` (internal roles) → `{ label, asOf, baselineNote, metrics[] }` (portal vs manual figure,
+  sample size, explanation, label on every metric); the CSV has a "Basis" column with the simulated label and writes `REPORT_EXPORTED`
+  (preset `improvement`)
+
 ## Pages added
 
 (append per phase)
@@ -282,6 +299,22 @@ Deviations / choices in the port:
   review"). Timeline release events use a new `release` icon.
 - New files: `api/releases.ts`, `components/ReleaseStatusChip.tsx`, `pages/releases/{ReleaseList,ReleaseReviewPage,ReleaseOrder,
   RequestReleaseModal,ApproverHome,parts}.tsx`, `pages/passport/ReleaseTab.tsx`.
+
+**Phase 07**
+- `/dashboard` (officer, approver, admin, auditor; now the landing page for approver, admin and auditor — `ROLE_HOME`): prominent
+  "As of <app date>", region/type filters (in the URL), five KPI tiles (live ₹ Cr, % bank-confirmed, pending scrutiny, open
+  discrepancies, open escalations), status bars for all nine groups (chip + count + amount), maturity buckets, 12-month recharts bar
+  chart (with a screen-reader table), verification bars, region table with at-risk links, bank table with mismatch rate, open
+  alerts by level. Tiles, bars, buckets and table rows link to the filtered register / report / institutions.
+- `/officer` is now **My day** (ranked cards: rank, score pill with band text, title, amount, reason chips, next-action button that
+  deep-links; "Why this order?" popover with the rule's weights); `/approver` shows the top 10 above the decisions table.
+- `/register`: every instrument, filters/sort/page in the URL, Download CSV (register preset).
+- `/institutions` and `/institutions/:id` (profile, holdings by status, open problems, instruments, open alerts, release requests).
+- `/reports`: preset picker, per-preset filters, preview (first 200 rows), Download CSV. `/reports/improvement`: manual-vs-portal
+  cards, each tagged "Simulated on demo data", banner with the baseline note, Download CSV.
+- Sidebar: Dashboard, Register, Institutions, Reports for every internal role; officer "Scrutiny desk" renamed "My day".
+- New files: `api/reporting.ts`, `pages/dashboard/Dashboard.tsx`, `pages/myday/{MyDay,OfficerHome}.tsx`,
+  `pages/register/Register.tsx`, `pages/institutions/Institutions.tsx`, `pages/reports/{Reports,Improvement}.tsx`.
 
 ## Deviations / choices
 
@@ -496,6 +529,37 @@ Phase 06:
 - `routes/instruments._receive_file` renamed `receive_file` (shared with the release upload route). Layout/Toast gained
   `print:hidden` classes for the order.
 
+Phase 07:
+- Migration `007_reporting.sql`: rules `risk_weights` and `improvement_baseline` (+ `ruleDefaults`, validated by `RiskWeightsRule` /
+  `ImprovementBaselineRule`, loaded per request by `load_risk_weights` / `load_improvement_baseline`), index
+  `alerts (instrument_id, status)`. The baseline is changed only through the rules table (no endpoint edits it; Phase 8's rule editor
+  will use the same model).
+- `REPORT_EXPORTED` is written for CSV downloads only (reports and the improvement CSV); the JSON preview is not an export.
+  Entity `report` with a fresh UUID per export (events.entity_id is a NOT NULL uuid); `after_json {preset, filters, rows}` where
+  filters lists only the ones given.
+- Bank mismatch rate = verifications with result MISMATCH or NOT_FOUND ÷ conclusive verifications (CONFIRMED, MISMATCH, NOT_FOUND),
+  not "discrepancies opened ÷ verifications" as §7.2 says: one verification can open several discrepancies, so the spec's ratio can
+  exceed 100 %. The discrepancy count is still returned (`discrepancies`, shown in the tooltip).
+- Region table counts current instruments (not DRAFT, RENEWED, RELEASED), so a discrepancy found in scrutiny counts as at risk.
+- Dashboard alert counts and "open escalations (L2+)" count open (OPEN + ACKNOWLEDGED) copies addressed to AICTE roles, not the
+  institution copies.
+- My day: release items use urgency `min(1, days waiting at the current level ÷ 10)` (the spec defines only scrutiny ageing).
+  Approver candidates include every open alert addressed to the approver pool (7-day maturity reminders as well as escalations).
+  The approver's (and every role's) release items exclude any request with a `release_approvals` row by that user — this covers both
+  "already acted on" (§7.3) and the levels separation of duties forbids (D27). One item per instrument (reasons merged) plus one per
+  release request; reasons only for components that contribute (amount from 10 % of the cap). Ties: days left (soonest first), then id.
+- Dashboard is the default home for approver, admin and auditor (`ROLE_HOME`); `/approver`, `/admin`, `/auditor` stay in the sidebar.
+  `App.tsx` lists the role-home routes explicitly now that `ROLE_HOME` no longer matches every role's page.
+- Reports: `register` / `expiring` reuse `instrument_repo.list_instruments` (expiring = live statuses maturing within `days`, default 90);
+  `expiring` includes RELEASE_REQUESTED (a live status). CSV cells use human labels for statuses / fields / results, ISO dates and
+  plain two-decimal amounts. The institution profile reuses `list_instruments` and `release_repo.list_requests`.
+- Improvement metrics: median hours (verification), % of instruments with a `STATUS_MATURED` event that had a maturity reminder created
+  ≥ 30 days before maturity, median days maturity → first OVERDUE_RENEWAL alert, problems = bank-raised discrepancies + `find_gaps`
+  over live instruments (batch-loaded in five queries), steps from the rule, pending = scrutiny + returned instruments + open release
+  requests. No data → `value: null`, "No data yet"; manual figures with nothing to compare read "Not tracked".
+- `shared/constants.json` gains `dashboardStatusGroups`, `reportPresets`, `simulatedLabel`, the two rule defaults and the
+  `REPORT_EXPORTED` label.
+
 ## Known issues / follow-ups
 
 (things to fix later; mark resolved when fixed)
@@ -609,3 +673,16 @@ Phase 06:
   API): institution saw "Returned by AICTE: …", no internal recommendation remarks, uploaded a compliance certificate, Resubmit
   (empty note → "Note for AICTE is required") → "Checking conditions"; Cancel request → Cancelled, instrument back to Active,
   Request release offered again. No console errors. Dev DB reset and re-seeded, `mock-bank/data/records.json` removed.
+- Phase 07 checks 1–2: `backend/tests/test_phase07_dashboard.py` (every status group vs direct SQL on data covering every status,
+  region/type filters, clock advance 60 days, bank mismatch rate, access); 3–4: `test_phase07_myday.py` (ranking, weights changing the
+  order, reasons + next action on every item, scrutiny candidates, approver exclusions incl. separation of duties, admin L3, score
+  unit tests); 5 and 7: `test_phase07_reports.py` (every preset JSON + CSV, BOM, header row, REPORT_EXPORTED with preset/filters/rows,
+  403/404/422, metrics empty and populated, baseline read from the rule, improvement CSV label); 6: `test_phase07_institutions.py`.
+- Phase 07 check 8 (UI), cloud sandbox, `npm run seed` + 8 scratch instruments + `npm run dev` + headless Chromium at 1366×768:
+  approver and admin land on `/dashboard`, "As of 26 Oct 2026", no horizontal scroll, all nine status groups with chip + count +
+  amount, buckets, chart, region/bank tables; "Live instruments" tile → `/register?status=ACTIVE,…` with the 5 live instruments,
+  Lapsed bar → `/register?status=LAPSED`. Officer `/officer` My day: ₹1.2 Cr mismatch (score 87) first; "Why this order?" lists the
+  weights. Admin +30d → officer's My day reordered (PUNB/FDR/2024/77015 rose above UBIN/FDR/2026/40977, the pending case escalated to
+  L3 and rose to 61). Auditor: improvement page 6 cards each tagged "Simulated on demo data", discrepancies report preview and CSV
+  download `fdr-discrepancies-2026-11-25.csv`, institution profile with its 6 instruments. Institution 1 opening `/dashboard` is
+  redirected home. No console errors. Dev DB reset and re-seeded afterwards.
