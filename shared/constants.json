@@ -348,10 +348,7 @@
       "name": "Release pending",
       "type": "release_pending",
       "config": {
-        "afterDays": 5,
-        "recipients": [
-          "approver"
-        ]
+        "afterDays": 5
       }
     },
     {
@@ -616,7 +613,14 @@
     "RELEASE_RETURNED": "Release request returned to institution",
     "RELEASE_RESUBMITTED": "Release request resubmitted",
     "RELEASE_CANCELLED": "Release request cancelled",
-    "REPORT_EXPORTED": "Report exported"
+    "REPORT_EXPORTED": "Report exported",
+    "RULE_UPDATED": "Rule changed",
+    "USER_CREATED": "User created",
+    "USER_UPDATED": "User updated",
+    "USER_DEACTIVATED": "User deactivated",
+    "PASSWORD_RESET": "Password reset by administrator",
+    "LOGIN_SUCCEEDED": "Signed in",
+    "LOGIN_FAILED": "Sign-in failed"
   },
   "institutionVisibleActions": [
     "STATUS_DRAFT",
@@ -728,5 +732,30 @@
     "releases": "Release requests",
     "institution-summary": "Institution summary"
   },
-  "simulatedLabel": "Simulated on demo data — illustrative, not real-world claims"
+  "simulatedLabel": "Simulated on demo data — illustrative, not real-world claims",
+  "reminderRecipientRoles": [
+    "institution",
+    "officer",
+    "approver",
+    "admin"
+  ],
+  "signInActions": [
+    "LOGIN_SUCCEEDED",
+    "LOGIN_FAILED"
+  ],
+  "ruleNames": {
+    "required_docs": "Required documents",
+    "lien_required": "Lien in favour of AICTE required",
+    "reminder": "Maturity reminders",
+    "pending_verification": "Verification pending",
+    "discrepancy_open": "Discrepancy open",
+    "overdue_renewal": "Overdue renewal",
+    "release_pending": "Release pending",
+    "escalation": "Escalation ladder",
+    "renewal_checks": "Renewal and replacement checks",
+    "release_conditions": "Release conditions",
+    "approval_levels": "Release approval levels",
+    "risk_weights": "My day risk weights",
+    "improvement_baseline": "Improvement baseline (manual process)"
+  }
 }

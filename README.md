@@ -27,6 +27,15 @@ npm install && npm run setup:py   # JS workspaces + .venv with backend and mock 
 npm run dev                       # FastAPI :3000, mock bank :4000, Vite :5173
 ```
 
+### Secrets
+
+- `JWT_SECRET`: at least 32 characters. Shorter secrets are refused unless `DEMO_MODE=true`.
+- `FILE_ENCRYPTION_KEY`: the key that encrypts uploaded documents at rest (AES-256-GCM). It is 32 random bytes,
+  base64-encoded. Generate one with
+  `python -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"` and add it to `.env`.
+  Without it, only a `DEMO_MODE` install starts, using a key derived from `JWT_SECRET`. Keep the key: files
+  encrypted with it cannot be read without it.
+
 ## Demo users (password `Demo@123`)
 
 | Role | Email |

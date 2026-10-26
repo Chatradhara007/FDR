@@ -6,6 +6,7 @@ import re
 import pytest
 from app.config import config
 from app.db.pool import get_pool, one
+from app.services.storage import read_stored
 from helpers import (
     PNG_BYTES,
     SeededUser,
@@ -47,7 +48,8 @@ def test_stores_the_file_under_storage_dir_with_checksum_never_the_original_name
 
     row = one(get_pool(), "SELECT storage_path, sha256 FROM documents WHERE id = $1", [doc["id"]])
     assert re.fullmatch(rf"{instrument_id}/[0-9a-f-]{{36}}\.pdf", row["storage_path"])
-    assert (config.storage_dir / row["storage_path"]).read_bytes() == data
+    assert (config.storage_dir / row["storage_path"]).exists()
+    assert read_stored(row["storage_path"]) == data  # encrypted at rest since Phase 8 (test_phase08_security)
     assert row["sha256"] == hashlib.sha256(data).hexdigest()
     assert count_events("action = 'DOCUMENT_UPLOADED' AND instrument_id = $1", [instrument_id]) == 1
 

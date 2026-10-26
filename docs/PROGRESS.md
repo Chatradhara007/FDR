@@ -13,7 +13,7 @@ Claude Code updates this file at the end of every phase. Read it first in every 
 | 05 | Renewal chain and passport | done | (this commit) | All 9 checks pass (AC9 run in headless Chromium) |
 | 06 | Release workflow | done | (this commit) | All 10 checks pass (AC10 run in headless Chromium) |
 | 07 | Dashboard, my day, reports, metrics | done | (this commit) | All 8 checks pass (AC8 run in headless Chromium) |
-| 08 | Admin, audit integrity, security | not started | | |
+| 08 | Admin, audit integrity, security | done | (this commit) | All 10 checks pass (AC10 run in headless Chromium); rules UI scope reduced (see deviations) |
 | 09 | Seed, demo tools, rehearsal, polish | not started | | |
 
 Status values: `not started` · `in progress` · `done` · `done with known issues`.
@@ -203,6 +203,29 @@ Deviations / choices in the port:
   sample size, explanation, label on every metric); the CSV has a "Basis" column with the simulated label and writes `REPORT_EXPORTED`
   (preset `improvement`)
 
+**Phase 08** (all under `/api/v1`)
+- `GET /rules` (admin, auditor) → `[{ key, name, type, config, defaultConfig, active, version, updatedAt, updatedByName }]` in the
+  `ruleDefaults` order
+- `PUT /rules/:key {config, active, version}` (admin): `config` validated with the rule's model (422 with every failing field as
+  `config.<path>`, e.g. `config.offsets.1.days`), stored normalised; 409 `STALE_VERSION`; unknown key 404; writes `RULE_UPDATED`
+  `{before: {key, config, active}, after: {…}}`
+- `POST /rules/:key/restore-default` (admin): config from `shared/constants.json`, `RULE_UPDATED` with `restoredDefault: true`
+- `GET /users`, `POST /users {name, email, role, institutionId?, designation?, password}` (201; 409 `EMAIL_TAKEN`; institution users
+  need `institutionId`, others must not have one), `PATCH /users/:id {name?, designation?, active?, version}` (409 `STALE_VERSION`;
+  422 when deactivating yourself), `POST /users/:id/reset-password {password}` — admin only. Password ≥ 8 chars with a letter and
+  a digit, bcrypt cost 10. Events `USER_CREATED`, `USER_UPDATED`, `USER_DEACTIVATED`, `PASSWORD_RESET` (never a hash or password)
+- `POST /auth/login` now writes `LOGIN_SUCCEEDED` / `LOGIN_FAILED` (`after_json {email, ip, reason?}`, reason `UNKNOWN_EMAIL` |
+  `BAD_PASSWORD` | `INACTIVE`; unknown email → entity and actor the nil UUID / "Unknown user"). Rate-limited (429) attempts are not logged.
+- `GET /audit/events?actorId=&action=&entityType=&instrumentId=&eventId=&from=&to=&q=&includeSignIns=&page=&pageSize=&format=csv`
+  (admin, auditor) → `{ items, total, page, pageSize }`, newest first; each item has `label` (the label map) and `referenceNo`;
+  `from`/`to` are IST business dates (inclusive); `q` searches actor, action, entity id, reference and JSON (LIKE wildcards escaped);
+  `includeSignIns=false` hides `LOGIN_*` unless `action` or `eventId` asks for them. CSV (≤ 10,000 rows, BOM) writes `REPORT_EXPORTED`
+  (preset `audit-log`)
+- `GET /audit/integrity[?fresh=1]` (admin, auditor) → `{ ok, checked, firstBrokenId, verifiedAt }`, cached 30 s (wall time)
+- `GET /audit/document-access?instrumentId=` (admin, auditor) → `DOCUMENT_ACCESSED` rows with filename, doc type, mode, role (500 newest)
+- `POST /demo/tamper {eventId?}` → `{ eventId }` and `POST /demo/tamper/undo` → `{ restored: [ids] }` (409 when nothing to undo):
+  admin, demo router only (404 without `DEMO_MODE`)
+
 ## Pages added
 
 (append per phase)
@@ -315,6 +338,24 @@ Deviations / choices in the port:
 - Sidebar: Dashboard, Register, Institutions, Reports for every internal role; officer "Scrutiny desk" renamed "My day".
 - New files: `api/reporting.ts`, `pages/dashboard/Dashboard.tsx`, `pages/myday/{MyDay,OfficerHome}.tsx`,
   `pages/register/Register.tsx`, `pages/institutions/Institutions.tsx`, `pages/reports/{Reports,Improvement}.tsx`.
+
+**Phase 08**
+- `/admin/rules` (admin edits; auditor sees the same cards read-only as JSON): one card per rule with description, Save, Restore
+  default, an Active toggle and "Last changed … by …". Friendly editors for **reminders** (rows: days + recipient checkboxes, add/remove),
+  **escalation** (ladder rows: role + after days, alert kinds) and **approval levels** (rows: role, action, label; extra-approval ₹
+  threshold with amount in words; extra level); an "Advanced (JSON)" toggle on those three; every other rule is a JSON editor. Server
+  field errors appear under the exact input (friendly) or as a list under the JSON. After saving reminders: "Takes effect on the next
+  evaluation — run now?" with **Run evaluation now** (`POST /jobs/evaluate`).
+- `/admin/users`: table (status shown with icon + text), Create user modal (institution picker for institution users), Edit,
+  Password (reset), Deactivate / Reactivate (not offered on your own row).
+- `/audit` (admin, auditor): integrity banner — green shield "Log integrity verified · N events · checked HH:MM" or red "Integrity
+  check failed at event #N — the log has been altered" with **Show event #N** (filters the table to that event) and **Check again**
+  (`fresh=1`); filters (action, record type, from/to, search, actor by clicking a name); **Show sign-ins** toggle, off by default;
+  rows expand to a before/after table with changed keys marked "(changed)"; Export CSV; paging; tab **Document access**.
+- Sidebar: admin Dashboard, Rules, Users, Releases, Alerts, Outbox, Audit log, Register, Institutions, Reports; auditor Dashboard,
+  Audit log, Register, Institutions, Reports, Rules, Releases, Alerts. `/admin` → `/admin/rules`, `/auditor` → `/audit`;
+  `pages/RoleHome.tsx` removed (no role uses it any more).
+- New files: `api/admin.ts`, `pages/admin/rules/{RulesPage,editors}.tsx`, `pages/admin/Users.tsx`, `pages/audit/AuditLog.tsx`.
 
 ## Deviations / choices
 
@@ -560,6 +601,59 @@ Phase 07:
 - `shared/constants.json` gains `dashboardStatusGroups`, `reportPresets`, `simulatedLabel`, the two rule defaults and the
   `REPORT_EXPORTED` label.
 
+Phase 08:
+- **Reduced scope for the rules UI (agreed at plan approval):** friendly editors only for reminders, escalation and approval levels.
+  Required documents, lien, release conditions, risk weights (no sliders / "sum = 1.00" indicator), after-days rules, renewal checks
+  and the improvement baseline use the Advanced (JSON) editor. The server validates every rule the same way either way (shape +
+  semantics), so a bad config is refused with field paths whichever editor sent it.
+- **`release_pending` has no recipients** (change requested at plan approval): the alert always goes to the role whose turn it is at the
+  current level (as the job already did; the stored `recipients` was never read). Migration 008 strips the key from the stored rule,
+  `ruleDefaults` drops it, and `ReleasePendingRule` rejects `recipients` with a field error (`config.recipients`). The JSON editor
+  therefore shows only `afterDays`.
+- Semantic validation added to the existing rule models: reminder recipients exclude the auditor (`reminderRecipientRoles`);
+  escalation `afterDays` strictly increasing (was "no earlier than") and roles officer/approver/admin; alert kinds unique; approval
+  level 1 must be an officer RECOMMEND; risk weights sum to 1 ± 0.001; new models `RequiredDocsRule` (known instrument doc types,
+  ≥ 1 per type, release doc types excluded) and `LienRequiredRule`. `RULE_CONFIG_MODELS` now covers all 13 rules.
+- Rules and users gained `version` (migration 008; CLAUDE.md rule 10). `PUT /rules/:key` and `PATCH /users/:id` require it; restore-default
+  and reset-password do not (they do not depend on what the client saw). Users also gained `updated_at`.
+- An inactive rule (Active off) keeps its existing meaning: the loaders fall back to the built-in default.
+- Login events: actor is the user for known emails; unknown emails use actor label "Unknown user", entity id the nil UUID, and the
+  email typed in `after_json`. `ip` is recorded too.
+- `GET /audit/events` adds `eventId` (exact id) so the red banner can link to the broken event, and `includeSignIns` (default true in
+  the API; the UI sends false unless **Show sign-ins** is on — change requested at plan approval). An explicit `action` or `eventId`
+  filter wins over hiding sign-ins.
+- The audit CSV export is itself recorded (`REPORT_EXPORTED`, preset `audit-log`), like report exports.
+- Integrity cache: 30 s of wall time (`time.monotonic`, infrastructure, added to the source-guard allow-list); a tamper or undo clears it.
+- **Reversible tamper (change requested at plan approval):** table `demo_tampers (event_id, original_after_json, tampered_at)`. Tamper
+  keeps the first original (tampering twice still undoes to the untouched value) and rewrites `after_json` with the amount raised by
+  ₹10 lakh (or an added `"tampered": true` when the event has no amount), inside `SET LOCAL fdr.allow_tamper = 'on'`; undo restores every
+  tampered event and empties the table. Default target: latest `INSTRUMENT_SUBMITTED`, else the latest event. The append-only trigger
+  still rejects any other UPDATE (tested).
+- **Frame policy (change requested at plan approval):** checked how documents are previewed — `apiOpenInTab` fetches the file and opens a
+  `blob:` URL in a new tab; nothing embeds a document in an iframe/object/embed. So no route relaxes `X-Frame-Options` /
+  `frame-ancestors`; the document download and preview routes keep the strict headers like every other route. A test asserts both:
+  the strict headers on download and preview, and that no `.tsx` file under `frontend/src` contains `<iframe>`, `<object>` or `<embed>`
+  (if one is ever added, the test fails and the policy must be relaxed for that route only).
+- Security headers come from `middleware/security.py` (`SecurityMiddleware`, outermost, so errors, 404s, 413s and CORS preflights get
+  them too): CSP `default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'`, `nosniff`, `X-Frame-Options DENY`,
+  `Referrer-Policy no-referrer`, HSTS, COOP `same-origin`, CORP `same-site`, `X-DNS-Prefetch-Control off`,
+  `X-Permitted-Cross-Domain-Policies none`. Body limits: 413 `PAYLOAD_TOO_LARGE` by Content-Length (JSON 1 MB, multipart 10 MB + 64 KB
+  of framing) and again in `json_body` for chunked bodies; the 10 MB file limit is unchanged. The request log (`fdr.request`) writes
+  method, path (no query), status, ms, request id, user id; uvicorn's own access log is unchanged.
+- Startup checks (`app/security.py`, run by `create_app`): `JWT_SECRET` < 32 chars refused unless `DEMO_MODE=true` (warning);
+  `FILE_ENCRYPTION_KEY` must be valid base64 of 32 bytes; when absent, DEMO_MODE derives a key from `JWT_SECRET`
+  (sha256("fdr-file-key|" + secret), warning) and non-demo refuses to start. `.env.example` not edited (as asked): the key-generation
+  command is in the README and `docs/integration-contract.md`; `docker-compose.yml` passes `FILE_ENCRYPTION_KEY` to the backend (db port
+  untouched). Tests use a fixed key from `conftest.py`.
+- Encryption: new dependency `cryptography` (approved). Uploads are encrypted while streaming (AES-GCM encryptor); downloads decrypt fully
+  in memory (≤ 10 MB) so the tag is verified before any byte is served — a corrupted file is a 500, never wrong content. Documents are
+  now sent with `Response(bytes)` instead of `FileResponse`. `storage.path_for_read` replaced by `storage.read_stored`.
+  `test_phase02_documents` reads the stored file through `read_stored` instead of comparing raw disk bytes.
+- `routes/reporting._csv` renamed `csv_response` (shared with the audit CSV). `clock.ist_start(day)` added for IST day boundaries.
+- AC7 walks FastAPI's routes: FastAPI 0.16x wraps included routers in lazily resolved `_IncludedRouter` contexts, so the test reads
+  `effective_route_contexts()` (and plain `APIRoute`s for older versions), then also calls every non-public route without a token
+  (all 401). AC8 calls **every** mutation route as the auditor (all 403), not one per module.
+
 ## Known issues / follow-ups
 
 (things to fix later; mark resolved when fixed)
@@ -686,3 +780,26 @@ Phase 07:
   L3 and rose to 61). Auditor: improvement page 6 cards each tagged "Simulated on demo data", discrepancies report preview and CSV
   download `fdr-discrepancies-2026-11-25.csv`, institution profile with its 6 instruments. Institution 1 opening `/dashboard` is
   redirected home. No console errors. Dev DB reset and re-seeded afterwards.
+- Phase 08 checks 1–3: `backend/tests/test_phase08_rules.py` (also: list shape/defaults/order, release_pending without recipients,
+  every semantic rule, stale version, unknown key, auditor read / 403 on writes, saved rules read by the services);
+  4 and 9: `test_phase08_users.py` (also: create/list/sign in, every-field validation, password policy, institution rule, duplicate
+  email, update/stale/self-deactivation, reset password, admin-only); 5: `test_phase08_audit.py` (also: undo restores and verify_chain is
+  green again, tamper twice, chosen event, trigger still rejects plain UPDATEs, 30 s cache vs `fresh`, filters incl. `eventId`, sign-in
+  hiding, LIKE escaping, IST dates, CSV + `REPORT_EXPORTED`, document access, access); 6, 7, 8: `test_phase08_security.py` (also: legacy
+  plaintext files, tampered ciphertext refused, security headers everywhere, CORS, strict frame policy on document routes + no embeds in
+  the frontend, 1 MB JSON / chunked / 10 MB upload limits, request log without tokens, both startup checks).
+- Phase 08 check 10 (UI), cloud sandbox, `npm run db:reset` + `npm run seed` + one submitted, claimed instrument (API) + `npm run dev` +
+  headless Chromium at 1366×900. Admin: sidebar Dashboard, Rules, Users, Releases, Alerts, Outbox, Audit log, Register, Institutions,
+  Reports. Rules: reminder rows 90/60/30/7 → removed two, set 45 and 15 → Save → "Takes effect on the next evaluation — run now?" →
+  **Run evaluation now** → toast "Evaluation run: …"; reload showed 45, 15. Offset 0 → "Must be at least 1" under that input; escalation
+  level 3 at 5 days → "Each level must start more days after the root alert than the one before"; risk weights JSON amount 0.5 →
+  "config: Weights must add up to 1.00 (now 1.20)"; release_pending JSON `{"afterDays":5}`; approval levels Advanced (JSON) ↔ Simple
+  editor round trip; Restore default → 90/60/30/7. Users: weak password → policy message under the field; valid → new row; Deactivate →
+  "… deactivated — their sessions have ended". Audit log: green "Log integrity verified · 24 events · checked 10:22 pm"; sign-ins hidden
+  by default and shown with the toggle; `POST /demo/tamper` → reload → red "Integrity check failed at event #6 — the log has been
+  altered"; **Show event #6** → that one row (INSTRUMENT_SUBMITTED, SBIN/FDR/2026/00731), expanded diff with the raised amount; `POST
+  /demo/tamper/undo` → **Check again** → green; Document access tab listed the officer's preview. Auditor: home `/dashboard`, sidebar
+  Dashboard, Audit log, Register, Institutions, Reports, Rules, Releases, Alerts; no action buttons on /dashboard, /audit, /admin/rules
+  (read-only JSON), /register, /institutions, /reports, /reports/improvement, /officer/queue, /officer/review/:id, /instruments/:id,
+  /officer/releases, /alerts (only the inbox's status tabs); `/admin/users` redirected to `/dashboard`. Console errors: only the
+  browser's log lines for the four intentional 422s. Dev DB reset and re-seeded afterwards.

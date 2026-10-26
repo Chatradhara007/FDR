@@ -712,3 +712,75 @@ export interface ImprovementMetric {
 }
 
 export interface Improvement { label: string; asOf: string; baselineNote: string; metrics: ImprovementMetric[] }
+
+// ---- Phase 08: rules administration, users, audit ----
+
+export interface RuleView {
+  key: string;
+  name: string;
+  type: string;
+  config: unknown;
+  defaultConfig: unknown;
+  active: boolean;
+  version: number;
+  updatedAt: string | null;
+  updatedByName: string | null;
+}
+
+export interface ReminderOffsetConfig { days: number; recipients: Role[] }
+export interface ReminderConfig { offsets: ReminderOffsetConfig[] }
+export interface EscalationLevelConfig { level: number; role: Role; afterDays: number }
+export interface EscalationConfig { levels: EscalationLevelConfig[]; kinds: AlertKind[] }
+export interface ApprovalLevelConfig { level: number; role: Role; action: ReleaseLevelAction; label: string }
+export interface ApprovalLevelsConfig {
+  levels: ApprovalLevelConfig[];
+  extraApprovalAbove?: string | null;
+  extraLevel?: { role: Role; action: ReleaseLevelAction; label: string } | null;
+}
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  institutionId: string | null;
+  institutionName: string | null;
+  designation: string | null;
+  active: boolean;
+  version: number;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface AuditEvent {
+  id: number;
+  createdAt: string;
+  actorId: string | null;
+  actorLabel: string;
+  action: string;
+  label: string;
+  entityType: string;
+  entityId: string;
+  instrumentId: string | null;
+  referenceNo: string | null;
+  before: unknown;
+  after: unknown;
+}
+
+export interface AuditPage { items: AuditEvent[]; total: number; page: number; pageSize: number }
+
+export interface IntegrityResult { ok: boolean; checked: number; firstBrokenId: number | null; verifiedAt: string }
+
+export interface DocumentAccessRow {
+  id: number;
+  createdAt: string;
+  actorId: string | null;
+  actorLabel: string;
+  documentId: string;
+  instrumentId: string | null;
+  referenceNo: string | null;
+  filename: string | null;
+  docType: DocType | null;
+  mode: 'download' | 'preview' | null;
+  role: Role | null;
+}

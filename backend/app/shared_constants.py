@@ -106,6 +106,9 @@ INSTITUTION_VISIBLE_ACTIONS: tuple[str, ...] = tuple(_data["institutionVisibleAc
 DASHBOARD_STATUS_GROUPS: tuple[DashboardStatusGroup, ...] = tuple(_data["dashboardStatusGroups"])
 REPORT_PRESETS: dict[str, str] = _data["reportPresets"]
 SIMULATED_LABEL: str = _data["simulatedLabel"]
+REMINDER_RECIPIENT_ROLES: tuple[Role, ...] = tuple(_data["reminderRecipientRoles"])
+SIGN_IN_ACTIONS: tuple[str, ...] = tuple(_data["signInActions"])
+RULE_NAMES: dict[str, str] = _data["ruleNames"]
 
 
 def can_transition(from_status: str, to_status: str) -> bool:

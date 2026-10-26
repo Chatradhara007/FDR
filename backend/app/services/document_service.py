@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Literal, TypedDict, cast
 
 from ..db.pool import Conn, get_pool, transaction
@@ -176,13 +175,13 @@ class OpenedDocument:
     filename: str
     mime_type: str
     size_bytes: int
-    path: Path
+    content: bytes
 
 
 def open_document(
     user: AuthUser, instrument_id: str, doc_id: str, mode: Literal["download", "preview"]
 ) -> OpenedDocument:
-    """Authorise, log DOCUMENT_ACCESSED, then hand back the file to stream (2.4)."""
+    """Authorise, log DOCUMENT_ACCESSED, then hand back the decrypted file (2.4, 8.4)."""
     with transaction() as tx:
         inst = find_instrument_by_id(tx, instrument_id)
         if inst is None:
@@ -200,4 +199,4 @@ def open_document(
             instrument_id=instrument_id,
             after={"mode": mode, "role": user.role},
         )
-    return OpenedDocument(doc["filename"], doc["mimeType"], doc["sizeBytes"], storage.path_for_read(doc["storagePath"]))
+    return OpenedDocument(doc["filename"], doc["mimeType"], doc["sizeBytes"], storage.read_stored(doc["storagePath"]))

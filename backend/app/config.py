@@ -53,5 +53,10 @@ class Config:
     def jwt_secret(self) -> str:
         return os.environ.get("JWT_SECRET", "dev-secret-change-me")
 
+    @property
+    def file_encryption_key(self) -> str | None:
+        """FILE_ENCRYPTION_KEY: 32 random bytes, base64 (`python -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"`)."""
+        return os.environ.get("FILE_ENCRYPTION_KEY") or None
+
 
 config = Config()
