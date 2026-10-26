@@ -1,5 +1,5 @@
 import {
-  Bell, Building2, FileSpreadsheet, Gauge, Gavel, HandCoins, Landmark, LayoutDashboard, ListChecks, Mail, ScrollText, Settings, ShieldCheck,
+  Bell, Building2, FlaskConical, FileSpreadsheet, Gauge, Gavel, HandCoins, Landmark, LayoutDashboard, ListChecks, Mail, ScrollText, Settings, ShieldCheck,
   Table2, Users, type LucideIcon,
 } from 'lucide-react';
 import type { Role } from '@fdr/shared';
@@ -8,6 +8,8 @@ export interface NavItem {
   to: string;
   label: string;
   icon: LucideIcon;
+  /** Listed only while the server runs in DEMO_MODE (D17). */
+  demoOnly?: boolean;
 }
 
 const ALERTS: NavItem = { to: '/alerts', label: 'Alerts', icon: Bell };
@@ -43,6 +45,7 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/admin/outbox', label: 'Outbox', icon: Mail },
     AUDIT,
     ...OVERSIGHT,
+    { to: '/admin/demo', label: 'Demo tools', icon: FlaskConical, demoOnly: true },
   ],
   /** Read-only: dashboard, audit log and reports first (§8.6); rules and releases to look at, never to change. */
   auditor: [DASHBOARD, AUDIT, ...OVERSIGHT, { ...RULES, icon: ScrollText }, RELEASES, ALERTS],

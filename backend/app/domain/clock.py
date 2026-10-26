@@ -54,6 +54,16 @@ def set_simulated(db: Db, day: str) -> None:
     write_clock(db, "SIMULATED", datetime.fromisoformat(f"{day}T10:00:00+05:30").astimezone(UTC))
 
 
+def set_simulated_at(db: Db, day: str, hour: int, minute: int = 0) -> None:
+    """Simulates `day` at hh:mm IST (the demo seed spreads one day's actions over working hours)."""
+    write_clock(db, "SIMULATED", datetime.fromisoformat(f"{day}T{hour:02d}:{minute:02d}:00+05:30").astimezone(UTC))
+
+
+def real_today() -> str:
+    """Today's business date by the wall clock, whatever the app clock says (the demo seed's D0)."""
+    return ist_date(_ms(datetime.now(UTC)))
+
+
 def advance_days(db: Db, n: int) -> None:
     """Moves n days from the current now() (keeps the time of day) and switches to SIMULATED."""
     write_clock(db, "SIMULATED", now(db) + timedelta(days=n))

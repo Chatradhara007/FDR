@@ -14,7 +14,7 @@ from fastapi import Depends, Request
 from ..domain.access import AuthUser
 from ..domain.errors import Forbidden, Unauthorized
 from ..domain.token import verify_token
-from ..services.auth_service import load_session_user
+from ..services.auth_service import load_session_user, session_ended_message
 from ..shared_constants import ROLES, Role
 
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
@@ -35,7 +35,8 @@ def authenticate(request: Request) -> AuthUser:
         raise Unauthorized("Invalid or expired session") from None
     user = load_session_user(sub)
     if user is None:
-        raise Unauthorized("Invalid or expired session")
+        # A valid token for a user who no longer exists or was deactivated.
+        raise Unauthorized(session_ended_message(sub), None, "SESSION_ENDED")
     request.state.user_id = user.id  # for the request log
     return user
 

@@ -1610,3 +1610,44 @@ class TamperInput(ApiModel):
         if n <= 0:
             raise fail("Enter an event number")
         return n
+
+
+# ---- Phase 9: demo tools ----
+
+
+class BankCorrectionFields(InstrumentFields):
+    """The bank-side values a demo correction may change (same validation as the instrument's fields)."""
+
+    @model_validator(mode="after")
+    def _something(self) -> BankCorrectionFields:
+        allowed = {"amount", "issue_date", "maturity_date", "beneficiary_name", "lien_marked"}
+        if not self.model_fields_set & allowed:
+            raise fail("Give at least one of amount, issueDate, maturityDate, beneficiaryName, lienMarked")
+        return self
+
+
+class BankCorrectionInput(ApiModel):
+    MISSING_MESSAGES: ClassVar[dict[str, str]] = {
+        "bank": "Choose the bank",
+        "referenceNo": "Enter the reference number",
+        "fields": "Give the corrected values",
+    }
+
+    bank: str
+    reference_no: str
+    fields: BankCorrectionFields
+
+    @field_validator("bank", mode="before")
+    @classmethod
+    def _bank(cls, v: object) -> str:
+        if v not in BANKS:
+            raise fail("Choose a bank from the list")
+        return v
+
+    @field_validator("reference_no", mode="before")
+    @classmethod
+    def _reference_no(cls, v: object) -> str:
+        v = _blank_to_none(v)
+        if v is None:
+            raise fail("Enter the reference number")
+        return norm_ref(_require_str(v))

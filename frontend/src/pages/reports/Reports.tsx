@@ -44,10 +44,10 @@ function Preview({ report }: { report: Report }) {
   const link = (row: Record<string, unknown>) =>
     report.preset === 'institution-summary' ? `/institutions/${String(row.id)}` : `/instruments/${String(row.instrumentId ?? row.id)}`;
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-surface">
+    <div className="max-h-[calc(100vh-10rem)] overflow-auto rounded-lg border border-slate-200 bg-surface">
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         <caption className="sr-only">{report.title}</caption>
-        <thead className="bg-slate-50">
+        <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm">
           <tr>{report.columns.map((c) => <th key={c.key} scope="col" className={`px-3 py-2 text-xs font-semibold text-slate-600 ${['amount', 'int'].includes(c.kind) ? 'text-right' : 'text-left'}`}>{c.label}</th>)}</tr>
         </thead>
         <tbody className="divide-y divide-slate-100">

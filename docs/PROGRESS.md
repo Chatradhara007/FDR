@@ -14,7 +14,7 @@ Claude Code updates this file at the end of every phase. Read it first in every 
 | 06 | Release workflow | done | (this commit) | All 10 checks pass (AC10 run in headless Chromium) |
 | 07 | Dashboard, my day, reports, metrics | done | (this commit) | All 8 checks pass (AC8 run in headless Chromium) |
 | 08 | Admin, audit integrity, security | done | (this commit) | All 10 checks pass (AC10 run in headless Chromium); rules UI scope reduced (see deviations) |
-| 09 | Seed, demo tools, rehearsal, polish | not started | | |
+| 09 | Seed, demo tools, rehearsal, polish | done with known issues | (this commit) | Checks 1–4 automated and passing; check 5 (docker compose from a clean clone) pending, no Docker here; check 6 ticked below |
 
 Status values: `not started` · `in progress` · `done` · `done with known issues`.
 
@@ -226,6 +226,21 @@ Deviations / choices in the port:
 - `POST /demo/tamper {eventId?}` → `{ eventId }` and `POST /demo/tamper/undo` → `{ restored: [ids] }` (409 when nothing to undo):
   admin, demo router only (404 without `DEMO_MODE`)
 
+**Phase 09** (all under `/api/v1`; every `/demo/*` route 404s unless `DEMO_MODE=true`)
+- `POST /demo/reset` (admin) → `{ d0, instruments, events, alerts, durationMs }`; 409 `EVALUATION_RUNNING` (the job's advisory lock
+  42 is held) or `RESET_RUNNING`; 503 `BANK_UNREACHABLE` (nothing is wiped)
+- `POST /demo/bank-correction {bank, referenceNo, fields: {amount?, issueDate?, maturityDate?, beneficiaryName?, lienMarked?}}`
+  (admin) → `{ before, after, instrumentId }`; 422 lists every failing field (`fields.amount`, …), 404 no such bank record; writes
+  `DEMO_BANK_CORRECTION`
+- `GET /demo/anchors` (admin) → A1…A9 with live instrument id/status/verification/maturity, purpose, who to sign in as, and the
+  bank record for A1 and A4's replacement
+- `GET /demo/files/{fdr-copy|bank-letter}` (admin) → A1's sample PDF printed from the mock bank's current A1 record
+- `GET /meta` gains `demoMode`
+- 401 for a valid token whose user no longer exists or is inactive: code `SESSION_ENDED`, message "Demo data was reset, sign in
+  again" (DEMO_MODE, user gone) or "Your session has ended, sign in again"
+- `npm run seed` = migrations + the full demo dataset (needs the mock bank) + `docs/demo-files/A1-*.pdf`; `npm run e2e` =
+  `node e2e/demo.mjs`
+
 ## Pages added
 
 (append per phase)
@@ -356,6 +371,19 @@ Deviations / choices in the port:
   Audit log, Register, Institutions, Reports, Rules, Releases, Alerts. `/admin` → `/admin/rules`, `/auditor` → `/audit`;
   `pages/RoleHome.tsx` removed (no role uses it any more).
 - New files: `api/admin.ts`, `pages/admin/rules/{RulesPage,editors}.tsx`, `pages/admin/Users.tsx`, `pages/audit/AuditLog.tsx`.
+
+**Phase 09**
+- `/admin/demo` (admin, listed in the sidebar only in demo mode): Reset demo data (confirm dialog, toast with counts and time),
+  Jump the clock (+7 / +30 / +45 days, "To maturity of A2"), Bank correction (one-click "A5: bank confirms ₹15,00,000" plus a
+  bank / reference / amount form with field errors), Tamper with one event / Undo tampering with an explanation and a link to the
+  audit log, Demo anchors table (passport links, state chips, purpose, A1/A4 bank values, who to sign in as) with A1 sample-file
+  downloads.
+- Demo ribbon "Demo mode · synthetic data" in the sidebar (a compact "Demo" chip in the header below `md`), driven by
+  `/meta.demoMode`.
+- Login: one-line product description, "Synthetic demo data" note in demo mode, an info banner with the sign-out reason after a
+  `SESSION_ENDED` 401, quick buttons for Officer 2 and Approver 2 as well.
+- Favicon (`frontend/public/favicon.svg`) and title "FDR Portal — AICTE".
+- New files: `api/demo.ts`, `pages/admin/DemoTools.tsx`; `e2e/demo.mjs`.
 
 ## Deviations / choices
 
@@ -654,6 +682,61 @@ Phase 08:
   `effective_route_contexts()` (and plain `APIRoute`s for older versions), then also calls every non-public route without a token
   (all 401). AC8 calls **every** mutation route as the auditor (all 403), not one per module.
 
+Phase 09:
+- **Seed engine** (`backend/app/seed/`): `dataset.py` (the 60 instrument scripts and bank records as data), `replay.py` (wipe, load
+  the bank, replay, evaluate), `prng.py` (mulberry32, fixed seed 26265), `pdf.py` (hand-written one-page PDF writer, no new
+  dependency; Helvetica cannot print ₹, so the PDFs say "Rs."). Every action is a call to the same service function the route
+  calls, with the body parsed by the route's pydantic model. D0 is the real IST date (`clock.real_today()`).
+- **Evaluation cadence:** the job runs on every day with actions, every 5th day, and **every day of the last 45 days**. The last
+  rule is an addition to §9.1 step 4: alerts and escalations near D0 must land on their exact dates (A3's alert at D0−1, A6's L3).
+- **Times of day:** a day's actions are spread from 10:00 IST at 7-minute steps; the evaluation runs at 18:00 IST; the final D0
+  evaluation and the `DEMO_RESET` event are at 10:00 IST (D0 itself is not walked, so time never goes backwards in the log).
+  Clock moves inside the replay write the clock row directly (no `CLOCK_*` events; one `DEMO_RESET` event summarises the run).
+- **Reset locking (requested at plan approval):** the wipe runs in one transaction that first tries the evaluation advisory lock
+  (42, `pg_try_advisory_xact_lock` → 409 `EVALUATION_RUNNING` without waiting) and then takes the audit-chain lock (7001), truncates
+  every table but `schema_migrations`, re-inserts the clock row and the base seed. An in-process lock refuses a second concurrent
+  reset (409 `RESET_RUNNING`). The mock bank is checked **before** anything is wiped (503 `BANK_UNREACHABLE`). Uploaded files under
+  `STORAGE_DIR` are removed after the wipe.
+- **Stable ids (requested at plan approval):** institutions and users of the base seed get `uuid5` ids (namespace in `seed/base.py`;
+  keys `institution:<inst key>`, `user:<email>`), so a token issued before a reset still names an existing user. Tested: the admin
+  token works after two resets; a user created through the API before a reset gets 401 `SESSION_ENDED` with the reset message, and
+  the frontend shows it on the login page.
+- **Institutions:** the base seed now has the 12 institutions of `docs/seed-spec.md` with their exact names and users inst1…inst12;
+  officer/approver designations follow the seed spec. Earlier tests that named the old institutions were updated (names, the
+  count of 12, `q=godavari`, the region list): `test_phase01_auth`, `test_phase02_list`, `test_phase03_scrutiny`,
+  `test_phase07_institutions`, `test_phase07_myday`.
+- **Reference numbers (requested at plan approval):** filler instruments and the A8 chain get `<bank code>/<FDR|FD|SD>/<issue
+  year>/<serial>`, the year taken from the issue date. The A8 chain uses 2-year deposits placed so that the derived references are
+  exactly the seed spec's `KKBK/FD/2021/00412`, `KKBK/FD/2023/00977`, `KKBK/FD/2025/01563` (serials fixed) when seeded in Oct 2026;
+  seeded in another year, their years move with the dates. Anchors whose reference the seed spec fixes (A1–A7, A9) keep it as
+  written; their issue dates were chosen in the reference's year where possible (A2 2025, A3 2026, A4 2025, A5 2024, A6 2023,
+  A7 2022, A9 2025). U5 (not found at bank) claims the reference with its last two digits swapped.
+- **Date-inconsistency case:** relative to D0 (bank maturity D0+138, claimed D0+156), which gives the seed spec's 2027-03-13 vs
+  2027-03-31 when seeded on 2026-10-26.
+- **Slow and offline banks:** Bank of India (slow) is used only for one SUBMITTED instrument (shows PENDING if verified during the
+  demo; the seed never waits). Indian Overseas Bank (offline) carries the two override acceptances (with document checks on four
+  fields first) and the "bank unavailable" scrutiny case.
+- **A5:** accepted when the bank held ₹15 L; at D0−2 the seed changes the bank's record to ₹14,50,000 (`bank_update`) and the
+  officer re-verifies → MISMATCH, an open discrepancy, the amount demoted to Claimed (D29). Demo step 7's correction sets it back to
+  ₹15 L.
+- **Extra history** beyond the seed spec, for realism: F2 had an amount typed with a missing zero, was returned, corrected,
+  re-verified and accepted; E5 was returned for an unsigned bank letter (visible CONCERN observation), re-uploaded and accepted;
+  RQ2's release request was returned by the officer for a missing compliance certificate.
+- **Demo files:** `npm run seed` writes `docs/demo-files/A1-fdr-copy.pdf` and `A1-bank-letter.pdf` (gitignored, dated from D0;
+  `docs/demo-files/README.md` is committed). `GET /demo/files/*` serves the same from the bank's live A1 record (works in Docker).
+- **First start in demo mode** (needed for check 5): `python -m app.server` (Docker, and `npm run dev`'s migrate step) loads the
+  demo dataset when the `users` table is empty and `DEMO_MODE=true`, waiting up to 60 s for the mock bank; without it, the base
+  users and rules only. A non-empty database is never touched.
+- **Playwright (approved choice):** plain script `e2e/demo.mjs` with the `playwright` package (no `@playwright/test` workspace,
+  no new dependency in the lockfile); screenshots in `e2e/screenshots/` (gitignored), a `FAILED-*` screenshot of every open page
+  when a step fails, console errors listed at the end, exit code 1 on any failure.
+- **Seed time:** 11–12.5 s here for 60 instruments, ~1,000 events, ~200 alerts (each run reported by `durationMs`; the test asserts
+  < 15 s per run). The two test modules seed three times in total, so `npm run test` takes about 2 minutes now.
+- **Polish choices:** tables with more than 15 rows scroll inside their frame with a sticky header (also the audit log and report
+  preview); amounts, dates and right-aligned cells never wrap. Login, demo ribbon and favicon as listed under Pages.
+- New event labels `DEMO_RESET`, `DEMO_BANK_CORRECTION` (`shared/constants.json`, `npm run gen:shared`). The source guard allows
+  `seed/replay.py` to read `time.monotonic()` for `durationMs` only.
+
 ## Known issues / follow-ups
 
 (things to fix later; mark resolved when fixed)
@@ -663,6 +746,14 @@ Phase 08:
 - ~~Phase 01: switch `migrate()`'s `appliedAt` to the app clock; move StatusChip statuses to the shared enum;
   add the `app_clock` row to `insertFixedRows()`~~ — resolved in Phase 01.
 - ~~Phase 04: clock endpoints should run the evaluation job and return its summary.~~ — resolved in Phase 04.
+- Phase 09 check 5 (`docker compose up --build` from a clean clone): **not run, no Docker in this sandbox. To be done by the
+  user.** What was checked instead: the first-start seed path (`seed_empty_demo`) is tested; the backend container already has
+  `MOCK_BANK_URL=http://mock-bank:4000` and `DEMO_MODE=true`. Expected first start: migrations, "waiting for the mock bank…" at most
+  briefly, "demo data loaded: 60 instruments …", then the API on :3000.
+- Phase 09: at 1280 px the widest tables (scrutiny queue, register, institution home) fit the page but scroll sideways inside
+  their own frame; the last columns (discrepancies, assigned officer, verification) need a scroll. No page-level overflow.
+- Phase 09: a simulated clock does not advance with wall time, so everything done live in the demo on one simulated day shows the
+  same time (e.g. "26 Oct 2026, 10:00 am"). Existing behaviour since Phase 01; order is still by event id.
 - Python migration: Docker images were not built here (no Docker). The backend and mock-bank image layouts were
   simulated (same COPY paths, clean `python3.12` venv, non-editable install): constants, migrations and the DB
   resolve. **`docker compose up --build` re-run pending, to be done by the user** (with `DB_HOST_PORT=55432`).
@@ -803,3 +894,37 @@ Phase 08:
   (read-only JSON), /register, /institutions, /reports, /reports/improvement, /officer/queue, /officer/review/:id, /instruments/:id,
   /officer/releases, /alerts (only the inbox's status tabs); `/admin/users` redirected to `/dashboard`. Console errors: only the
   browser's log lines for the four intentional 422s. Dev DB reset and re-seeded afterwards.
+- Phase 09 check 1: `backend/tests/test_phase09_seed.py` — exact counts per status (spec table) and per verification state, the 2
+  overrides at Indian Overseas Bank, all 11 banks, 12 institutions, every anchor's state (A1 absent, A2 ACTIVE 97 days out, A3
+  claimed by officer@ with its L1 alert dated D0−1, A4 EXPIRING 37 days, A5 MISMATCH with the open amount discrepancy and both
+  manual conditions ticked, A6 LAPSED 35 days ago at L3, A7 released at D0−30 with PFMS/RF/2026/0457, A8 chain with 12-day gap and
+  5-day overlap, A9 at level 3), reference years = issue years, two seeds with identical fingerprints (instruments, provenance,
+  alerts, events, release requests) and each < 15 s. Check 2: integrity ok and every one of the 60 passport timelines (and the whole
+  log) in time order. Check 4: every `/demo/*` route (and `/demo/users`, `/demo/tamper`) 404 with DEMO_MODE off; `meta.demoMode`
+  false. Also: stable ids / session survives reset, 409 while the job holds lock 42, 503 without the bank (nothing wiped),
+  anchors, sample PDFs, bank-correction validation, officer 403, first-start seeding.
+- Phase 09 check 3: `backend/tests/test_phase09_demo.py` — demo steps 1–8 through the API (mismatch ₹25 L vs ₹20 L with six fields
+  bank-confirmed and Accept refused; return, correction, re-verify, accept; dashboard groups; +7 days: A2 EXPIRING, its 90-day
+  reminders for institution and officer, outbox emails, A4's 30-day reminder, A4/A2 My-day scores rise; A3 at L2 for the approver
+  and acknowledge keeps it open; A6 at L3; A4 renewal → RENEWED, replacement ACTIVE, A4's alerts closed, chain overlap, A8 gaps
+  [None, 12, −5] and the gap observation; A5 blocked → 409 → bank correction → re-verify CONFIRMED, discrepancy resolved →
+  recommend → approve → RELEASED with an order number; A9 403 `SEPARATION_OF_DUTIES` for approver@ and decidable by approver2@;
+  integrity ok → tamper → fails at the tampered id → undo).
+- Phase 09 browser run (`node e2e/demo.mjs`, headless Chromium 1280×800, `npm run dev` stack, final run after all changes):
+  **9/9 steps passed, no console errors** (step 0 reset from Demo tools, then demo steps 1–8 clicked through the UI). Earlier runs
+  failed only on script selectors (Fields tab, duplicate "Return to institution" button, outbox paging), fixed in the script. Also
+  checked: the login page shows "Demo data was reset, sign in again" for a session whose user a reset removed.
+- Phase 09 check 6, polish checklist (manual, headless Chromium at 1280 px over 23 pages for all five roles: no page-level
+  horizontal overflow, no console errors or warnings, no React key warnings):
+  - [x] Loading skeletons (shared `Table` rows, existing per-page skeletons), empty states with a helpful line, error toasts with
+    the server message — already in place from earlier phases; checked on the pages above.
+  - [x] Tables: default sorts as before; sticky header on long tables; amounts/dates/right-aligned cells `tabular-nums` and no
+    wrapping; ₹ formatting via `Money`.
+  - [x] Status, verification and trust chips use the same components everywhere (icon + text).
+  - [x] Header clock badge always visible; every query refetches after a clock change or a demo reset.
+  - [x] Back links on detail pages; passport reachable from reference numbers (queue, register, alerts, anchors).
+  - [x] Wording: "Bank-confirmed", "Claimed by institution", "Document-checked", "Discrepancy", "Competent authority".
+  - [~] 1280 px: no page overflow; the widest tables scroll inside their frame (see known issues).
+  - [x] Favicon and title "FDR Portal — AICTE"; login with a one-line description and the "Synthetic demo data" note.
+  - [x] No console errors or React key warnings (sweep and e2e run).
+- Phase 09 check 5: pending (no Docker), see known issues.

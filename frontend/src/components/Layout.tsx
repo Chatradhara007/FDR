@@ -1,6 +1,7 @@
-import { Landmark, LogOut } from 'lucide-react';
+import { FlaskConical, Landmark, LogOut } from 'lucide-react';
 import { ROLE_LABELS } from '@fdr/shared';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useMeta } from '@/api/instruments';
 import { useAuth } from '@/auth/AuthContext';
 import { cn } from '@/lib/cn';
 import { NAV } from '@/lib/nav';
@@ -12,7 +13,8 @@ import { ClockBadge, ClockControls } from './ClockBadge';
 export function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const items = user ? NAV[user.role] : [];
+  const demoMode = useMeta().data?.demoMode === true;
+  const items = user ? NAV[user.role].filter((i) => !i.demoOnly || demoMode) : [];
   return (
     <div className="flex min-h-screen">
       <aside className="hidden w-60 print:hidden! shrink-0 flex-col bg-primary-900 text-primary-100 md:flex">
@@ -23,6 +25,11 @@ export function Layout() {
             <p className="text-xs text-primary-200">Security deposits</p>
           </div>
         </div>
+        {demoMode && (
+          <p data-testid="demo-ribbon" className="mx-3 mb-2 flex items-center gap-1.5 rounded-md bg-amber-400/15 px-2 py-1 text-xs font-medium text-amber-200 ring-1 ring-amber-300/40">
+            <FlaskConical className="size-3.5 shrink-0" aria-hidden /> Demo mode · synthetic data
+          </p>
+        )}
         <nav aria-label="Main" className="flex-1 px-2 py-2">
           <ul className="space-y-0.5">
             {items.map(({ to, label, icon: Icon }) => (
@@ -47,6 +54,11 @@ export function Layout() {
           <div className="flex flex-wrap items-center gap-3">
             <p className="text-sm font-medium text-slate-700 md:hidden">FDR Portal — AICTE</p>
             <ClockBadge />
+            {demoMode && (
+              <span data-testid="demo-ribbon-compact" className="inline-flex items-center gap-1 rounded-full border border-dashed border-amber-400 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 md:hidden">
+                <FlaskConical className="size-3.5" aria-hidden /> Demo
+              </span>
+            )}
             {user?.role === 'admin' && <ClockControls />}
           </div>
           {user && (

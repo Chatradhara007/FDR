@@ -13,7 +13,8 @@ questions: trust tiers and the clock."
 
 - Admin → Demo tools → **Reset demo data**. Clock shows `SIMULATED · <today>`.
 - Browser tabs (or the quick "Sign in as" buttons): Institution 1, Officer, Approver, Auditor, Admin.
-- `docs/demo-files/` open in a file picker for step 1.
+- Sample files for step 1 in a folder you can pick from: Admin → Demo tools → **A1 FDR copy** / **A1 bank letter**
+  (or `docs/demo-files/` after `npm run seed`). Their dates follow today's seed; the anchor table shows the same values.
 - Zoom the browser to 110–125 % for the projector.
 
 ## 1. New FDR submission (Institution 1) — 45 s
@@ -62,8 +63,8 @@ the overlap. Open A8's chain: a **12-day coverage gap** flagged on an earlier la
 ## 7. Authorised release — blocked, then approved — 75 s
 
 Officer → Releases → A5 (`PUNB/FDR/2024/77015`): red banner **"Release blocked — open discrepancy on
-amount"**; Recommend disabled. Admin → Demo tools → **Bank correction** for A5 (the bank updated its
-record after the institution's representation) → Officer → **Re-verify with bank** → CONFIRMED,
+amount"**; Recommend disabled. Admin → Demo tools → **A5: bank confirms ₹15,00,000** (the bank updated
+its record after the institution's representation) → Officer → **Re-verify with bank** → CONFIRMED,
 discrepancy auto-resolved, conditions all green → **Recommend** with remarks.
 Approver → decision page (banner: the decision rests with the competent authority) → **Approve** with
 remarks and refund reference → instrument **RELEASED** → printable **Release Order**.
@@ -84,4 +85,6 @@ refreshes → red "Integrity check failed at event #N". *Say:* hash-chained, tam
 - Bank call slow → it's the "slow bank" path: say "the bank is processing; the portal records PENDING
   and retries" and move on.
 - Any screen stale after a clock jump → press the clock badge (refetches) or reload.
-- Lost state → Demo tools → Reset (≈15 s) and jump to the step's anchor; every anchor exists at D0.
+- Lost state → Demo tools → Reset (≈15 s; everyone stays signed in) and jump to the step's anchor; every anchor
+  exists at D0. The anchor table on Demo tools links each anchor's passport and names who to sign in as.
+- Rehearse: `npm run e2e` clicks through steps 1–8 and saves screenshots (`e2e/screenshots/`).

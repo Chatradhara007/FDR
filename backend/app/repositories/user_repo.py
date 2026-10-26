@@ -48,13 +48,23 @@ class NewUser(TypedDict):
     createdAt: datetime
 
 
-def insert_user_if_missing(db: Db, u: NewUser) -> bool:
-    """Inserts unless the email exists; returns whether a row was created."""
+def insert_user_if_missing(db: Db, u: NewUser, user_id: str | None = None) -> bool:
+    """Inserts unless the email exists; returns whether a row was created. `user_id` fixes the row id (the demo
+    seed's stable ids, so a signed-in session survives a demo reset)."""
     n = exec_(
         db,
-        """INSERT INTO users (name, email, password_hash, role, institution_id, designation, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (email) DO NOTHING""",
-        [u["name"], u["email"], u["passwordHash"], u["role"], u["institutionId"], u["designation"], u["createdAt"]],
+        """INSERT INTO users (id, name, email, password_hash, role, institution_id, designation, created_at)
+     VALUES (COALESCE($1::uuid, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (email) DO NOTHING""",
+        [
+            user_id,
+            u["name"],
+            u["email"],
+            u["passwordHash"],
+            u["role"],
+            u["institutionId"],
+            u["designation"],
+            u["createdAt"],
+        ],
     )
     return n > 0
 

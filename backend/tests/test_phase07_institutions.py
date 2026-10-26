@@ -23,7 +23,7 @@ def test_ac6_profile_lists_every_instrument_and_scopes_institution_users() -> No
 
     profile = ok(get(user_for("officer@demo.in"), f"/institutions/{inst1}"))
     assert {i["id"] for i in profile["instruments"]} == set(own)
-    assert profile["institution"]["name"].startswith("Vasavi College")
+    assert profile["institution"]["name"].startswith("Vasavi Institute")
     problems = profile["institution"]["openProblems"]
     assert (problems["openDiscrepancies"], problems["overdue"], problems["returned"]) == (1, 1, 1)
     assert profile["institution"]["liveCount"] == 2
@@ -37,12 +37,13 @@ def test_ac6_profile_lists_every_instrument_and_scopes_institution_users() -> No
 def test_institution_list_filters_and_access() -> None:
     make_instrument("ACTIVE", "2027-06-01", amount="3000000.00")
     data = ok(get(user_for("approver@demo.in"), "/institutions"))
-    assert data["total"] == 2
+    assert data["total"] == 12
     vasavi = next(i for i in data["items"] if i["name"].startswith("Vasavi"))
     assert vasavi["byStatus"]["ACTIVE"] == {"count": 1, "amount": "3000000.00"}
     assert vasavi["liveAmount"] == "3000000.00"
     assert [i["region"] for i in ok(get(user_for("admin@demo.in"), "/institutions?region=Southern"))["items"]] == [
-        "Southern"
+        "Southern",
+        "Southern",
     ]
-    assert ok(get(user_for("admin@demo.in"), "/institutions?q=venkateswara"))["total"] == 1
+    assert ok(get(user_for("admin@demo.in"), "/institutions?q=godavari"))["total"] == 1
     assert get(user_for("inst1@demo.in"), "/institutions").status_code == 403

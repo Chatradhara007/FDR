@@ -388,7 +388,7 @@ def test_queue_filters_ageing_and_claim_rules(c: Ctx) -> None:
     queue = ok(get(c.officer, "/scrutiny/queue"))
     assert queue["total"] == 2
     assert [(i["id"], i["ageingDays"]) for i in queue["items"]] == [(first, 7), (second, 0)]
-    assert queue["items"][0]["institution"] == "Vasavi College of Engineering, Hyderabad"
+    assert queue["items"][0]["institution"] == "Vasavi Institute of Engineering & Technology, Hyderabad"
     ok(post(c.officer, f"/instruments/{first}/claim"))
     assert post(c.officer, f"/instruments/{first}/claim").status_code == 409
     assert [i["id"] for i in ok(get(c.officer, "/scrutiny/queue?assigned=me"))["items"]] == [first]

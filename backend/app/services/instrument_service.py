@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TypedDict, cast
 
+from ..config import config
 from ..db.pool import Conn, Db, get_pool, transaction
 from ..domain import clock
 from ..domain.access import AuthUser, actor_of, assert_can_see, scope_alert_stats_query, scope_instruments_query
@@ -129,6 +130,7 @@ class Meta(TypedDict):
     regions: list[str]
     requiredDocs: dict[InstrumentType, list[DocType]]
     lienRequired: dict[InstrumentType, bool]
+    demoMode: bool  # DEMO_MODE (D17): the header shows the demo ribbon
 
 
 class InstrumentListResponse(TypedDict):
@@ -251,6 +253,7 @@ def get_meta() -> Meta:
         "regions": list_regions(db),
         "requiredDocs": rules["requiredDocs"],
         "lienRequired": rules["lienRequired"],
+        "demoMode": config.demo_mode,
     }
 
 

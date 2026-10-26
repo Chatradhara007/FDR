@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Literal, TypedDict
 
+from ..config import config
 from ..db.pool import get_pool, transaction
 from ..domain.access import AuthUser
 from ..domain.audit import NIL_UUID, Actor, record_event
@@ -92,6 +93,13 @@ def load_session_user(user_id: str) -> AuthUser | None:
     if u is None or not u["active"]:
         return None
     return AuthUser(id=u["id"], name=u["name"], role=u["role"], institutionId=u["institution_id"])
+
+
+def session_ended_message(user_id: str) -> str:
+    """Why a valid token no longer works: in demo mode a missing user means a demo reset removed them."""
+    if config.demo_mode and find_user_by_id(get_pool(), user_id) is None:
+        return "Demo data was reset, sign in again"
+    return "Your session has ended, sign in again"
 
 
 def me(user_id: str) -> SessionUser:

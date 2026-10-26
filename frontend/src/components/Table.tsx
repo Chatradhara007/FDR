@@ -46,10 +46,11 @@ export function Table<T>({ columns, rows, rowKey, loading, emptyTitle = 'Nothing
     setSort((s) => (s?.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-surface">
+    // Long tables scroll inside a frame so the sticky header stays in view; short ones just grow.
+    <div className={cn('overflow-x-auto rounded-lg border border-slate-200 bg-surface', (rows?.length ?? 0) > 15 && 'max-h-[calc(100vh-10rem)] overflow-y-auto')}>
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         {caption && <caption className="sr-only">{caption}</caption>}
-        <thead className="bg-slate-50">
+        <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm">
           <tr>
             {columns.map((c) => {
               const active = sort?.key === c.key;
@@ -88,7 +89,7 @@ export function Table<T>({ columns, rows, rowKey, loading, emptyTitle = 'Nothing
                   className={cn(onRowClick && 'cursor-pointer hover:bg-primary-50/50')}
                 >
                   {columns.map((c) => (
-                    <td key={c.key} className={cn('px-3 py-2.5 text-slate-800', c.align === 'right' && 'text-right tabular-nums', c.className)}>
+                    <td key={c.key} className={cn('px-3 py-2.5 text-slate-800', c.align === 'right' && 'whitespace-nowrap text-right tabular-nums', c.className)}>
                       {c.cell(row)}
                     </td>
                   ))}

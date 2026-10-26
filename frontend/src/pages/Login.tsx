@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { AlertCircle, Landmark, LogIn } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { AlertCircle, FlaskConical, Info, Landmark, LogIn } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import type { DemoUser, SessionUser } from '@fdr/shared';
 import { ApiError, apiFetch } from '@/api/client';
 import { useAuth } from '@/auth/AuthContext';
+import { clearSignOutReason, getSignOutReason } from '@/auth/token';
 import { Button, Card, FieldError } from '@/components';
 import { ROLE_HOME } from '@/lib/roles';
 
@@ -14,7 +15,9 @@ const QUICK: { email: string; label: string }[] = [
   { email: 'inst1@demo.in', label: 'Institution 1' },
   { email: 'inst2@demo.in', label: 'Institution 2' },
   { email: 'officer@demo.in', label: 'Officer' },
+  { email: 'officer2@demo.in', label: 'Officer 2' },
   { email: 'approver@demo.in', label: 'Approver' },
+  { email: 'approver2@demo.in', label: 'Approver 2' },
   { email: 'admin@demo.in', label: 'Admin' },
   { email: 'auditor@demo.in', label: 'Auditor' },
 ];
@@ -30,6 +33,9 @@ export function Login() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
+  // Shown once: read on mount, cleared after (an initializer may run twice in StrictMode).
+  const [reason] = useState(getSignOutReason);
+  useEffect(clearSignOutReason, []);
 
   // 404 when DEMO_MODE is off: the quick buttons simply don't render.
   const demoUsers = useQuery({ queryKey: ['demo-users'], queryFn: () => apiFetch<DemoUser[]>('/demo/users'), retry: false, staleTime: Infinity });
@@ -65,8 +71,21 @@ export function Login() {
         <div className="flex flex-col items-center gap-2 text-center">
           <Landmark className="size-9 text-primary-700" aria-hidden />
           <h1 className="text-xl font-semibold text-slate-900">FDR Portal — AICTE</h1>
-          <p className="text-sm text-slate-600">Security deposit and FDR management</p>
+          <p className="text-sm text-slate-600">
+            Lodge, verify, track and release the fixed deposits and security deposits institutions keep with AICTE.
+          </p>
+          {quick.length > 0 && (
+            <p className="inline-flex items-center gap-1 rounded-full border border-dashed border-amber-400 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
+              <FlaskConical className="size-3.5" aria-hidden /> Synthetic demo data — no real institutions or deposits
+            </p>
+          )}
         </div>
+        {reason && (
+          <p role="status" className="flex items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-800">
+            <Info className="size-4 shrink-0" aria-hidden />
+            {reason}
+          </p>
+        )}
         <Card>
           <form onSubmit={onSubmit} noValidate className="space-y-4">
             {formError && (

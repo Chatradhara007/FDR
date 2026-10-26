@@ -87,7 +87,7 @@ def test_ac10_filters_work(users: Users) -> None:
     assert body(list_(o, f"?institutionId={users.inst2.institutionId}"))["total"] == 2
     assert body(list_(o, "?q=hdfc"))["total"] == 1
     assert body(list_(o, "?q=southern"))["total"] == 1
-    assert body(list_(o, "?q=venkateswara"))["total"] == 2
+    assert body(list_(o, "?q=godavari"))["total"] == 2
     assert body(list_(o, "?q=%25"))["total"] == 0
     assert body(list_(o, "?maturityFrom=2027-01-01&maturityTo=2027-12-31"))["total"] == 3
     bad = list_(o, "?status=NOPE&pageSize=0")
@@ -112,7 +112,9 @@ def test_meta_returns_banks_doc_types_regions_and_the_current_rules(users: Users
     meta = body(res)
     assert "State Bank of India" in meta["banks"]
     assert {"value": "FDR_COPY", "label": "FDR copy"} in meta["docTypes"]
-    assert meta["regions"] == ["South-Central", "Southern"]
+    assert meta["regions"] == [
+        "Central", "Eastern", "North-West", "Northern", "South-Central", "South-West", "Southern", "Western"
+    ]  # fmt: skip
     assert meta["requiredDocs"] == {"FDR": ["FDR_COPY", "BANK_LETTER"], "SECURITY_DEPOSIT": ["DEPOSIT_CONFIRMATION"]}
     assert meta["lienRequired"] == {"FDR": True, "SECURITY_DEPOSIT": False}
     assert api().get("/api/v1/meta").status_code == 401

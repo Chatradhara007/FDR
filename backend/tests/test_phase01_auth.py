@@ -37,7 +37,7 @@ def test_ac1_institution_user_carries_institution_id_and_name() -> None:
     assert res.status_code == 200
     user = res.json()["user"]
     assert user["role"] == "institution"
-    assert user["institutionName"] == "Vasavi College of Engineering, Hyderabad"
+    assert user["institutionName"] == "Vasavi Institute of Engineering & Technology, Hyderabad"
     assert isinstance(user["institutionId"], str)
 
 
@@ -89,7 +89,7 @@ def test_demo_users_listed_when_demo_mode_true_and_404_otherwise() -> None:
         assert {k: v for k, v in first.items() if k != "name"} == {
             "email": "inst1@demo.in",
             "role": "institution",
-            "institutionName": "Vasavi College of Engineering, Hyderabad",
+            "institutionName": "Vasavi Institute of Engineering & Technology, Hyderabad",
         }
         assert "password" not in res.text
         os.environ["DEMO_MODE"] = "false"
