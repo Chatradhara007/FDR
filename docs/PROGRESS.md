@@ -1307,3 +1307,31 @@ Checks (cloud sandbox, `npm run dev` + `npm run seed`):
 - Screenshots in `e2e/screenshots/mission-desk-3/` (gitignored).
 
 **Pages still to migrate**: none.
+
+## Seed replay performance (after Phase 09)
+
+The demo reset took several minutes on Windows (Docker Postgres through WSL), where every database round trip is
+expensive. Profiled with cProfile and a per-statement counter; the replay issued ~28,300 statements in ~2,800
+transactions, and httpx built a fresh TLS context for each of the 57 mock-bank calls (~2.7 s alone).
+
+Changes (output unchanged: a full fingerprint — instruments, provenance, alerts, event actions and timestamps, releases,
+row counts of every table — was compared byte for byte before and after; `test_phase09_seed` still passes):
+- `db/memo.py` (new): a replay-scoped memo (ContextVar, active only inside the seed's replay loop). `rule_repo.get_rule_config`
+  reads each rule once per replay instead of 5,066 times; `clock_repo` keeps the app clock in memory (3,967 reads and 955
+  clock-write transactions gone). The replay is the only writer of both while it runs; the clock row is written for real by
+  the final D0 transaction after the session ends. Outside the session nothing is cached (rule 11 unchanged for requests).
+- Audit chain: `record_event` fetches the next event id and the previous hash in one statement (`event_repo.next_event_slot`,
+  replacing `last_hash` + `next_event_id`), still after the chain lock.
+- Evaluation: consecutive days without steps are evaluated in one transaction (each still at its own 18:00, in the same order,
+  before the next day's steps). **The number of evaluation runs is not reduced**: 428 of the 505 runs change nothing, but which
+  ones is only known by running them — skipping a day whose run would act moves that alert/escalation's `created_at` to a later
+  day, i.e. changes the output. Deviation from the request, recorded here.
+- `bank_client`: one pooled `httpx.Client` (connection keep-alive, TLS context built once).
+- Pool connections are autocommit: a single statement run on the pool no longer leaves an implicit transaction for the pool to
+  roll back. `transaction()` still opens an explicit BEGIN … COMMIT block. (Small general change to `db/pool.py`.)
+- Progress: logger `fdr.seed` prints one line per phase (wipe, bank load, replay start, every 10 % of the replay with the date
+  and steps done, final evaluation, done) with elapsed seconds; `npm run seed` shows them, the server log shows them for
+  POST /demo/reset.
+
+Result: ~17,300 statements (−39 %), ~1,000 fewer transactions. Locally 18.4 s → 11.7–12.8 s; with an injected 1 ms per round
+trip (approximating WSL) 71.8 s → 41.7 s. Remaining cost is mostly the evaluation candidate queries and service reads.

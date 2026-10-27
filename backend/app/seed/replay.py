@@ -7,6 +7,7 @@ Used by `npm run seed` (python -m app.seed) and POST /demo/reset.
 
 from __future__ import annotations
 
+import logging
 import os
 import shutil
 import tempfile
@@ -16,6 +17,7 @@ from collections.abc import Callable
 from typing import TypedDict
 
 from ..config import config
+from ..db import memo
 from ..db.pool import get_pool, transaction
 from ..domain import clock
 from ..domain.access import AuthUser
@@ -67,6 +69,7 @@ class SeedResult(TypedDict):
 
 
 _running = threading.Lock()
+log = logging.getLogger("fdr.seed")
 
 
 def _day(d0: str, offset: int) -> str:
@@ -333,15 +336,18 @@ class Replay:
         bank_client.load_records(self.records)
 
 
-def _evaluate(day: str) -> None:
+def _evaluate(days: list[str]) -> None:
+    """Runs the job for each day in turn at 18:00, in one transaction (consecutive days without steps share one)."""
+    if not days:
+        return
     with transaction() as tx:
-        clock.set_simulated_at(tx, day, 18)
-        evaluate(tx, day)
+        for day in days:
+            clock.set_simulated_at(tx, day, 18)
+            evaluate(tx, day)
 
 
 def _set_clock(day: str, hour: int, minute: int) -> None:
-    with transaction() as tx:
-        clock.set_simulated_at(tx, day, hour, minute)
+    clock.set_simulated_at(get_pool(), day, hour, minute)  # in memory: the replay runs inside a memo session
 
 
 def _wipe(d0: str) -> None:
@@ -376,6 +382,10 @@ def reset_and_seed(actor: Actor | None = None) -> SeedResult:
 
 def _reset_and_seed(actor: Actor | None) -> SeedResult:
     started = time.monotonic()
+
+    def progress(msg: str) -> None:
+        log.info("seed %5.1fs: %s", time.monotonic() - started, msg)
+
     d0 = clock.real_today()
     specs = build(d0)
     records = bank_records(specs, d0)
@@ -384,9 +394,11 @@ def _reset_and_seed(actor: Actor | None) -> SeedResult:
     except bank_client.BankUnreachable as err:
         raise AppError("BANK_UNREACHABLE",
                        f"The mock bank is not running ({err}). Start it first: npm run dev:bank", None, 503) from err  # fmt: skip
+    progress(f"wiping data (D0 {d0})")
     _wipe(d0)
     _clear_storage()
     bank_client.load_records(records)
+    progress(f"mock bank loaded with {len(records)} records")
 
     replay = Replay(d0, specs, records)
     by_day: dict[int, list[Step]] = {}
@@ -394,18 +406,34 @@ def _reset_and_seed(actor: Actor | None) -> SeedResult:
         for st in s.steps:
             by_day.setdefault(st.day, []).append(st)
     first = min(by_day)
+    days = [o for o in range(first, 0) if by_day.get(o) or o >= DAILY_FROM or o % GRID == 0]
+    total_steps = sum(len(v) for v in by_day.values())
+    progress(f"replaying {total_steps} steps over {len(days)} days (D{first} to D-1)")
+    done = 0
     try:
-        for offset in range(first, 0):  # D0 itself is evaluated last, at 10:00
-            steps = by_day.get(offset, [])
-            if not steps and offset < DAILY_FROM and offset % GRID != 0:
-                continue
-            day = _day(d0, offset)
-            for n, st in enumerate(steps):
-                _set_clock(day, 10 + (n * 7) // 60, (n * 7) % 60)
-                replay.run(st)
-            _evaluate(day)
+        # Rules and the clock stay in memory while replaying (db/memo.py); the clock row is written below.
+        with memo.session():
+            pending: list[str] = []  # evaluations not yet run: they wait for the next day with steps
+            for i, offset in enumerate(days):  # D0 itself is evaluated last, at 10:00
+                steps = by_day.get(offset, [])
+                day = _day(d0, offset)
+                if steps and pending:
+                    _evaluate(pending)
+                    pending = []
+                for n, st in enumerate(steps):
+                    _set_clock(day, 10 + (n * 7) // 60, (n * 7) % 60)
+                    replay.run(st)
+                done += len(steps)
+                pending.append(day)
+                if (i + 1) * 10 // len(days) != i * 10 // len(days):
+                    _evaluate(pending)
+                    pending = []
+                    progress(f"replay {(i + 1) * 100 // len(days)}%: {day}, {done}/{total_steps} steps")
+            _evaluate(pending)
     finally:
         shutil.rmtree(replay.tmp, ignore_errors=True)
+
+    progress("final evaluation at D0")
 
     db = get_pool()
     with transaction() as tx:
@@ -415,6 +443,7 @@ def _reset_and_seed(actor: Actor | None) -> SeedResult:
         record_event(tx, actor=actor or SYSTEM_ACTOR, action="DEMO_RESET", entity_type="demo", entity_id=NIL_UUID,
                      after={"demoDate": d0, "instruments": counts["instruments"]})  # fmt: skip
     clear_integrity_cache()
+    progress(f"done: {counts['instruments']} instruments, {counts['alerts']} alerts")
     return {
         "d0": d0,
         "instruments": counts["instruments"],

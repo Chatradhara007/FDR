@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import TypedDict
 
 from ..db.pool import Conn, Db
-from ..repositories.event_repo import EventRow, events_after, insert_event, last_hash, lock_chain, next_event_id
+from ..repositories.event_repo import EventRow, events_after, insert_event, lock_chain, next_event_slot
 from . import clock
 from .canonical_json import canonical_json, iso_ms, to_json_value
 
@@ -57,9 +57,9 @@ def record_event(
 ) -> None:
     """Must run inside the caller's transaction: the advisory lock serialises the chain until commit."""
     lock_chain(tx, CHAIN_LOCK)
-    prev = last_hash(tx)
+    event_id, prev = next_event_slot(tx)
     row: dict[str, object] = {
-        "id": next_event_id(tx),
+        "id": event_id,
         "actor_id": actor.id,
         "actor_label": actor.label,
         "action": action,

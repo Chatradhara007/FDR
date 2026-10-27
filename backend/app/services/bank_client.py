@@ -12,6 +12,17 @@ import httpx
 
 from ..config import config
 
+_http: httpx.Client | None = None
+
+
+def _client() -> httpx.Client:
+    """One pooled client: keeps connections alive and builds its TLS context once, not on every call."""
+    global _http
+    if _http is None:
+        _http = httpx.Client()
+    return _http
+
+
 BankResultCode = Literal["CONFIRMED", "MISMATCH", "NOT_FOUND", "PENDING", "UNAVAILABLE"]
 
 
@@ -69,7 +80,7 @@ def _parse(body: object) -> BankResult | None:
 
 def verify_with_bank(payload: BankPayload, timeout_ms: int = 5000) -> BankResult:
     try:
-        res = httpx.post(f"{config.mock_bank_url}/verify", json=payload, timeout=timeout_ms / 1000)
+        res = _client().post(f"{config.mock_bank_url}/verify", json=payload, timeout=timeout_ms / 1000)
     except httpx.TimeoutException:
         return {"result": "UNAVAILABLE", "reason": "Bank did not answer in time"}
     except httpx.HTTPError as err:
@@ -106,7 +117,7 @@ class BankUnreachable(Exception):
 
 def list_records(timeout_ms: int = 5000) -> list[BankRecord]:
     try:
-        res = httpx.get(f"{config.mock_bank_url}/records", timeout=timeout_ms / 1000)
+        res = _client().get(f"{config.mock_bank_url}/records", timeout=timeout_ms / 1000)
         body = res.json()
     except (httpx.HTTPError, ValueError) as err:
         raise BankUnreachable(
@@ -120,7 +131,9 @@ def list_records(timeout_ms: int = 5000) -> list[BankRecord]:
 def load_records(records: list[BankRecord], timeout_ms: int = 10000) -> int:
     """Replaces every record the mock bank holds (POST /records/load)."""
     try:
-        res = httpx.post(f"{config.mock_bank_url}/records/load", json={"records": records}, timeout=timeout_ms / 1000)
+        res = _client().post(
+            f"{config.mock_bank_url}/records/load", json={"records": records}, timeout=timeout_ms / 1000
+        )
         body = res.json()
     except (httpx.HTTPError, ValueError) as err:
         raise BankUnreachable(

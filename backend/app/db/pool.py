@@ -43,7 +43,9 @@ def get_pool() -> ConnectionPool[Conn]:
             timeout=10,
             open=True,
             configure=_configure,
-            kwargs={"row_factory": dict_row, "connect_timeout": 2},
+            # Autocommit: a single statement run on the pool needs no implicit transaction (and no rollback when the
+            # connection goes back); transaction() still opens an explicit BEGIN ... COMMIT block.
+            kwargs={"row_factory": dict_row, "connect_timeout": 2, "autocommit": True},
             connection_class=psycopg.Connection[DictRow],
         )
     return _pool

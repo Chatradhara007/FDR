@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TypedDict, cast
 
+from ..db import memo
 from ..db.pool import Db, exec_, many, maybe_one
 from ..domain.canonical_json import js_json
 from ..shared_constants import RuleDefault
@@ -18,8 +19,14 @@ def insert_rule_if_missing(db: Db, r: RuleDefault) -> None:
 
 def get_rule_config(db: Db, key: str) -> object | None:
     """Current config of an active rule; None when missing or inactive. Read at the start of each operation (rule 11)."""
+    cache = memo.active()
+    if cache is not None and f"rule:{key}" in cache:
+        return cache[f"rule:{key}"]
     row = maybe_one(db, "SELECT config FROM rules WHERE key = $1 AND active", [key])
-    return row["config"] if row else None
+    config = row["config"] if row else None
+    if cache is not None:
+        cache[f"rule:{key}"] = config
+    return config
 
 
 class RuleRow(TypedDict):
