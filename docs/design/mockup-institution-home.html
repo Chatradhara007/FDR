@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Institution home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F766E}a:hover{color:#0B544F}
+</style>
+</helmet>
+<div style="font-family:'DM Sans',sans-serif;background:#F4F6F6;color:#1F2933;min-height:1100px">
+
+<header style="background:#fff;border-bottom:1px solid #DCE2E2;padding:0 28px;display:flex;align-items:center;gap:28px;min-height:60px;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:9px;font-weight:700;font-size:17px">
+    <span style="width:24px;height:24px;border-radius:6px;background:#0F766E;display:inline-block"></span>FDR Portal
+  </div>
+  <nav style="display:flex;gap:6px;font-size:14.5px;flex-wrap:wrap">
+    <a href="#" style="color:#fff;background:#1F2933;text-decoration:none;padding:8px 14px;border-radius:8px;font-weight:600">Home</a>
+    <a href="#" style="color:#52606D;text-decoration:none;padding:8px 14px;border-radius:8px">My deposits</a>
+    <a href="#" style="color:#52606D;text-decoration:none;padding:8px 14px;border-radius:8px">Notices</a>
+    <a href="#" style="color:#52606D;text-decoration:none;padding:8px 14px;border-radius:8px">Help</a>
+  </nav>
+  <div style="flex:1"></div>
+  <span style="font-size:13px;color:#52606D">27 Oct 2026</span>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span style="width:34px;height:34px;border-radius:50%;background:#0F766E;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">RK</span>
+    <div style="font-size:13px;line-height:1.3"><div style="font-weight:600">Ramesh Kumar</div><div style="color:#52606D">Nandi Institute of Technology</div></div>
+  </div>
+</header>
+
+<main style="max-width:1240px;margin:0 auto;padding:32px 28px 40px;box-sizing:border-box">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap">
+    <div>
+      <h1 style="margin:0;font-size:32px;font-weight:700;letter-spacing:-0.02em">Good morning, Ramesh</h1>
+      <p style="margin:8px 0 0;font-size:17px;color:#52606D">Two deposits need something from you. Everything else is with AICTE.</p>
+    </div>
+    <button style="height:52px;padding:0 28px;border:0;border-radius:12px;background:#0F766E;color:#fff;font:inherit;font-size:17px;font-weight:700;cursor:pointer">Submit a new deposit</button>
+  </div>
+
+  <section style="margin-top:28px">
+    <h2 style="margin:0 0 14px;font-size:18px;font-weight:700">Needs your action</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px">
+      <sc-for list="{{actions}}" as="a" hint-placeholder-count="2">
+        <div style="background:#fff;border:1px solid #DCE2E2;border-left:5px solid #C2410C;border-radius:12px;padding:20px 22px">
+          <div style="font-size:12.5px;font-weight:700;letter-spacing:0.05em;color:#8A3A0A">{{a.kicker}}</div>
+          <div style="font-size:18px;font-weight:700;margin-top:6px">{{a.title}}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:12.5px;color:#52606D;margin-top:4px">{{a.ref}}</div>
+          <p style="margin:12px 0 16px;font-size:15px;line-height:1.5;color:#3E4C59">{{a.body}}</p>
+          <button style="height:42px;padding:0 20px;border:0;border-radius:10px;background:#1F2933;color:#fff;font:inherit;font-size:15px;font-weight:600;cursor:pointer">{{a.cta}}</button>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="margin-top:32px;background:#fff;border:1px solid #DCE2E2;border-radius:14px;padding:26px">
+    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:baseline">
+      <div>
+        <h2 style="margin:0;font-size:18px;font-weight:700">Where your release request stands</h2>
+        <div style="font-family:'DM Mono',monospace;font-size:12.5px;color:#52606D;margin-top:4px">SBIN/FDR/2026/00731 · ₹20,00,000</div>
+      </div>
+      <a href="#" style="font-size:14px;font-weight:500">Open this deposit</a>
+    </div>
+
+    <div style="display:flex;margin-top:28px;flex-wrap:wrap;gap:0">
+      <sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+        <div style="flex:1 1 200px;min-width:180px;position:relative;padding-right:16px">
+          <div style="display:flex;align-items:center">
+            <span style="{{s.dot}}">{{s.glyph}}</span>
+            <span style="{{s.line}}"></span>
+          </div>
+          <div style="font-size:15.5px;font-weight:700;margin-top:12px">{{s.title}}</div>
+          <div style="font-size:14px;color:#52606D;margin-top:4px;line-height:1.45">{{s.note}}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top:22px;background:#E6F4F2;border-radius:10px;padding:14px 18px;font-size:15px;line-height:1.5">
+      <strong>You do not need to do anything.</strong> An officer is checking the conditions. If the bank letter confirming the lien release is missing, you will be asked for it here.
+    </div>
+  </section>
+
+  <section style="margin-top:32px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+      <h2 style="margin:0 0 14px;font-size:18px;font-weight:700">All my deposits</h2>
+      <span style="font-size:14px;color:#52606D">4 live · 1 returned · 3 maturing within 90 days</span>
+    </div>
+    <div style="background:#fff;border:1px solid #DCE2E2;border-radius:14px;overflow-x:auto">
+      <div style="min-width:760px">
+        <div style="display:flex;padding:12px 20px;border-bottom:1px solid #EAEEEE;font-size:12px;font-weight:700;letter-spacing:0.05em;color:#52606D">
+          <div style="flex:1.6 1 0">DEPOSIT</div><div style="flex:1 1 0">STATUS</div><div style="flex:1 1 0">PROVEN</div><div style="flex:1 1 0">MATURES</div><div style="flex:1.2 1 0">NEXT STEP</div>
+        </div>
+        <sc-for list="{{deposits}}" as="d" hint-placeholder-count="4">
+          <div style="display:flex;padding:16px 20px;border-bottom:1px solid #EAEEEE;align-items:center">
+            <div style="flex:1.6 1 0"><div style="font-family:'DM Mono',monospace;font-size:13.5px;font-weight:500">{{d.ref}}</div><div style="font-size:13.5px;color:#52606D;margin-top:2px">{{d.amt}} · {{d.kind}}</div></div>
+            <div style="flex:1 1 0"><span style="{{d.chip}}">{{d.status}}</span></div>
+            <div style="flex:1 1 0;display:flex;gap:3px">
+              <sc-for list="{{d.proof}}" as="p" hint-placeholder-count="7"><span style="{{p.style}}"></span></sc-for>
+            </div>
+            <div style="flex:1 1 0;font-size:14px">{{d.matures}}</div>
+            <div style="flex:1.2 1 0;font-size:14px;line-height:1.4">{{d.next}}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <p style="margin:28px 0 0;font-size:13px;color:#52606D">Prototype for SIH26265. All deposits, banks and institutions shown are synthetic demo data.</p>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const actions = [
+      { kicker: 'RETURNED BY THE OFFICER', title: 'Correct the amount and resubmit', ref: 'PUNB/FDR/2026/00905', body: 'The bank holds ₹15,00,000 for this receipt; you stated ₹16,00,000. Fix the amount and send it back.', cta: 'Correct and resubmit' },
+      { kicker: 'MATURES IN 78 DAYS', title: 'Decide: renew or release', ref: 'SBIN/SD/2024/00112', body: 'Renew before 10 January to avoid a gap, or ask for release. You cannot do both for the same deposit.', cta: 'Choose what to do' }
+    ];
+    const done = 'width:34px;height:34px;border-radius:50%;background:#0F766E;color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;';
+    const now = 'width:34px;height:34px;border-radius:50%;background:#fff;color:#0F766E;border:3px solid #0F766E;box-sizing:border-box;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;';
+    const next = 'width:34px;height:34px;border-radius:50%;background:#fff;color:#7B8794;border:2px dashed #AEB8C2;box-sizing:border-box;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;';
+    const lineDone = 'flex:1;height:3px;background:#0F766E;margin:0 8px;border-radius:2px;';
+    const lineNext = 'flex:1;height:3px;background:repeating-linear-gradient(to right,#AEB8C2 0 6px,transparent 6px 12px);margin:0 8px;';
+    const steps = [
+      { dot: done, glyph: '✓', line: lineDone, title: 'Request sent', note: '26 Oct. Letter attached.' },
+      { dot: now, glyph: '2', line: lineNext, title: 'Officer is checking', note: 'Waiting on AICTE’s scrutiny officer. Usually two working days.' },
+      { dot: next, glyph: '3', line: lineNext, title: 'Approver decides', note: 'A senior officer approves or rejects.' },
+      { dot: next, glyph: '4', line: 'display:none;', title: 'Release order issued', note: 'You get a printable order with a QR code.' }
+    ];
+    const sq = (t) => 'width:13px;height:13px;border-radius:3px;box-sizing:border-box;display:inline-block;' + ({
+      B: 'background:#0F766E;border:1.5px solid #0F766E;',
+      D: 'background:linear-gradient(to top,#7CC2BB 50%,#fff 50%);border:1.5px solid #3D9A91;',
+      C: 'background:#fff;border:1.5px dashed #8A96A3;'
+    })[t];
+    const chipBase = 'font-size:13px;font-weight:600;border-radius:8px;padding:5px 10px;display:inline-block;';
+    const raw = [
+      { ref: 'SBIN/FDR/2026/00731', amt: '₹20,00,000', kind: 'FDR', status: 'Release requested', chip: chipBase + 'background:#E6F4F2;color:#0B544F;', proof: 'BBBBBDC', matures: '02-Nov-2026', next: 'Nothing. With the officer.' },
+      { ref: 'SBIN/SD/2024/00112', amt: '₹10,00,000', kind: 'Security deposit', status: 'Active', chip: chipBase + 'background:#EAEEEE;color:#3E4C59;', proof: 'BBBBBBB', matures: '14-Jan-2027', next: 'Renew or release, by 10 Jan.' },
+      { ref: 'PUNB/FDR/2026/00905', amt: '₹16,00,000', kind: 'FDR', status: 'Returned', chip: chipBase + 'background:#FFF0E6;color:#8A3A0A;', proof: 'BBCCCCC', matures: '09-Aug-2027', next: 'Correct the amount and resubmit.' },
+      { ref: 'HDFC/FDR/2025/00418', amt: '₹45,00,000', kind: 'FDR', status: 'Active', chip: chipBase + 'background:#EAEEEE;color:#3E4C59;', proof: 'BBBDDCC', matures: '25-Nov-2026', next: 'Nothing yet. Reminder at 30 days.' }
+    ];
+    const deposits = raw.map((d) => ({ ...d, proof: d.proof.split('').map((t) => ({ style: sq(t) })) }));
+    return { actions, steps, deposits };
+  }
+}
+</script>
+</body>
+</html>

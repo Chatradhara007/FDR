@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Officer's day</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F766E}a:hover{color:#0B544F}
+</style>
+</helmet>
+<div style="font-family:'DM Sans',sans-serif;background:#F4F6F6;color:#1F2933;min-height:1100px">
+
+<header style="background:#fff;border-bottom:1px solid #DCE2E2;padding:0 28px;display:flex;align-items:center;gap:28px;min-height:60px;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:9px;font-weight:700;font-size:17px">
+    <span style="width:24px;height:24px;border-radius:6px;background:#0F766E;display:inline-block"></span>FDR Portal
+  </div>
+  <nav style="display:flex;gap:6px;font-size:14.5px;flex-wrap:wrap">
+    <a href="#" style="color:#fff;background:#1F2933;text-decoration:none;padding:8px 14px;border-radius:8px;font-weight:600">My day</a>
+    <a href="#" style="color:#52606D;text-decoration:none;padding:8px 14px;border-radius:8px">Register</a>
+    <a href="#" style="color:#52606D;text-decoration:none;padding:8px 14px;border-radius:8px">Alerts</a>
+    <a href="#" style="color:#52606D;text-decoration:none;padding:8px 14px;border-radius:8px">Reports</a>
+  </nav>
+  <div style="flex:1"></div>
+  <input aria-label="Search" placeholder="Jump to a deposit: type a reference" style="width:300px;max-width:100%;height:38px;border:1px solid #DCE2E2;border-radius:8px;padding:0 14px;font:inherit;font-size:14px;background:#F4F6F6;box-sizing:border-box">
+  <span style="font-size:13px;color:#52606D">27 Oct 2026 · simulated</span>
+  <span style="width:34px;height:34px;border-radius:50%;background:#1F2933;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">KR</span>
+</header>
+
+<main style="max-width:1400px;margin:0 auto;padding:24px 28px 36px;box-sizing:border-box">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap">
+    <div>
+      <h1 style="margin:0;font-size:30px;font-weight:700;letter-spacing:-0.02em">Good morning, Kiran</h1>
+      <p style="margin:6px 0 0;font-size:16px;color:#52606D">Five deposits need you today. They are ordered by what costs most to leave.</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <span style="background:#fff;border:1px solid #DCE2E2;border-radius:10px;padding:8px 14px;font-size:14px"><strong style="font-size:18px">5</strong> waiting for you</span>
+      <span style="background:#FFF0E6;border:1px solid #F3C9A8;color:#8A3A0A;border-radius:10px;padding:8px 14px;font-size:14px"><strong style="font-size:18px">2</strong> escalated</span>
+      <span style="background:#fff;border:1px solid #DCE2E2;border-radius:10px;padding:8px 14px;font-size:14px"><strong style="font-size:18px">3</strong> waiting on the bank</span>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:22px;margin-top:22px;flex-wrap:wrap;align-items:flex-start">
+
+    <section style="flex:1 1 420px;max-width:520px;min-width:300px;background:#fff;border:1px solid #DCE2E2;border-radius:14px;overflow:hidden">
+      <div style="display:flex;gap:4px;padding:10px;border-bottom:1px solid #EAEEEE;background:#FAFBFB">
+        <span style="background:#fff;border:1px solid #DCE2E2;border-radius:8px;padding:6px 12px;font-size:13.5px;font-weight:600">To do · 5</span>
+        <span style="padding:6px 12px;font-size:13.5px;color:#52606D">Escalated · 2</span>
+        <span style="padding:6px 12px;font-size:13.5px;color:#52606D">Waiting on bank · 3</span>
+      </div>
+      <sc-for list="{{queue}}" as="q" hint-placeholder-count="5">
+        <div style="{{q.rowStyle}}">
+          <div style="{{q.rankStyle}}">{{q.rank}}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:15.5px;font-weight:600">{{q.inst}}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:12px;color:#52606D;margin-top:2px">{{q.ref}} · {{q.amt}}</div>
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{q.reasons}}" as="rs" hint-placeholder-count="2">
+                <span style="{{rs.style}}">{{rs.text}}</span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="flex:none;text-align:right">
+            <div style="font-size:22px;font-weight:700;line-height:1">{{q.score}}</div>
+            <div style="font-size:11px;color:#52606D;margin-top:3px">priority</div>
+          </div>
+        </div>
+      </sc-for>
+      <div style="padding:12px 16px;font-size:12.5px;color:#52606D;background:#FAFBFB;display:flex;gap:16px;flex-wrap:wrap">
+        <span><kbd style="font-family:'DM Mono',monospace;border:1px solid #DCE2E2;border-radius:4px;padding:1px 6px;background:#fff">J</kbd> <kbd style="font-family:'DM Mono',monospace;border:1px solid #DCE2E2;border-radius:4px;padding:1px 6px;background:#fff">K</kbd> move</span>
+        <span><kbd style="font-family:'DM Mono',monospace;border:1px solid #DCE2E2;border-radius:4px;padding:1px 6px;background:#fff">R</kbd> recommend</span>
+        <span><kbd style="font-family:'DM Mono',monospace;border:1px solid #DCE2E2;border-radius:4px;padding:1px 6px;background:#fff">B</kbd> ask bank</span>
+        <span><kbd style="font-family:'DM Mono',monospace;border:1px solid #DCE2E2;border-radius:4px;padding:1px 6px;background:#fff">O</kbd> open record</span>
+      </div>
+    </section>
+
+    <section style="flex:2 1 560px;min-width:0;background:#fff;border:1px solid #DCE2E2;border-radius:14px;padding:26px">
+      <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start">
+        <div>
+          <div style="font-size:13px;color:#C2410C;font-weight:700;letter-spacing:0.05em">FIRST BECAUSE IT MATURES IN 6 DAYS</div>
+          <h2 style="margin:6px 0 0;font-size:26px;font-weight:700;letter-spacing:-0.015em">Nandi Institute of Technology</h2>
+          <div style="font-family:'DM Mono',monospace;font-size:13.5px;color:#52606D;margin-top:6px">SBIN/FDR/2026/00731 · ₹20,00,000 · release requested yesterday</div>
+        </div>
+        <a href="#" style="font-size:14px;font-weight:500;text-decoration:none;border:1px solid #DCE2E2;border-radius:8px;padding:8px 14px;color:#1F2933">Open full record</a>
+      </div>
+
+      <div style="margin-top:22px;display:flex;gap:28px;flex-wrap:wrap">
+        <div style="flex:1 1 300px;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:#52606D;letter-spacing:0.05em;margin-bottom:12px">WHY IT IS RANKED HERE</div>
+          <sc-for list="{{score}}" as="s" hint-placeholder-count="4">
+            <div style="margin-bottom:12px">
+              <div style="display:flex;justify-content:space-between;font-size:14px"><span>{{s.label}}</span><span style="font-family:'DM Mono',monospace">{{s.pts}} of {{s.max}}</span></div>
+              <div style="height:8px;background:#E8EDED;border-radius:4px;margin-top:6px;overflow:hidden"><div style="{{s.bar}}"></div></div>
+            </div>
+          </sc-for>
+          <div style="font-size:13px;color:#52606D;margin-top:4px">Weights are set by your administrator. <a href="#">See the rule</a></div>
+        </div>
+
+        <div style="flex:1 1 300px;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:#52606D;letter-spacing:0.05em;margin-bottom:12px">RELEASE CONDITIONS</div>
+          <sc-for list="{{conds}}" as="c" hint-placeholder-count="4">
+            <div style="display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid #EAEEEE;font-size:14.5px;line-height:1.4">
+              <span style="{{c.mark}}">{{c.glyph}}</span><span>{{c.text}}</span>
+            </div>
+          </sc-for>
+          <label style="display:flex;gap:10px;align-items:flex-start;margin-top:8px;padding:12px;border:1px solid #0F766E;background:#E6F4F2;border-radius:10px;font-size:14.5px;line-height:1.4;cursor:pointer">
+            <input type="checkbox" style="width:18px;height:18px;margin-top:1px;accent-color:#0F766E">
+            <span><strong>I have seen the bank’s letter confirming the lien is released.</strong><br><span style="color:#52606D;font-size:13px">This is yours to tick. The portal cannot know it.</span></span>
+          </label>
+        </div>
+      </div>
+
+      <div style="margin-top:26px;padding-top:22px;border-top:1px solid #EAEEEE;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+        <button style="height:48px;padding:0 24px;border:0;border-radius:10px;background:#0F766E;color:#fff;font:inherit;font-size:16px;font-weight:700;cursor:pointer">Recommend release <span style="opacity:.8;font-weight:500;margin-left:8px;font-family:'DM Mono',monospace;font-size:13px">R</span></button>
+        <button style="height:48px;padding:0 20px;border:1px solid #DCE2E2;border-radius:10px;background:#fff;font:inherit;font-size:15px;font-weight:600;cursor:pointer">Ask the bank again <span style="color:#52606D;font-weight:500;margin-left:8px;font-family:'DM Mono',monospace;font-size:13px">B</span></button>
+        <button style="height:48px;padding:0 20px;border:1px solid #DCE2E2;border-radius:10px;background:#fff;font:inherit;font-size:15px;font-weight:600;cursor:pointer">Return to institution</button>
+        <span style="font-size:13.5px;color:#52606D;flex:1 1 220px">After you recommend, the Approver decides. You cannot approve your own recommendation.</span>
+      </div>
+    </section>
+  </div>
+
+  <p style="margin:28px 0 0;font-size:13px;color:#52606D">Prototype for SIH26265. All deposits, banks and institutions shown are synthetic demo data.</p>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const hot = 'font-size:12.5px;border-radius:6px;padding:3px 8px;background:#FFF0E6;color:#8A3A0A;font-weight:500;';
+    const cool = 'font-size:12.5px;border-radius:6px;padding:3px 8px;background:#EAEEEE;color:#3E4C59;font-weight:500;';
+    const row = (sel) => 'display:flex;gap:14px;align-items:flex-start;padding:16px;border-bottom:1px solid #EAEEEE;' + (sel ? 'background:#E6F4F2;box-shadow:inset 4px 0 0 #0F766E;' : '');
+    const rk = (sel) => 'width:28px;height:28px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;' + (sel ? 'background:#0F766E;color:#fff;' : 'background:#EAEEEE;color:#3E4C59;');
+    const q = [
+      { inst: 'Nandi Institute of Technology', ref: 'SBIN/FDR/2026/00731', amt: '₹20 L', score: 92, reasons: [{ text: 'Matures in 6 days', style: hot }, { text: 'Release requested', style: cool }] },
+      { inst: 'Sahyadri Institute of Management', ref: 'IOBA/FDR/2025/00977', amt: '₹35 L', score: 88, reasons: [{ text: '9 days past maturity', style: hot }, { text: 'Escalated to Approver', style: hot }] },
+      { inst: 'Malaprabha Technical Campus', ref: 'ICIC/FDR/2026/00056', amt: '₹80 L', score: 74, reasons: [{ text: 'Bank silent for 6 days', style: hot }, { text: 'High value', style: cool }] },
+      { inst: 'Godavari Polytechnic', ref: 'HDFC/FDR/2025/00418', amt: '₹45 L', score: 61, reasons: [{ text: '3 fields not bank-confirmed', style: cool }] },
+      { inst: 'Tungabhadra Institute of Commerce', ref: 'CNRB/SD/2026/00402', amt: '₹12 L', score: 55, reasons: [{ text: 'New, nobody has claimed it', style: cool }] }
+    ].map((x, i) => ({ ...x, rank: i + 1, rowStyle: row(i === 0), rankStyle: rk(i === 0) }));
+    const score = [
+      { label: 'Time to maturity', pts: 38, max: 40, bar: 'width:95%;height:8px;background:#C2410C;border-radius:4px;' },
+      { label: 'Open problems', pts: 22, max: 25, bar: 'width:88%;height:8px;background:#C2410C;border-radius:4px;' },
+      { label: 'Amount at stake', pts: 17, max: 20, bar: 'width:85%;height:8px;background:#0F766E;border-radius:4px;' },
+      { label: 'Days waiting', pts: 15, max: 15, bar: 'width:100%;height:8px;background:#0F766E;border-radius:4px;' }
+    ];
+    const ok = 'width:22px;height:22px;border-radius:50%;background:#E6F4F2;color:#0F766E;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;';
+    const wait = 'width:22px;height:22px;border-radius:50%;background:#FFF0E6;color:#8A3A0A;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;';
+    const conds = [
+      { mark: ok, glyph: '✓', text: 'Deposit accepted' },
+      { mark: ok, glyph: '✓', text: 'No open discrepancy' },
+      { mark: ok, glyph: '✓', text: 'Not part of a renewal' },
+      { mark: wait, glyph: '…', text: 'Lien released: needs your confirmation' }
+    ];
+    return { queue: q, score, conds };
+  }
+}
+</script>
+</body>
+</html>
