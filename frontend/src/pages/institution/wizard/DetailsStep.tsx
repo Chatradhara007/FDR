@@ -1,22 +1,13 @@
 import { amountInWords, normAmount, type Meta } from '@fdr/shared';
 import type { ReactNode } from 'react';
-import { FieldError } from '@/components';
+import { FieldError, FormField, MandatoryNote } from '@/components';
 import { BENEFICIARY_HINT, groupAmountInput, inputCls, type FormValues } from './form';
 
+/** FormField with the error id the inputs' aria-describedby points at (`<id>-error`). */
 function Field({ id, label, error, hint, children, required }: {
   id: string; label: string; error?: string; hint?: ReactNode; children: ReactNode; required?: boolean;
 }) {
-  return (
-    <div>
-      <label htmlFor={id} className="mb-1 block text-sm font-medium text-slate-700">
-        {label}
-        {required && <span className="ml-1 text-xs font-normal text-slate-500">(required to submit)</span>}
-      </label>
-      {children}
-      {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
-      <FieldError id={`${id}-error`} message={error} />
-    </div>
-  );
+  return <FormField id={id} label={label} required={required} help={hint} error={error}>{children}</FormField>;
 }
 
 function words(amount: string): string | null {
@@ -37,7 +28,8 @@ export function DetailsStep({ values, onChange, errors, meta, typeLocked }: {
   const a = (field: string) => ({ 'aria-invalid': !!errors[field], 'aria-describedby': `${field}-error` });
   const lienRequired = meta?.lienRequired[values.type];
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="space-y-5">
+      <MandatoryNote />
       <Field id="type" label="Instrument type" error={errors.type} hint={typeLocked ? 'The type can only be changed while the instrument is a draft.' : undefined}>
         <select id="type" className={inputCls} value={values.type} disabled={typeLocked} {...a('type')}
           onChange={(e) => onChange({ type: e.target.value as FormValues['type'] })}>
@@ -62,7 +54,6 @@ export function DetailsStep({ values, onChange, errors, meta, typeLocked }: {
         <input id="amount" inputMode="decimal" className={`${inputCls} tabular-nums`} value={values.amount} {...a('amount')}
           onChange={(e) => onChange({ amount: groupAmountInput(e.target.value) })} />
       </Field>
-      <div />
       <Field id="issueDate" label="Issue date" required error={errors.issueDate}>
         <input id="issueDate" type="date" className={inputCls} value={values.issueDate} {...a('issueDate')}
           onChange={(e) => onChange({ issueDate: e.target.value })} />
@@ -79,7 +70,7 @@ export function DetailsStep({ values, onChange, errors, meta, typeLocked }: {
         hint={
           values.beneficiaryName ? undefined : (
             <>Usually “{BENEFICIARY_HINT}”.{' '}
-              <button type="button" className="font-medium text-primary-700 underline" onClick={() => onChange({ beneficiaryName: BENEFICIARY_HINT })}>
+              <button type="button" className="font-semibold text-teal underline" onClick={() => onChange({ beneficiaryName: BENEFICIARY_HINT })}>
                 Use this
               </button>
             </>
@@ -89,17 +80,17 @@ export function DetailsStep({ values, onChange, errors, meta, typeLocked }: {
         <input id="beneficiaryName" className={inputCls} placeholder={BENEFICIARY_HINT} value={values.beneficiaryName} {...a('beneficiaryName')}
           onChange={(e) => onChange({ beneficiaryName: e.target.value })} />
       </Field>
-      <div className="flex flex-col justify-end">
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" className="size-4" checked={values.lienMarked} {...a('lienMarked')} onChange={(e) => onChange({ lienMarked: e.target.checked })} />
+      <div>
+        <label className="flex items-center gap-2.5 text-[0.9375rem] font-semibold text-ink">
+          <input type="checkbox" className="size-5 accent-[var(--color-teal)]" checked={values.lienMarked} {...a('lienMarked')} onChange={(e) => onChange({ lienMarked: e.target.checked })} />
           Lien marked in favour of AICTE
         </label>
         {lienRequired && !values.lienMarked && (
-          <p className="mt-1 text-xs text-warning-700">AICTE requires a lien on FDRs; the officer will check this before acceptance.</p>
+          <p className="mt-1.5 text-[0.8125rem] text-attn-text">AICTE requires a lien on FDRs; the officer will check this before acceptance.</p>
         )}
         <FieldError id="lienMarked-error" message={errors.lienMarked} />
       </div>
-      <div className="sm:col-span-2">
+      <div>
         <Field id="purpose" label="Purpose" error={errors.purpose} hint="Optional, up to 200 characters">
           <input id="purpose" className={inputCls} value={values.purpose} maxLength={200} {...a('purpose')}
             onChange={(e) => onChange({ purpose: e.target.value })} />

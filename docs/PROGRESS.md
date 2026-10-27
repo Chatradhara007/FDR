@@ -1160,6 +1160,61 @@ dashboard page layout (filters, KPI tiles); reports and Improvement; rules edito
 tabs; instrument wizard (calm step indicator still to do); register, institutions, alerts inbox; static pages and the verify
 card. Print layouts (printable passport, release order) are deliberately unchanged apart from the shell.
 
+**Mission Desk, part 2: demo-script pages** (frontend only; branch `claude/epic-heisenberg-vjfkpc`). No backend, API, constants,
+migration or test changes; every e2e selector and string kept; print layouts unchanged.
+
+- **Scrutiny review** (`officer/ReviewPage.tsx`, `review/Comparison.tsx`, `review/DecisionPanel.tsx`): header with mono reference,
+  ProofStrip and legend. "What each source says" has the columns *The institution says | The document says (advisory) |
+  The bank holds | Result*, and on phones each row becomes a stacked card.
+  - The document column comes from the `documentFindings` the review endpoint already returns. It shows "Not read" for scans,
+    unreadable PDFs and values not found in the text, and "Not compared" for fields the text check does not cover.
+  - Result follows only the trust tier and the bank (open discrepancy or bank mismatch → Mismatch). The document column never
+    affects tiers or blockers.
+  - "Can this be accepted?" lists every `acceptBlockers` entry as a ConditionLine, then the gap warnings under "For your
+    judgement". Accept is the single primary (48 px). Verify / Re-verify is dark; Return, Add observation and Accept with
+    override are secondary.
+  - The "Worth a closer look: advisory only" box merges advisory flags and the document text check.
+  - Discrepancy cards stay (still "Institution claimed" / "Bank confirmed", Resolve with note). Their Return button moved into
+    the table row ("Return with this reason").
+  - `ActionBar`, `Checklist` and `FieldsPanel` were removed (replaced by the above).
+- **Passport**:
+  - Header: proof strip with legend, status, verification, weakest tier and alert chips. One primary action: edit, renew, or
+    Request release when nothing else applies; "Open review" (dark) for AICTE roles.
+  - Fields tab: field cards with tier shape and label. Timeline tab: a vertical lifeline. Each event carries its audit-chain
+    code `#<audit event id>`, the only chain identifier the passport payload has.
+  - Open problems are ConditionLines.
+  - Audit-integrity card: admin and auditor only, using their existing `/audit/integrity`. Other roles see only the chain codes.
+- **Release review**: same header pattern; "Where this request is" Tracker (`ReleaseTracker` in `releases/parts.tsx`, also on
+  the passport's Release tab for open requests); restyled conditions; "Your decision" side card with Recommend / Approve as the
+  single primary, Return and Reject secondary, the competent-authority line inside it; action blockers as ConditionLines.
+- **Release order**: screen-only header (kicker, mono order number, one "Print / save as PDF" button). The document sits in a
+  bordered card on screen; on phones its approval table scrolls inside the card. Print styling unchanged.
+- **Submission wizard**: calm step indicator styled like the Tracker. Step buttons are named "Step n: …" so they never clash
+  with the "Next" button.
+  - One column, max width 760. FormField everywhere, with a red asterisk on mandatory fields (it replaces "(required to
+    submit)").
+  - Upload card has a dashed file input. The duplicate-file warning is an attention Notice titled "Possible duplicate".
+  - Next / Submit for scrutiny are the large primary buttons; Upload is dark.
+- **Register**: search box, sort, a "Filters" drawer (status, type, region, bank, maturity range) with a count badge, and
+  removable filter chips. Default columns are reference (mono) + type, institution, amount, maturity + days left, status,
+  weakest proof and alerts. "More columns" adds bank and verification. As agreed, no per-row records are loaded, so the list
+  shows one weakestTier label instead of a ProofStrip.
+- **Alerts inbox**: one clean list grouped by instrument, with Acknowledge / Resolve as quiet row actions. Status tabs stay;
+  kind and escalation level moved into a "Filters" drawer (the server's existing `kind` / `level` query params).
+
+Deviations / choices:
+- No "Mark all as read" on the inbox: there is no bulk endpoint, so the page has no page-level primary action.
+- Alerts escalation-level filter offers levels 1–3 (the ladder in the seeded rules).
+
+Checks (cloud sandbox): `npm run typecheck` green; `npm run test` 303 + 9 + 7 passed; `node e2e/demo.mjs` 9/9, no console
+errors; `node e2e/ui-shots.mjs` all checks passed. A scratch Playwright run over review, passport (officer, auditor), release
+review, release order, wizard, register and alerts at 1920/1366/1280/768/390 px: no horizontal overflow, header ≤ 62 px,
+no console errors or warnings (it first found the release order overflowing at 390 px; fixed). Screenshots in
+`e2e/screenshots/mission-desk-2/` (gitignored).
+
+**Pages still to migrate** after this: audit log, release list, request-release modal, scrutiny queue, dashboard layout,
+reports and Improvement, rules editor, users, outbox, demo tools, institutions, static pages and the verify card.
+
 **Seed time budget is configurable** (follow-up, test infrastructure only). `test_phase09_seed.py::test_ac1_two_runs_identical_and_each_under_15_seconds`
 failed only in the full `npm run test` run, where a seed took 16–17 s on the shared sandbox (it passed alone). The budget now comes from
 `SEED_BUDGET_SECONDS` (default 15, the Phase 9 acceptance value), and `npm run test:py` sets 30 for the full-suite run. The
