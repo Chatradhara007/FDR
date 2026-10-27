@@ -10,7 +10,7 @@ export function VerifyPage() {
   const q = useVerifyRelease(orderNo);
   const r = q.data;
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-4 px-4 py-8">
+    <div className="mx-auto flex max-w-xl flex-col justify-center gap-4 py-4">
       <header className="text-center">
         <ShieldCheck className="mx-auto size-8 text-primary-700" aria-hidden />
         <h1 className="mt-2 text-lg font-semibold text-slate-900">Release order check</h1>
@@ -53,7 +53,7 @@ export function VerifyPage() {
           )}
         </section>
       )}
-    </main>
+    </div>
   );
 }
 

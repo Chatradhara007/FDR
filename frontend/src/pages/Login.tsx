@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import { AlertCircle, FlaskConical, Info, Landmark, LogIn } from 'lucide-react';
+import { FlaskConical, LogIn } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import type { DemoUser, SessionUser } from '@fdr/shared';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { DOC_TYPE_LABELS, INSTRUMENT_TYPES, INSTRUMENT_TYPE_LABELS, type DemoUser, type DocType, type SessionUser } from '@fdr/shared';
+import constants from '../../../shared/constants.json';
 import { ApiError, apiFetch } from '@/api/client';
 import { useAuth } from '@/auth/AuthContext';
 import { clearSignOutReason, getSignOutReason } from '@/auth/token';
-import { Button, Card, FieldError } from '@/components';
+import { Button, ButtonBar, FormField, MandatoryNote, Notice, Panel } from '@/components';
 import { ROLE_HOME } from '@/lib/roles';
 
 // Demo mode quick sign-in (D17). The seed gives every demo user this password.
@@ -21,8 +22,6 @@ const QUICK: { email: string; label: string }[] = [
   { email: 'admin@demo.in', label: 'Admin' },
   { email: 'auditor@demo.in', label: 'Auditor' },
 ];
-
-const inputCls = 'h-9 w-full rounded-md border border-slate-300 px-3 text-sm aria-[invalid=true]:border-danger-600';
 
 export function Login() {
   const { user, login } = useAuth();
@@ -66,54 +65,39 @@ export function Login() {
   const quick = QUICK.map((q) => ({ ...q, user: demoUsers.data?.find((d) => d.email === q.email) })).filter((q) => q.user);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-md space-y-4">
-        <div className="flex flex-col items-center gap-2 text-center">
-          <Landmark className="size-9 text-primary-700" aria-hidden />
-          <h1 className="text-xl font-semibold text-slate-900">FDR Portal — AICTE</h1>
-          <p className="text-sm text-slate-600">
-            Lodge, verify, track and release the fixed deposits and security deposits institutions keep with AICTE.
-          </p>
-          {quick.length > 0 && (
-            <p className="inline-flex items-center gap-1 rounded-full border border-dashed border-amber-400 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
-              <FlaskConical className="size-3.5" aria-hidden /> Synthetic demo data — no real institutions or deposits
-            </p>
-          )}
-        </div>
-        {reason && (
-          <p role="status" className="flex items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-800">
-            <Info className="size-4 shrink-0" aria-hidden />
-            {reason}
-          </p>
-        )}
-        <Card>
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <Instructions />
+      <div className="space-y-4">
+        {reason && <Notice role="status">{reason}</Notice>}
+        <Panel title="Sign in">
           <form onSubmit={onSubmit} noValidate className="space-y-4">
-            {formError && (
-              <p role="alert" className="flex items-center gap-2 rounded-md border border-danger-600/30 bg-danger-50 px-3 py-2 text-sm text-danger-700">
-                <AlertCircle className="size-4 shrink-0" aria-hidden />
-                {formError}
-              </p>
-            )}
-            <div>
-              <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">Email</label>
+            {formError && <Notice kind="error" role="alert">{formError}</Notice>}
+            <MandatoryNote />
+            <FormField id="email" label="E-mail address" required error={fieldErrors.email}>
               <input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)}
-                aria-invalid={!!fieldErrors.email} aria-describedby="email-error" className={inputCls} />
-              <FieldError id="email-error" message={fieldErrors.email} />
-            </div>
-            <div>
-              <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">Password</label>
+                aria-invalid={!!fieldErrors.email} aria-describedby="email-error" className="gov-input" />
+            </FormField>
+            <FormField id="password" label="Password" required error={fieldErrors.password}>
               <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)}
-                aria-invalid={!!fieldErrors.password} aria-describedby="password-error" className={inputCls} />
-              <FieldError id="password-error" message={fieldErrors.password} />
-            </div>
-            <Button type="submit" className="w-full" loading={pending === 'form'} disabled={!!pending} icon={<LogIn className="size-4" aria-hidden />}>
-              Sign in
-            </Button>
+                aria-invalid={!!fieldErrors.password} aria-describedby="password-error" className="gov-input" />
+            </FormField>
+            <ButtonBar>
+              <Button type="submit" loading={pending === 'form'} disabled={!!pending} icon={<LogIn className="size-4" aria-hidden />}>
+                Sign in
+              </Button>
+              <Button type="reset" variant="secondary" disabled={!!pending} onClick={() => { setEmail(''); setPassword(''); setFieldErrors({}); setFormError(null); }}>
+                Reset
+              </Button>
+            </ButtonBar>
           </form>
-        </Card>
+        </Panel>
         {quick.length > 0 && (
-          <Card title="Demo mode — sign in as">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <Panel title="Demo accounts (synthetic data)">
+            <p className="mb-3 text-sm text-slate-700">
+              <FlaskConical className="mr-1 inline size-4 align-text-bottom text-warning-700" aria-hidden />
+              These accounts exist only in the demonstration dataset. No real institutions or deposits are shown.
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2 2xl:grid-cols-4">
               {quick.map((q) => (
                 <Button
                   key={q.email}
@@ -128,9 +112,52 @@ export function Login() {
                 </Button>
               ))}
             </div>
-          </Card>
+          </Panel>
         )}
       </div>
     </div>
+  );
+}
+
+/** Required documents per instrument type, from the rule defaults in shared/constants.json (an administrator may change the live rule). */
+function requiredDocs(): { type: string; docs: string[] }[] {
+  const rule = (constants.ruleDefaults as { key: string; config: unknown }[]).find((r) => r.key === 'required_docs');
+  const config = (rule?.config ?? {}) as Record<string, DocType[]>;
+  return INSTRUMENT_TYPES.map((t) => ({ type: INSTRUMENT_TYPE_LABELS[t], docs: (config[t] ?? []).map((d) => DOC_TYPE_LABELS[d] ?? d) }));
+}
+
+function Instructions() {
+  return (
+    <Panel title="Notices / Instructions for users">
+      <div className="space-y-4 text-[0.9375rem] text-slate-800">
+        <section>
+          <h3 className="mb-1 font-bold text-navy">1. Lodging a Fixed Deposit Receipt (institutions)</h3>
+          <ol className="list-decimal space-y-1 pl-6">
+            <li>Sign in with the account issued to your institution.</li>
+            <li>Under <strong>My institution</strong>, choose to add a new instrument.</li>
+            <li>Enter the particulars exactly as printed on the receipt: Ref. No., issuing bank and branch, amount, date of issue, date of maturity and beneficiary.</li>
+            <li>Upload the required documents (below) and submit the record for scrutiny.</li>
+            <li>Track the status on the instrument page. If AICTE returns the record, correct it as advised in the remarks and resubmit.</li>
+          </ol>
+        </section>
+        <section>
+          <h3 className="mb-1 font-bold text-navy">2. Documents required</h3>
+          <table className="gov-table">
+            <thead><tr><th scope="col" className="w-20 text-right!">Sl. No.</th><th scope="col">Type of instrument</th><th scope="col">Documents to be uploaded</th></tr></thead>
+            <tbody>
+              {requiredDocs().map((r, i) => (
+                <tr key={r.type}><td className="num">{i + 1}</td><td>{r.type}</td><td>{r.docs.join(', ') || '—'}</td></tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-1 text-xs text-slate-700">Default list. The administrator may change it; the submission form always shows the documents currently required. Files: PDF, JPEG or PNG, up to 10 MB each.</p>
+        </section>
+        <section>
+          <h3 className="mb-1 font-bold text-navy">3. Whom to contact</h3>
+          <p>For sign-in problems or questions about a record, use <Link className="gov-link" to="/help/contact">Contact helpdesk</Link>. See also the <Link className="gov-link" to="/help/faq">FAQ</Link>.</p>
+        </section>
+        <Notice>The portal supports officials in their work; every acceptance and release is decided by an official.</Notice>
+      </div>
+    </Panel>
   );
 }
