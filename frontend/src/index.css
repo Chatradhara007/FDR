@@ -1,77 +1,103 @@
 @import 'tailwindcss';
-@import '@fontsource/noto-sans/400.css';
-@import '@fontsource/noto-sans/600.css';
-@import '@fontsource/noto-sans/700.css';
+@import '@fontsource/dm-sans/400.css';
+@import '@fontsource/dm-sans/500.css';
+@import '@fontsource/dm-sans/600.css';
+@import '@fontsource/dm-sans/700.css';
+@import '@fontsource/dm-mono/400.css';
+@import '@fontsource/dm-mono/500.css';
 @import '@fontsource/noto-sans-devanagari/400.css';
 @import '@fontsource/noto-sans-devanagari/600.css';
 
-/* Design tokens (UI direction v2, GIGW-style): flat, bordered, navy + white, saffron only for thin accents.
-   Semantic colours carry meaning only and are always paired with an icon and text:
-   success = bank-confirmed/healthy, warning = expiring/attention, danger = discrepancy/lapsed/blocked,
-   info = in progress, neutral = draft/claimed. */
+/* Design tokens (UI direction v4, "Mission Desk", docs/design/DESIGN.md): calm teal on near-white, ink text,
+   attention orange only for what needs action. Status and trust always carry an icon/shape and text, never colour alone.
+   The v2 names (navy, link, saffron, line, strip, primary-*, success-* …) are remapped here so pages not yet migrated
+   pick up the new palette without edits. */
 @theme {
-  --font-sans: 'Noto Sans', 'Noto Sans Devanagari', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+  --font-sans: 'DM Sans', 'Noto Sans Devanagari', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
-  /* Body text never below 14px: xs is 14px, sm 15px, base 16px (at the default text size). */
-  --text-xs: 0.875rem;
-  --text-xs--line-height: 1.35;
-  --text-sm: 0.9375rem;
-  --text-sm--line-height: 1.45;
+  /* Nothing below 12px; body text 14px and up. */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.5;
 
-  /* Flat: no shadows anywhere; corners 2–3 px. */
+  /* No shadows except floating menus and drawers (shadow-lg / shadow-xl). */
   --shadow-xs: none;
   --shadow-sm: none;
   --shadow: none;
   --shadow-md: none;
-  --shadow-lg: none;
-  --shadow-xl: none;
-  --shadow-2xl: none;
-  --radius-sm: 2px;
-  --radius-md: 2px;
-  --radius-lg: 3px;
-  --radius-xl: 3px;
-  --radius-2xl: 3px;
+  --shadow-lg: 0 10px 30px -8px rgb(31 41 51 / 0.22);
+  --shadow-xl: 0 18px 50px -12px rgb(31 41 51 / 0.3);
+  --shadow-2xl: 0 18px 50px -12px rgb(31 41 51 / 0.3);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 14px;
+  --radius-2xl: 14px;
 
-  --color-navy: #0b2a5b;
-  --color-link: #1a4b9b;
-  --color-saffron: #e87722;
-  --color-india-green: #138808;
-  --color-line: #c5cfdd;
-  --color-strip: #e6edf6;
-
-  --color-primary-50: #eef3fa;
-  --color-primary-100: #dbe5f3;
-  --color-primary-200: #b3c6e3;
-  --color-primary-300: #8aa6d2;
-  --color-primary-500: #2d5aa8;
-  --color-primary-600: #1a4b9b;
-  --color-primary-700: #0b2a5b;
-  --color-primary-800: #08214a;
-  --color-primary-900: #061a3b;
-
+  /* Mission Desk tokens */
+  --color-canvas: #f4f6f6;
   --color-surface: #ffffff;
-  --color-canvas: #f4f6f9;
+  --color-border: #dce2e2;
+  --color-hairline: #eaeeee;
+  --color-subtle: #fafbfb;
+  --color-ink: #1f2933;
+  --color-ink-2: #3e4c59;
+  --color-muted: #52606d;
+  --color-teal: #0f766e;
+  --color-teal-hover: #0b544f;
+  --color-teal-tint: #e6f4f2;
+  --color-attn: #c2410c;
+  --color-attn-text: #8a3a0a;
+  --color-attn-tint: #fff0e6;
+  --color-attn-border: #f3c9a8;
+  --color-danger: #b42318;
+  --color-danger-tint: #fdecea;
+  --color-chip: #eaeeee;
+  --color-track: #e8eded;
+  --color-tier-doc: #7cc2bb;
+  --color-tier-doc-border: #3d9a91;
+  --color-tier-claimed: #8a96a3;
 
-  --color-success-50: #edf7ec;
-  --color-success-600: #138808;
-  --color-success-700: #0e6a06;
-  --color-warning-50: #fff6eb;
-  --color-warning-600: #b25600;
-  --color-warning-700: #8a4300;
-  --color-danger-50: #fdeeee;
-  --color-danger-600: #c0262d;
-  --color-danger-700: #9b1c22;
-  --color-info-50: #eef3fa;
-  --color-info-600: #1a4b9b;
-  --color-info-700: #0b2a5b;
-  --color-neutral-50: #f3f5f8;
-  --color-neutral-600: #4a5568;
-  --color-neutral-700: #2d3748;
+  /* v2 names, remapped */
+  --color-navy: #1f2933;
+  --color-link: #0f766e;
+  --color-saffron: #0f766e;
+  --color-india-green: #0f766e;
+  --color-line: #dce2e2;
+  --color-strip: #fafbfb;
+
+  --color-primary-50: #e6f4f2;
+  --color-primary-100: #cfe9e5;
+  --color-primary-200: #a6d6cf;
+  --color-primary-300: #7cc2bb;
+  --color-primary-500: #14897f;
+  --color-primary-600: #0f766e;
+  --color-primary-700: #0f766e;
+  --color-primary-800: #0b544f;
+  --color-primary-900: #083d39;
+
+  --color-success-50: #e6f4f2;
+  --color-success-600: #0f766e;
+  --color-success-700: #0b544f;
+  --color-warning-50: #fff0e6;
+  --color-warning-600: #c2410c;
+  --color-warning-700: #8a3a0a;
+  --color-danger-50: #fdecea;
+  --color-danger-600: #b42318;
+  --color-danger-700: #912018;
+  --color-info-50: #eef2f6;
+  --color-info-600: #3e4c59;
+  --color-info-700: #1f2933;
+  --color-neutral-50: #f1f4f4;
+  --color-neutral-600: #52606d;
+  --color-neutral-700: #3e4c59;
 }
 
 @layer base {
   html {
-    @apply bg-canvas text-slate-800 antialiased;
+    @apply bg-canvas text-ink antialiased;
     font-size: 100%;
   }
   html[data-text-size='sm'] { font-size: 93.75%; }
@@ -79,17 +105,25 @@
   body { @apply bg-canvas; font-size: 1rem; line-height: 1.5; }
   a { color: inherit; }
   :focus-visible {
-    outline: 3px solid var(--color-saffron);
+    outline: 3px solid var(--color-teal);
     outline-offset: 2px;
+    border-radius: 4px;
   }
 
   /* High contrast: black on white, darker accents, underlined links. */
   html[data-contrast='high'] {
     --color-canvas: #ffffff;
     --color-line: #000000;
-    --color-strip: #e8e8e8;
-    --color-primary-600: #002a80;
-    --color-primary-700: #000033;
+    --color-border: #000000;
+    --color-hairline: #555555;
+    --color-strip: #f0f0f0;
+    --color-muted: #000000;
+    --color-ink-2: #000000;
+    --color-teal: #00504a;
+    --color-teal-hover: #00332f;
+    --color-attn-text: #5c2400;
+    --color-primary-600: #00504a;
+    --color-primary-700: #00504a;
     --color-slate-500: #1a1a1a;
     --color-slate-600: #000000;
     --color-slate-700: #000000;
@@ -104,15 +138,16 @@
 }
 
 @layer components {
-  /* Government-style data table: full grid, navy header, zebra rows. */
+  /* Tables: no grid or zebra, hairline row dividers, roomy rows, small uppercase header. */
   .gov-table { @apply w-full border-collapse text-sm; }
-  .gov-table th { @apply border border-line bg-navy px-3 py-2 text-left font-semibold text-white; }
-  .gov-table td { @apply border border-line px-3 py-2 align-top text-slate-800; }
-  .gov-table tbody tr:nth-child(even) td { background: #f5f8fc; }
-  .gov-table tbody tr:hover td { background: #e9f0fa; }
+  .gov-table th { @apply border-b border-border bg-surface px-4 py-3 text-left text-xs font-bold tracking-[0.05em] text-muted uppercase; }
+  .gov-table td { @apply border-b border-hairline px-4 py-3 align-top text-ink; }
+  .gov-table tbody tr:hover td { background: var(--color-subtle); }
   .gov-table .num { @apply whitespace-nowrap text-right tabular-nums; }
-  .gov-link { @apply text-link underline-offset-2 hover:underline; }
-  .gov-input { @apply h-10 w-full rounded-none border border-slate-400 bg-white px-3 text-sm text-slate-900 aria-[invalid=true]:border-danger-600; }
+  .gov-link { @apply text-teal underline-offset-2 hover:text-teal-hover hover:underline; }
+  .gov-input { @apply h-11 w-full rounded-[10px] border border-border bg-white px-3.5 text-[0.9375rem] text-ink aria-[invalid=true]:border-danger; }
+  .kicker { @apply text-[0.8125rem] font-bold tracking-[0.05em] uppercase; }
+  .mono { font-family: var(--font-mono); }
 }
 
 @media (prefers-reduced-motion: reduce) {

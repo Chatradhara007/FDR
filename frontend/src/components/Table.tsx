@@ -16,7 +16,7 @@ export interface Column<T> {
 type Dir = 'asc' | 'desc';
 
 /**
- * Government-style data table: full grid borders, navy header, zebra rows, sortable headers.
+ * Data table: hairline row dividers, no grid or zebra, sticky small-caps header, sortable headers.
  * Opt-in: `serial` adds a "Sl. No." column, `search` a filter box (matched against the given text),
  * `pageSize` pagination with "Showing 1 to 10 of 60 entries".
  */
@@ -76,13 +76,13 @@ export function Table<T>({ columns, rows, rowKey, loading, emptyTitle = 'No reco
             <span className="relative">
               <Search className="pointer-events-none absolute top-1/2 left-2 size-4 -translate-y-1/2 text-slate-500" aria-hidden />
               <input id={searchId} type="search" value={query} onChange={(e) => { setQuery(e.target.value); setPage(0); }}
-                className="h-9 w-56 rounded-none border border-slate-400 bg-white pr-2 pl-8 text-sm" />
+                className="h-9 w-56 rounded-[8px] border border-border bg-white pr-2 pl-8 text-sm" />
             </span>
           </label>
         </div>
       )}
       {/* Wide tables scroll inside this frame; the page itself never scrolls sideways. */}
-      <div className={cn('overflow-x-auto border border-line bg-surface', (visible.length ?? 0) > 15 && 'max-h-[calc(100vh-10rem)] overflow-y-auto')}>
+      <div className={cn('relative overflow-x-auto rounded-[14px] border border-border bg-surface', (visible.length ?? 0) > 15 && 'max-h-[calc(100vh-10rem)] overflow-y-auto')}>
         <table className="gov-table">
           {caption && <caption className="sr-only">{caption}</caption>}
           <thead className="sticky top-0 z-10">
@@ -99,9 +99,9 @@ export function Table<T>({ columns, rows, rowKey, loading, emptyTitle = 'No reco
                     className={cn('whitespace-nowrap', c.align === 'right' && 'text-right!', c.className)}
                   >
                     {c.sortValue ? (
-                      <button type="button" onClick={() => toggle(c.key)} className="inline-flex items-center gap-1 font-semibold text-white hover:underline">
+                      <button type="button" onClick={() => toggle(c.key)} className="inline-flex items-center gap-1 font-bold uppercase tracking-[0.05em] text-muted hover:text-ink">
                         {c.header}
-                        <SortIcon className={cn('size-3.5', active ? 'text-white' : 'text-primary-200')} aria-hidden />
+                        <SortIcon className={cn('size-3.5', active ? 'text-ink' : 'text-slate-400')} aria-hidden />
                       </button>
                     ) : c.header}
                   </th>
@@ -115,7 +115,7 @@ export function Table<T>({ columns, rows, rowKey, loading, emptyTitle = 'No reco
                   <tr key={i} aria-hidden>
                     {serial && <td />}
                     {columns.map((c) => (
-                      <td key={c.key}><div className="h-4 animate-pulse bg-slate-200" /></td>
+                      <td key={c.key}><div className="h-4 animate-pulse rounded bg-chip" /></td>
                     ))}
                   </tr>
                 ))
@@ -159,7 +159,7 @@ export function Table<T>({ columns, rows, rowKey, loading, emptyTitle = 'No reco
 function PageButton({ children, onClick, disabled, active, label }: { children: ReactNode; onClick: () => void; disabled?: boolean; active?: boolean; label?: string }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled} aria-label={label} aria-current={active ? 'page' : undefined}
-      className={cn('h-8 min-w-8 border px-2 text-sm', active ? 'border-navy bg-navy text-white' : 'border-line bg-white text-link hover:bg-primary-50', disabled && 'cursor-not-allowed text-slate-500')}>
+      className={cn('h-9 min-w-9 rounded-[8px] border px-2 text-sm', active ? 'border-ink bg-ink text-white' : 'border-border bg-white text-ink hover:bg-subtle', disabled && 'cursor-not-allowed text-slate-500')}>
       {children}
     </button>
   );

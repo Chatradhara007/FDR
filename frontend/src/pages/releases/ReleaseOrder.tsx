@@ -1,4 +1,5 @@
-import { ArrowLeft, Printer } from 'lucide-react';
+import { Printer } from 'lucide-react';
+import { BackLink } from '@/components/PageHeader';
 import { Link, useParams } from 'react-router-dom';
 import { INSTRUMENT_TYPE_LABELS, RELEASE_DECISION_LABELS, formatDate, formatINR } from '@fdr/shared';
 import { useReleaseRequest } from '@/api/releases';
@@ -35,9 +36,7 @@ export function ReleaseOrder() {
   return (
     <>
       <div className="mb-4 flex items-center justify-between print:hidden">
-        <Link to={`/instruments/${inst.id}`} className="inline-flex items-center gap-1 text-sm text-primary-700 hover:underline">
-          <ArrowLeft className="size-4" aria-hidden /> Passport
-        </Link>
+        <BackLink to={`/instruments/${inst.id}`} label="the deposit’s passport" />
         <Button icon={<Printer className="size-4" aria-hidden />} onClick={() => window.print()}>Print / save as PDF</Button>
       </div>
       <article className="mx-auto max-w-3xl bg-white p-10 font-serif text-[15px] leading-relaxed text-black shadow-sm ring-1 ring-slate-200 print:max-w-none print:p-0 print:shadow-none print:ring-0">

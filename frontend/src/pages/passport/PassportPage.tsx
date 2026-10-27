@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, ArrowLeft, ClipboardCheck, HandCoins, Pencil, Printer, RefreshCcw } from 'lucide-react';
+import { AlertTriangle, ClipboardCheck, HandCoins, Pencil, Printer, RefreshCcw } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   INSTRUMENT_TYPE_LABELS, OPEN_RELEASE_REQUEST_STATUSES, RELEASABLE_STATUSES, RENEWABLE_STATUSES, TERMINAL_STATUSES, type Passport,
@@ -10,7 +10,8 @@ import {
   Badge, Button, Card, DateText, DocChecklist, DocumentList, EmptyState, Money, ObservationItem, StatusChip, Tabs, VerificationChip,
   WeakestTierBadge, WorstAlertChip, useToast,
 } from '@/components';
-import { ROLE_HOME } from '@/lib/roles';
+import { ROLE_HOME, ROLE_HOME_LABEL } from '@/lib/roles';
+import { BackLink } from '@/components/PageHeader';
 import { ReturnBanner } from '@/pages/institution/ReturnBanner';
 import { RequestReleaseModal } from '@/pages/releases/RequestReleaseModal';
 import { ChainTab } from './ChainTab';
@@ -97,9 +98,7 @@ function PassportView({ id }: { id: string }) {
 
   return (
     <>
-      <Link to={home} className="mb-3 inline-flex items-center gap-1 text-sm text-primary-700 hover:underline">
-        <ArrowLeft className="size-4" aria-hidden /> Back
-      </Link>
+      <BackLink to={home} label={user ? ROLE_HOME_LABEL[user.role] : 'Home'} />
       <header className="mb-4 rounded-lg border border-slate-200 bg-surface p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">

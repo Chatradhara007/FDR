@@ -45,7 +45,7 @@ export function Improvement() {
   };
   return (
     <>
-      <PageHeader title="Improvement metrics" subtitle="The portal's own figures next to the assumed manual process."
+      <PageHeader back={{ to: '/reports', label: 'Reports' }} title="Improvement metrics" subtitle="The portal's own figures next to the assumed manual process."
         actions={<Button variant="secondary" icon={<Download className="size-4" aria-hidden />} loading={downloading} onClick={() => void download()}>Download CSV</Button>} />
       {q.isError && <EmptyState title="Could not load the metrics" description={q.error.message} />}
       {q.data && (

@@ -1,16 +1,13 @@
-import { ChevronDown, Menu, X } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import type { MenuEntry, NavItem } from '@/lib/nav';
 
-const itemCls = 'relative flex h-11 items-center gap-1 whitespace-nowrap px-4 text-[0.9375rem] font-semibold text-white hover:bg-primary-600 focus-visible:bg-primary-600';
-/** Saffron underline on the active entry (plus aria-current; never colour alone: it is also bold and underlined). */
-const activeCls = 'after:absolute after:inset-x-2 after:bottom-0 after:h-[3px] after:bg-saffron bg-primary-800';
-
-function isActive(path: string, item: NavItem) {
-  return path === item.to;
-}
+/** Pill: muted text; active = ink background, white text, bold (plus aria-current, never colour alone). */
+const pill = 'flex h-9 w-full items-center gap-1 rounded-[8px] px-3.5 text-[0.90625rem] whitespace-nowrap lg:w-auto';
+const idle = 'text-muted hover:bg-chip hover:text-ink';
+const active = 'bg-ink font-semibold text-white';
 
 function Group({ label, items, path, onNavigate }: { label: string; items: NavItem[]; path: string; onNavigate: () => void }) {
   const [open, setOpen] = useState(false);
@@ -18,7 +15,7 @@ function Group({ label, items, path, onNavigate }: { label: string; items: NavIt
   const root = useRef<HTMLLIElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const links = useRef<(HTMLAnchorElement | null)[]>([]);
-  const active = items.some((i) => isActive(path, i));
+  const isActive = items.some((i) => path === i.to);
 
   useEffect(() => {
     if (!open) return;
@@ -57,17 +54,17 @@ function Group({ label, items, path, onNavigate }: { label: string; items: NavIt
     <li ref={root} className="relative" onBlur={(e) => { if (!root.current?.contains(e.relatedTarget as Node)) setOpen(false); }}>
       <button ref={button} type="button" aria-expanded={open} aria-haspopup="true" aria-controls={id}
         onClick={() => setOpen((o) => !o)} onKeyDown={onButtonKey}
-        className={cn(itemCls, 'w-full', active && activeCls)}>
+        className={cn(pill, isActive ? active : idle)}>
         {label}
         <ChevronDown className={cn('size-4', open && 'rotate-180')} aria-hidden />
       </button>
       {open && (
-        <ul id={id} className="z-40 min-w-56 border border-line bg-white py-1 lg:absolute lg:top-full lg:left-0">
+        <ul id={id} className="z-40 mt-1 min-w-52 rounded-[10px] border border-border bg-white p-1 lg:absolute lg:top-full lg:left-0 lg:shadow-lg">
           {items.map((item, i) => (
             <li key={item.to}>
               <NavLink to={item.to} end ref={(el) => { links.current[i] = el; }} onKeyDown={(e) => onItemKey(e, i)}
                 onClick={() => { setOpen(false); onNavigate(); }}
-                className={({ isActive: a }) => cn('block border-l-4 px-4 py-2 text-sm', a ? 'border-saffron bg-primary-50 font-bold text-navy' : 'border-transparent text-navy hover:bg-primary-50 focus-visible:bg-primary-50')}>
+                className={({ isActive: a }) => cn('block rounded-[8px] px-3 py-2 text-sm', a ? 'bg-teal-tint font-semibold text-ink' : 'text-ink hover:bg-subtle focus-visible:bg-subtle')}>
                 {item.label}
               </NavLink>
             </li>
@@ -78,31 +75,23 @@ function Group({ label, items, path, onNavigate }: { label: string; items: NavIt
   );
 }
 
-/** Full-width deep-navy menu bar with role-aware items and dropdown groups; a hamburger below 1024 px. */
-export function MenuBar({ entries }: { entries: MenuEntry[] }) {
+/** Role-aware nav pills with small dropdown groups. Below 1024 px the list opens from the header's "Menu" button. */
+export function NavPills({ entries, mobileOpen, onNavigate }: { entries: MenuEntry[]; mobileOpen: boolean; onNavigate: () => void }) {
   const { pathname } = useLocation();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  useEffect(() => setMobileOpen(false), [pathname]);
   return (
-    <nav aria-label="Main" className="bg-navy print:hidden" data-testid="menu-bar">
-      <div className="mx-auto max-w-[1600px] px-0 sm:px-2 lg:px-4">
-        <button type="button" className={cn(itemCls, 'lg:hidden')} aria-expanded={mobileOpen} aria-controls="main-menu"
-          onClick={() => setMobileOpen((o) => !o)}>
-          {mobileOpen ? <X className="size-5" aria-hidden /> : <Menu className="size-5" aria-hidden />} Menu
-        </button>
-        <ul id="main-menu" data-testid="menu-list"
-          className={cn('flex-col lg:flex lg:flex-row lg:flex-nowrap lg:items-stretch', mobileOpen ? 'flex' : 'hidden')}>
-          {entries.map((e) =>
-            e.kind === 'link' ? (
-              <li key={e.item.to}>
-                <NavLink to={e.item.to} end className={({ isActive: a }) => cn(itemCls, a && activeCls)}>{e.item.label}</NavLink>
-              </li>
-            ) : (
-              <Group key={e.label} label={e.label} items={e.items} path={pathname} onNavigate={() => setMobileOpen(false)} />
-            ),
-          )}
-        </ul>
-      </div>
+    <nav aria-label="Main" data-testid="menu-bar"
+      className={cn('print:hidden lg:block', mobileOpen ? 'order-last block w-full basis-full border-t border-hairline py-2' : 'hidden')}>
+      <ul id="main-menu" data-testid="menu-list" className="flex flex-col gap-1 lg:flex-row lg:flex-nowrap lg:items-center lg:gap-1.5">
+        {entries.map((e) =>
+          e.kind === 'link' ? (
+            <li key={e.item.to}>
+              <NavLink to={e.item.to} end onClick={onNavigate} className={({ isActive: a }) => cn(pill, a ? active : idle)}>{e.item.label}</NavLink>
+            </li>
+          ) : (
+            <Group key={e.label} label={e.label} items={e.items} path={pathname} onNavigate={onNavigate} />
+          ),
+        )}
+      </ul>
     </nav>
   );
 }

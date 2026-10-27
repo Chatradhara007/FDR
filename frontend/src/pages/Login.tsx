@@ -7,7 +7,7 @@ import constants from '../../../shared/constants.json';
 import { ApiError, apiFetch } from '@/api/client';
 import { useAuth } from '@/auth/AuthContext';
 import { clearSignOutReason, getSignOutReason } from '@/auth/token';
-import { Button, ButtonBar, FormField, MandatoryNote, Notice, Panel } from '@/components';
+import { Button, FormField, MandatoryNote, Notice } from '@/components';
 import { ROLE_HOME } from '@/lib/roles';
 
 // Demo mode quick sign-in (D17). The seed gives every demo user this password.
@@ -65,55 +65,63 @@ export function Login() {
   const quick = QUICK.map((q) => ({ ...q, user: demoUsers.data?.find((d) => d.email === q.email) })).filter((q) => q.user);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-      <Instructions />
-      <div className="space-y-4">
-        {reason && <Notice role="status">{reason}</Notice>}
-        <Panel title="Sign in">
-          <form onSubmit={onSubmit} noValidate className="space-y-4">
-            {formError && <Notice kind="error" role="alert">{formError}</Notice>}
-            <MandatoryNote />
-            <FormField id="email" label="E-mail address" required error={fieldErrors.email}>
-              <input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)}
-                aria-invalid={!!fieldErrors.email} aria-describedby="email-error" className="gov-input" />
-            </FormField>
-            <FormField id="password" label="Password" required error={fieldErrors.password}>
-              <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)}
-                aria-invalid={!!fieldErrors.password} aria-describedby="password-error" className="gov-input" />
-            </FormField>
-            <ButtonBar>
-              <Button type="submit" loading={pending === 'form'} disabled={!!pending} icon={<LogIn className="size-4" aria-hidden />}>
-                Sign in
-              </Button>
-              <Button type="reset" variant="secondary" disabled={!!pending} onClick={() => { setEmail(''); setPassword(''); setFieldErrors({}); setFormError(null); }}>
-                Reset
-              </Button>
-            </ButtonBar>
-          </form>
-        </Panel>
-        {quick.length > 0 && (
-          <Panel title="Demo accounts (synthetic data)">
-            <p className="mb-3 text-sm text-slate-700">
-              <FlaskConical className="mr-1 inline size-4 align-text-bottom text-warning-700" aria-hidden />
-              These accounts exist only in the demonstration dataset. No real institutions or deposits are shown.
-            </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2 2xl:grid-cols-4">
-              {quick.map((q) => (
-                <Button
-                  key={q.email}
-                  variant="secondary"
-                  size="sm"
-                  title={`${q.user!.name}${q.user!.institutionName ? ` · ${q.user!.institutionName}` : ''}`}
-                  loading={pending === q.email}
-                  disabled={!!pending}
-                  onClick={() => void signIn(q.email, DEMO_PASSWORD, q.email)}
-                >
-                  {q.label}
+    <div className="mx-auto max-w-[1100px]">
+      <div className="mb-7">
+        <h1 className="text-[2rem] leading-tight font-bold tracking-[-0.02em]">Sign in to the FDR Portal</h1>
+        <p className="mt-2 text-[1.0625rem] text-muted">Lodge, verify and release fixed deposits and security deposits held by AICTE.</p>
+      </div>
+      <div className="flex flex-wrap items-start gap-[22px]">
+        <div className="min-w-0 flex-[1_1_420px] space-y-[22px] lg:max-w-[520px]">
+          {reason && <Notice role="status">{reason}</Notice>}
+          <section className="rounded-[14px] border border-border bg-white p-[26px]">
+            <h2 className="text-lg font-bold">Your account</h2>
+            <form onSubmit={onSubmit} noValidate className="mt-4 space-y-4">
+              {formError && <Notice kind="error" role="alert">{formError}</Notice>}
+              <FormField id="email" label="E-mail address" required error={fieldErrors.email}>
+                <input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)}
+                  aria-invalid={!!fieldErrors.email} aria-describedby="email-error" className="gov-input" />
+              </FormField>
+              <FormField id="password" label="Password" required error={fieldErrors.password}>
+                <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)}
+                  aria-invalid={!!fieldErrors.password} aria-describedby="password-error" className="gov-input" />
+              </FormField>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <Button type="submit" size="lg" loading={pending === 'form'} disabled={!!pending} icon={<LogIn className="size-4" aria-hidden />}>
+                  Sign in
                 </Button>
-              ))}
-            </div>
-          </Panel>
-        )}
+                <Button type="reset" variant="secondary" disabled={!!pending} onClick={() => { setEmail(''); setPassword(''); setFieldErrors({}); setFormError(null); }}>
+                  Reset
+                </Button>
+              </div>
+              <MandatoryNote />
+            </form>
+          </section>
+          {quick.length > 0 && (
+            <section className="rounded-[14px] border border-border bg-white p-[26px]">
+              <h2 className="text-lg font-bold">Demo accounts (synthetic data)</h2>
+              <p className="mt-1.5 mb-4 text-sm text-muted">
+                <FlaskConical className="mr-1 inline size-4 align-text-bottom text-attn" aria-hidden />
+                One click signs you in. These accounts exist only in the demonstration dataset.
+              </p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {quick.map((q) => (
+                  <Button
+                    key={q.email}
+                    variant="secondary"
+                    size="sm"
+                    title={`${q.user!.name}${q.user!.institutionName ? ` · ${q.user!.institutionName}` : ''}`}
+                    loading={pending === q.email}
+                    disabled={!!pending}
+                    onClick={() => void signIn(q.email, DEMO_PASSWORD, q.email)}
+                  >
+                    {q.label}
+                  </Button>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+        <Instructions />
       </div>
     </div>
   );
@@ -128,36 +136,32 @@ function requiredDocs(): { type: string; docs: string[] }[] {
 
 function Instructions() {
   return (
-    <Panel title="Notices / Instructions for users">
-      <div className="space-y-4 text-[0.9375rem] text-slate-800">
-        <section>
-          <h3 className="mb-1 font-bold text-navy">1. Lodging a Fixed Deposit Receipt (institutions)</h3>
-          <ol className="list-decimal space-y-1 pl-6">
-            <li>Sign in with the account issued to your institution.</li>
-            <li>Under <strong>My institution</strong>, choose to add a new instrument.</li>
-            <li>Enter the particulars exactly as printed on the receipt: Ref. No., issuing bank and branch, amount, date of issue, date of maturity and beneficiary.</li>
-            <li>Upload the required documents (below) and submit the record for scrutiny.</li>
-            <li>Track the status on the instrument page. If AICTE returns the record, correct it as advised in the remarks and resubmit.</li>
-          </ol>
-        </section>
-        <section>
-          <h3 className="mb-1 font-bold text-navy">2. Documents required</h3>
-          <table className="gov-table">
-            <thead><tr><th scope="col" className="w-20 text-right!">Sl. No.</th><th scope="col">Type of instrument</th><th scope="col">Documents to be uploaded</th></tr></thead>
-            <tbody>
-              {requiredDocs().map((r, i) => (
-                <tr key={r.type}><td className="num">{i + 1}</td><td>{r.type}</td><td>{r.docs.join(', ') || '—'}</td></tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="mt-1 text-xs text-slate-700">Default list. The administrator may change it; the submission form always shows the documents currently required. Files: PDF, JPEG or PNG, up to 10 MB each.</p>
-        </section>
-        <section>
-          <h3 className="mb-1 font-bold text-navy">3. Whom to contact</h3>
-          <p>For sign-in problems or questions about a record, use <Link className="gov-link" to="/help/contact">Contact helpdesk</Link>. See also the <Link className="gov-link" to="/help/faq">FAQ</Link>.</p>
-        </section>
-        <Notice>The portal supports officials in their work; every acceptance and release is decided by an official.</Notice>
-      </div>
-    </Panel>
+    <section className="min-w-0 flex-[2_1_480px] rounded-[14px] border border-border bg-white p-[26px] text-[0.9375rem]">
+      <h2 className="text-lg font-bold">What this portal does</h2>
+      <ol className="mt-4 space-y-3">
+        {[
+          ['Institutions lodge a deposit', 'Enter the particulars exactly as printed on the receipt and upload the documents below.'],
+          ['An AICTE officer checks it with the bank', 'Each field shows how much is proven: bank-confirmed, document-checked or only claimed.'],
+          ['The portal watches maturity', 'Reminders go out before a deposit matures; overdue items are escalated.'],
+          ['Officials decide every release', 'An officer recommends, the competent authority approves, and a release order with a QR code is issued.'],
+        ].map(([t, d], i) => (
+          <li key={t} className="flex gap-3">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-chip text-[13px] font-bold text-ink-2">{i + 1}</span>
+            <span><strong className="block">{t}</strong><span className="text-muted">{d}</span></span>
+          </li>
+        ))}
+      </ol>
+      <h3 className="kicker mt-7 mb-1 text-muted">Documents required</h3>
+      <table className="gov-table">
+        <thead><tr><th scope="col">Type of deposit</th><th scope="col">Documents to upload</th></tr></thead>
+        <tbody>
+          {requiredDocs().map((r) => (
+            <tr key={r.type}><td className="font-semibold">{r.type}</td><td>{r.docs.join(', ') || '—'}</td></tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-2 text-[0.8125rem] text-muted">Default list; the submission form always shows what is currently required. PDF, JPEG or PNG, up to 10 MB each.</p>
+      <p className="mt-4 text-sm">Problems signing in? <Link className="gov-link" to="/help/contact">Contact the helpdesk</Link> or read the <Link className="gov-link" to="/help/faq">FAQ</Link>.</p>
+    </section>
   );
 }

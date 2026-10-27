@@ -1,4 +1,5 @@
-import { ArrowLeft, Hand, Undo2 } from 'lucide-react';
+import { Hand, Undo2 } from 'lucide-react';
+import { BackLink } from '@/components/PageHeader';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { INSTRUMENT_TYPE_LABELS } from '@fdr/shared';
@@ -37,9 +38,7 @@ export function ReviewPage() {
 
   return (
     <>
-      <Link to="/officer/queue" className="mb-3 inline-flex items-center gap-1 text-sm text-primary-700 hover:underline">
-        <ArrowLeft className="size-4" aria-hidden /> Scrutiny queue
-      </Link>
+      <BackLink to="/officer/queue" label="Scrutiny queue" />
       <header className="mb-4 rounded-lg border border-slate-200 bg-surface p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
