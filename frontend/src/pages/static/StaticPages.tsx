@@ -5,7 +5,7 @@ function Page({ title, children }: { title: string; children: ReactNode }) {
   return (
     <article className="mx-auto max-w-[44rem]">
       <PageHeader title={title} />
-      <div className="space-y-4 text-[1.0625rem] leading-[1.75] text-slate-800 [&_h2]:mt-8 [&_h2]:font-serif [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-slate-900 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6">{children}</div>
+      <div className="space-y-4 text-[1.0625rem] leading-[1.75] text-slate-800 [&_h2]:mt-8 [&_h2]:[&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-slate-900 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6">{children}</div>
       <p className="mt-10 border-t border-line pt-4 text-sm text-slate-600">This page belongs to a hackathon prototype. Its text is a placeholder and is not an official policy of any organisation.</p>
     </article>
   );

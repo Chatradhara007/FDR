@@ -10,7 +10,7 @@ export function Wordmark({ bilingual }: { bilingual?: boolean }) {
       </svg>
       <span className="min-w-0 leading-tight">
         {bilingual && <span lang="hi" className="block text-sm text-slate-600">सुरक्षा जमा एवं एफडीआर प्रबंधन पोर्टल</span>}
-        <span className="block font-serif text-lg font-semibold text-slate-900">
+        <span className="block text-[1.0625rem] font-semibold tracking-tight text-gray-900">
           {bilingual ? 'Security Deposit & FDR Management Portal' : 'FDR Portal'}
         </span>
       </span>

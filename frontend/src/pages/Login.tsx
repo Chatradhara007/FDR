@@ -69,7 +69,7 @@ export function Login() {
       <div className="space-y-6">
         {reason && <Notice role="status">{reason}</Notice>}
         <section className="rounded-xl border border-line bg-surface p-6 sm:p-8">
-          <h2 className="font-serif text-2xl font-semibold text-slate-900">Sign in</h2>
+          <h2 className="text-2xl font-semibold text-slate-900">Sign in</h2>
           <form onSubmit={onSubmit} noValidate className="mt-6 space-y-5">
             {formError && <Notice kind="error" role="alert">{formError}</Notice>}
             <FormField id="email" label="E-mail address" required error={fieldErrors.email}>
@@ -90,7 +90,7 @@ export function Login() {
             <h2 className="text-base font-semibold text-slate-900">Demo accounts (synthetic data)</h2>
             <p className="mt-1 mb-3 flex items-start gap-1.5 text-sm text-slate-600">
               <FlaskConical className="mt-0.5 size-4 shrink-0 text-warning-700" aria-hidden />
-              One click signs in. No real institutions or deposits are shown.
+              For the demonstration only. All names and amounts are made up.
             </p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2">
               {quick.map((q) => (
@@ -115,20 +115,20 @@ export function Login() {
 }
 
 const STEPS = [
-  { title: 'Lodge', text: 'Institutions enter the deposit as printed on the receipt and upload the documents.' },
-  { title: 'Verify', text: 'An AICTE officer checks it with the issuing bank and accepts it, or returns it with remarks.' },
-  { title: 'Watch and release', text: 'The portal tracks maturity and renewals. An official decides every release.' },
+  { title: 'Institution lodges the FDR', text: 'Enter the details as printed on the receipt and upload a scanned copy.' },
+  { title: 'AICTE verifies with the bank', text: 'The scrutiny officer confirms the amount and dates with the issuing bank.' },
+  { title: 'Maturity, renewal and release', text: 'Reminders go out before maturity. Release is approved by the competent authority.' },
 ];
 
 function Intro() {
   return (
     <div className="max-w-xl">
-      <h1 className="font-serif text-4xl leading-tight font-semibold text-slate-900">Security deposits and FDRs, in one ledger.</h1>
-      <p className="mt-4 text-lg text-slate-600">Sign in with the account issued to you.</p>
+      <h1 className="text-4xl leading-tight font-semibold text-slate-900">Sign in to the FDR Portal</h1>
+      <p className="mt-4 text-lg text-slate-600">Use the account issued to you by AICTE. Institutions and AICTE staff sign in here.</p>
       <ol className="mt-10 space-y-6">
         {STEPS.map((s, i) => (
           <li key={s.title} className="flex gap-4">
-            <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#d6d0c4] font-serif text-ink">{i + 1}</span>
+            <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#cbd5e1] text-ink">{i + 1}</span>
             <div>
               <p className="font-medium text-slate-900">{s.title}</p>
               <p className="text-slate-600">{s.text}</p>

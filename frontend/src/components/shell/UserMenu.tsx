@@ -30,10 +30,10 @@ export function UserMenu() {
   return (
     <div ref={root} className="relative">
       <button type="button" aria-expanded={open} aria-controls={id} aria-label={`Account: ${user.name}`} onClick={() => setOpen((o) => !o)}
-        className="flex h-10 items-center gap-2 rounded-full pr-1 pl-1 hover:bg-strip 2xl:pr-2">
-        <span className="inline-flex size-8 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-ink" aria-hidden>{initials(user.name)}</span>
-        <span className="hidden max-w-40 truncate text-sm font-medium text-slate-800 2xl:inline" data-testid="user-name">{user.name}</span>
-        <ChevronDown className="hidden size-4 text-slate-500 2xl:block" aria-hidden />
+        className="flex h-8 items-center gap-2 rounded-full pr-1 pl-0.5 hover:bg-white lg:pr-2">
+        <span className="inline-flex size-7 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-ink" aria-hidden>{initials(user.name)}</span>
+        <span className="hidden max-w-48 truncate text-sm font-medium text-gray-800 lg:inline" data-testid="user-name">{user.name}</span>
+        <ChevronDown className="hidden size-4 text-gray-500 lg:block" aria-hidden />
       </button>
       {open && (
         <div id={id} className="fade-in absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-line bg-white p-2 shadow-md">

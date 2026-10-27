@@ -8,7 +8,7 @@ type Size = 'sm' | 'md';
 /** Primary: solid ink. Secondary: white with a hairline border. One primary action per screen. */
 const variants: Record<Variant, string> = {
   primary: 'bg-ink text-white border border-ink hover:bg-primary-800 disabled:bg-slate-300 disabled:border-slate-300',
-  secondary: 'bg-white text-ink border border-[#d6d0c4] hover:bg-strip disabled:text-slate-500',
+  secondary: 'bg-white text-ink border border-[#cbd5e1] hover:bg-strip disabled:text-slate-500',
   danger: 'bg-danger-600 text-white border border-danger-600 hover:bg-danger-700 disabled:bg-slate-300 disabled:border-slate-300',
   ghost: 'text-ink border border-transparent hover:bg-strip disabled:text-slate-500',
   link: 'text-ink border border-transparent underline-offset-4 hover:underline disabled:text-slate-500 px-0!',

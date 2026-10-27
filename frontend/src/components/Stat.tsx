@@ -13,12 +13,12 @@ export function StatTile({ label, value, note, to, tone }: { label: string; valu
   const body = (
     <>
       <div className="text-sm font-medium text-slate-600">{label}</div>
-      <div className={cn('mt-1 font-serif text-[2.25rem] leading-none font-semibold tabular-nums', tone === 'danger' ? 'text-danger-700' : tone === 'warning' ? 'text-warning-700' : 'text-slate-900')}>{value}</div>
+      <div className={cn('mt-1 text-[2.25rem] leading-none font-semibold tabular-nums', tone === 'danger' ? 'text-danger-700' : tone === 'warning' ? 'text-warning-700' : 'text-slate-900')}>{value}</div>
       {note && <div className="mt-2 text-sm text-slate-600">{note}</div>}
     </>
   );
   const cls = 'block min-w-0 rounded-xl border border-line bg-surface px-5 py-4';
-  return to ? <Link to={to} className={cn(cls, 'transition-colors hover:border-[#d6d0c4] hover:bg-[#fdfcfa]')}>{body}</Link> : <div className={cls}>{body}</div>;
+  return to ? <Link to={to} className={cn(cls, 'transition-colors hover:border-[#cbd5e1] hover:bg-[#f8fafc]')}>{body}</Link> : <div className={cls}>{body}</div>;
 }
 
 /** A row of 3 or 4 headline numbers. */
@@ -52,7 +52,7 @@ export function StepIndicator({ steps, current, compact }: { steps: string[]; cu
         return (
           <li key={s} className="flex items-center gap-2" aria-current={now ? 'step' : undefined}>
             <span className={cn('inline-flex shrink-0 items-center justify-center rounded-full border', compact ? 'size-4' : 'size-6 text-xs',
-              done ? 'border-ink bg-ink text-white' : now ? 'border-ink text-ink' : 'border-[#d6d0c4] text-slate-500')}>
+              done ? 'border-ink bg-ink text-white' : now ? 'border-ink text-ink' : 'border-[#cbd5e1] text-slate-500')}>
               {done ? <Check className={compact ? 'size-2.5' : 'size-3.5'} aria-hidden /> : !compact && i + 1}
             </span>
             <span className={cn(now ? 'font-medium text-slate-900' : 'text-slate-600')}>{s}{done && <span className="sr-only"> (done)</span>}</span>

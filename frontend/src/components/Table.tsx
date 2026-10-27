@@ -82,12 +82,12 @@ export function Table<T>({ columns, rows, rowKey, loading, emptyTitle = 'No reco
               <span className="sr-only">Search</span>
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-500" aria-hidden />
               <input id={searchId} type="search" placeholder="Search" value={query} onChange={(e) => { setQuery(e.target.value); setPage(0); }}
-                className="h-10 w-60 rounded-lg border border-[#d6d0c4] bg-white pr-3 pl-9 text-sm" />
+                className="h-10 w-60 rounded-lg border border-[#cbd5e1] bg-white pr-3 pl-9 text-sm" />
             </label>
           )}
           {optional.length > 0 && (
             <details className="relative">
-              <summary className="inline-flex h-10 cursor-pointer list-none items-center gap-2 rounded-lg border border-[#d6d0c4] bg-white px-3 text-sm text-ink hover:bg-strip">
+              <summary className="inline-flex h-10 cursor-pointer list-none items-center gap-2 rounded-lg border border-[#cbd5e1] bg-white px-3 text-sm text-ink hover:bg-strip">
                 <Columns3 className="size-4" aria-hidden /> Columns
               </summary>
               <div className="absolute right-0 z-20 mt-1 min-w-48 rounded-xl border border-line bg-white p-2 shadow-md">

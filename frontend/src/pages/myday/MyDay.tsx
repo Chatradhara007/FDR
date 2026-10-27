@@ -10,7 +10,7 @@ function ScorePill({ score }: { score: number }) {
   const band = score >= 60 ? 'High' : score >= 35 ? 'Medium' : 'Low';
   return (
     <span className="inline-flex w-28 shrink-0 flex-col items-start whitespace-nowrap">
-      <span className="font-serif text-2xl leading-none font-semibold tabular-nums text-slate-900">{score}</span>
+      <span className="text-2xl leading-none font-semibold tabular-nums text-slate-900">{score}</span>
       <span className={cn('mt-1 inline-flex items-center gap-1 text-sm', band === 'High' ? 'text-danger-700' : band === 'Medium' ? 'text-warning-700' : 'text-slate-600')}>
         <span className={cn('size-2 rounded-full', band === 'High' ? 'bg-danger-600' : band === 'Medium' ? 'bg-warning-600' : 'bg-slate-400')} aria-hidden />
         {band} risk
@@ -68,7 +68,7 @@ function WorkCard({ item, rank }: { item: WorkItem; rank: number }) {
         </div>
         <p className="mt-1 text-sm text-slate-600">{item.reasons.join(' · ')}</p>
       </div>
-      <Link to={item.link} className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[#d6d0c4] px-4 text-sm font-medium text-ink hover:bg-strip">
+      <Link to={item.link} className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-[#cbd5e1] px-4 text-sm font-medium text-ink hover:bg-strip">
         {item.nextAction} <ArrowRight className="size-4" aria-hidden />
       </Link>
     </li>
@@ -82,7 +82,7 @@ export function MyDayList({ limit, title = 'Your worklist' }: { limit?: number; 
   return (
     <section aria-labelledby="myday-title">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <h2 id="myday-title" className="font-serif text-xl font-semibold text-slate-900">
+        <h2 id="myday-title" className="text-xl font-semibold text-slate-900">
           {title}
           {q.data && <span className="ml-2 font-sans text-sm font-normal text-slate-600">{q.data.items.length} item(s), ranked · {formatDate(q.data.asOf)}</span>}
         </h2>

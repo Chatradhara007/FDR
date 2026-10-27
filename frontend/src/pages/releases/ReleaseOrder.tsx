@@ -40,7 +40,7 @@ export function ReleaseOrder() {
         </Link>
         <Button icon={<Printer className="size-4" aria-hidden />} onClick={() => window.print()}>Print / save as PDF</Button>
       </div>
-      <article className="mx-auto max-w-3xl bg-white p-10 font-serif text-[15px] leading-relaxed text-black shadow-sm ring-1 ring-slate-200 print:max-w-none print:p-0 print:shadow-none print:ring-0">
+      <article className="mx-auto max-w-3xl bg-white p-10 text-[15px] leading-relaxed text-black shadow-sm ring-1 ring-slate-200 print:max-w-none print:p-0 print:shadow-none print:ring-0">
         <header className="border-b-2 border-black pb-3 text-center">
           <p className="text-lg font-bold tracking-wide">ALL INDIA COUNCIL FOR TECHNICAL EDUCATION</p>
           <p className="text-sm">Nelson Mandela Marg, Vasant Kunj, New Delhi – 110070</p>

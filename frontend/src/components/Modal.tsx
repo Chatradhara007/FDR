@@ -33,7 +33,7 @@ export function Modal({ open, title, onClose, children, footer }: { open: boolea
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div ref={panel} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="fade-in w-full max-w-lg rounded-xl border border-line bg-surface shadow-lg">
         <header className="flex items-center justify-between px-6 pt-5 pb-2">
-          <h2 id={titleId} className="font-serif text-xl font-semibold text-slate-900">{title}</h2>
+          <h2 id={titleId} className="text-xl font-semibold text-slate-900">{title}</h2>
           <button type="button" onClick={onClose} className="rounded-md p-1.5 text-slate-600 hover:bg-strip" aria-label="Close">
             <X className="size-4" aria-hidden />
           </button>

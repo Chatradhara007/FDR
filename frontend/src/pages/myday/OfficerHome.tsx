@@ -8,7 +8,7 @@ export function OfficerHome() {
   const n = (v: number | undefined) => (v === undefined ? '—' : <CountUp value={v} />);
   return (
     <div className="space-y-10">
-      <PageHeader title="My day" subtitle="What to act on first. The order is a suggestion; the decisions stay yours." />
+      <PageHeader title="My day" subtitle="Cases ranked by amount, urgency and bank verification. You decide the action on each." />
       <StatRow>
         <StatTile label="To verify" value={n(d?.kpis.pendingScrutiny)} to="/officer/queue" />
         <StatTile label="Open discrepancies" value={n(d?.kpis.openDiscrepancies)} tone={d?.kpis.openDiscrepancies ? 'danger' : undefined} to="/reports?preset=discrepancies" />

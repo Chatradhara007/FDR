@@ -18,7 +18,7 @@ function IntegrityCard() {
         <Icon className="size-7" strokeWidth={1.75} aria-hidden />
       </span>
       <div className="min-w-0 flex-1">
-        <h2 className="font-serif text-2xl font-semibold text-slate-900">{r.ok ? 'Audit log intact' : 'Audit log altered'}</h2>
+        <h2 className="text-2xl font-semibold text-slate-900">{r.ok ? 'Audit log intact' : 'Audit log altered'}</h2>
         <p className="mt-1 text-slate-700">
           {r.ok
             ? `All ${r.checked.toLocaleString('en-IN')} events recompute to the same hash chain.`
@@ -39,7 +39,7 @@ export function AuditorHome({ d }: { d: DashboardData | undefined }) {
   const n = (v: number | undefined) => (v === undefined ? '—' : <CountUp value={v} />);
   return (
     <div className="space-y-10">
-      <PageHeader title="Audit overview" subtitle="Read-only. Every change in the portal is recorded and hash-chained."
+      <PageHeader title="Audit overview" subtitle="Read-only view. Every change is logged, and the log can be checked for tampering."
         actions={d && <span className="rounded-full bg-strip px-3 py-1.5 text-sm text-slate-700" data-testid="as-of">As of {formatDateGov(d.asOf)}</span>} />
       <IntegrityCard />
       <StatRow>
@@ -49,7 +49,7 @@ export function AuditorHome({ d }: { d: DashboardData | undefined }) {
       </StatRow>
       <section aria-labelledby="recent-events">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <h2 id="recent-events" className="font-serif text-xl font-semibold text-slate-900">Recent audit events</h2>
+          <h2 id="recent-events" className="text-xl font-semibold text-slate-900">Recent audit events</h2>
           <Link to="/reports" className="inline-flex items-center gap-1.5 font-medium text-ink hover:underline underline-offset-4">Reports <ArrowRight className="size-4" aria-hidden /></Link>
         </div>
         <ul className="divide-y divide-line rounded-xl border border-line bg-surface">

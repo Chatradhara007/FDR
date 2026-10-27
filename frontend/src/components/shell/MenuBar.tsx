@@ -4,9 +4,9 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import type { MenuEntry, NavItem } from '@/lib/nav';
 
-const itemCls = 'relative flex h-11 items-center gap-1 whitespace-nowrap rounded-lg px-3 text-[0.9375rem] font-medium text-slate-700 hover:bg-strip hover:text-slate-900 xl:h-10';
+const itemCls = 'relative flex h-11 items-center gap-1 whitespace-nowrap rounded-lg px-3 text-[0.9375rem] font-medium text-slate-700 hover:bg-strip hover:text-slate-900 xl:h-9';
 /** Ink underline on the active entry, plus aria-current (never colour alone). */
-const activeCls = 'text-ink after:absolute after:inset-x-3 after:-bottom-3 after:h-0.5 after:rounded-full after:bg-ink max-xl:bg-strip max-xl:after:hidden';
+const activeCls = 'text-ink after:absolute after:inset-x-3 after:-bottom-[9px] after:h-0.5 after:rounded-full after:bg-ink max-xl:bg-strip max-xl:after:hidden';
 
 function isActive(path: string, item: NavItem) {
   return path === item.to;

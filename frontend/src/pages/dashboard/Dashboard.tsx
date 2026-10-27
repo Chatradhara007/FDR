@@ -16,7 +16,7 @@ import { downloadCsv } from '@/lib/csv';
 import { formatDateGov } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
-const selectCls = 'h-10 min-w-48 rounded-lg border border-[#d6d0c4] bg-white px-3 text-sm';
+const selectCls = 'h-10 min-w-48 rounded-lg border border-[#cbd5e1] bg-white px-3 text-sm';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** Register link with the dashboard's own filters carried over. */
@@ -104,10 +104,10 @@ function MaturityChart({ d }: { d: DashboardData }) {
         <div className="h-64 min-w-0" role="img" aria-label="Bar chart of the amount maturing in each of the next 12 months, in crore rupees; use Show as table for the values">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 24, right: 4, left: 4, bottom: 0 }}>
-              <XAxis dataKey="month" tickLine={false} axisLine={{ stroke: '#e6e1d8' }} tick={{ fontSize: 14, fill: '#57534e' }} interval={0} minTickGap={0} />
-              <Tooltip cursor={{ fill: '#f4f1eb' }} formatter={(_v, _n, p) => [`${formatINR(p.payload.amount as string)} · ${p.payload.count as number} instrument(s)`, 'Maturing']} />
-              <RBar dataKey="crore" fill="#243b6b" radius={[4, 4, 0, 0]} maxBarSize={36} isAnimationActive={false}>
-                <LabelList dataKey="crore" position="top" formatter={(v: unknown) => (Number(v) > 0 ? `${Number(v) < 10 ? Number(v).toFixed(1) : Math.round(Number(v))}` : '')} style={{ fontSize: 14, fill: '#1c1917' }} />
+              <XAxis dataKey="month" tickLine={false} axisLine={{ stroke: '#dde3ea' }} tick={{ fontSize: 14, fill: '#475569' }} interval={0} minTickGap={0} />
+              <Tooltip cursor={{ fill: '#f1f4f8' }} formatter={(_v, _n, p) => [`${formatINR(p.payload.amount as string)} · ${p.payload.count as number} instrument(s)`, 'Maturing']} />
+              <RBar dataKey="crore" fill="#1d4ed8" radius={[4, 4, 0, 0]} maxBarSize={36} isAnimationActive={false}>
+                <LabelList dataKey="crore" position="top" formatter={(v: unknown) => (Number(v) > 0 ? `${Number(v) < 10 ? Number(v).toFixed(1) : Math.round(Number(v))}` : '')} style={{ fontSize: 14, fill: '#1f2937' }} />
               </RBar>
             </BarChart>
           </ResponsiveContainer>
@@ -134,10 +134,10 @@ function NeedsAttention({ d, base }: { d: DashboardData; base: Base }) {
       <ul className="divide-y divide-line">
         {rows.map((r) => (
           <li key={r.label}>
-            <Link to={r.to} className="flex items-center gap-3 px-5 py-3.5 hover:bg-[#fbfaf7]">
+            <Link to={r.to} className="flex items-center gap-3 px-5 py-3.5 hover:bg-[#f8fafc]">
               <span className={r.count > 0 ? (r.tone ?? 'text-ink') : 'text-slate-400'}>{r.icon}</span>
               <span className="min-w-0 flex-1 text-slate-800">{r.label}</span>
-              <span className={cn('font-serif text-xl font-semibold tabular-nums', r.count > 0 ? 'text-slate-900' : 'text-slate-400')}>{r.count}</span>
+              <span className={cn('text-xl font-semibold tabular-nums', r.count > 0 ? 'text-slate-900' : 'text-slate-400')}>{r.count}</span>
             </Link>
           </li>
         ))}
@@ -292,7 +292,7 @@ export function Dashboard() {
 
   return (
     <>
-      <PageHeader title="Dashboard" subtitle="Deposits held by AICTE, how much is proven, and what matures next."
+      <PageHeader title="Dashboard" subtitle="Deposits held by AICTE across all regions, as of the app date."
         actions={d && <span className="rounded-full bg-strip px-3 py-1.5 text-sm text-slate-700" data-testid="as-of">As of {formatDateGov(d.asOf)}</span>} />
       <form className="mb-8 flex flex-wrap items-end gap-4" onSubmit={(e) => e.preventDefault()} aria-label="Dashboard filters">
         <div>

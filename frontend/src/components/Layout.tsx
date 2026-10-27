@@ -61,19 +61,29 @@ export function Layout() {
       <SkipLink />
       {demoMode && <DemoRibbon />}
       <header className="relative border-b border-line bg-surface print:hidden">
-        <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-4 px-4 sm:px-6 lg:px-8">
+        <div className="border-b border-line bg-strip">
+          <div className="mx-auto flex h-10 max-w-[1440px] items-center justify-between gap-4 px-4 text-sm sm:px-6 lg:px-8">
+            <p className="min-w-0 truncate text-gray-600">
+              <span className="font-medium text-gray-800">All India Council for Technical Education</span>
+              <span className="hidden md:inline"> · Security Deposit &amp; FDR Portal</span>
+            </p>
+            <div className="flex shrink-0 items-center gap-2">
+              <ClockChip />
+              <UserMenu />
+            </div>
+          </div>
+        </div>
+        <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-6 px-4 sm:px-6 lg:px-8">
           <Wordmark />
           <MenuBar entries={entries} />
-          <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          <div className="ml-auto flex shrink-0 items-center gap-1">
             <button type="button" onClick={() => setPalette(true)} aria-keyshortcuts="Control+K" aria-label="Search (Ctrl+K)"
-              className="inline-flex h-10 items-center gap-2 rounded-lg px-2.5 text-sm text-slate-600 hover:bg-strip 2xl:border 2xl:border-line 2xl:px-3">
+              className="inline-flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm text-gray-600 hover:bg-strip 2xl:border 2xl:border-line 2xl:px-3">
               <Search className="size-[18px]" aria-hidden />
               <span className="hidden 2xl:inline">Search</span>
               <kbd className="hidden rounded border border-line px-1 text-xs 2xl:inline">Ctrl K</kbd>
             </button>
             <AlertBell />
-            <ClockChip />
-            <UserMenu />
           </div>
         </div>
       </header>

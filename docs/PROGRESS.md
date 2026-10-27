@@ -1101,8 +1101,8 @@ IDs, selectors and e2e-asserted strings are unchanged; print layouts untouched.
 
 Done:
 - **Tokens** (`index.css`): page #FAF8F4, white surfaces, hairlines #E6E1D8, one ink-blue accent #243B6B, status colours
-  green #2F7D5B / amber #B7791F / red #B4443C. Radius 6–12 px; shadows only on menus, dialogs and toasts. Source Serif 4
-  (@fontsource) for titles and big numbers, Noto Sans (with Devanagari) for body at 16 px / 1.6. v2 token names (`navy`, `link`,
+  green #2F7D5B / amber #B7791F / red #B4443C. Radius 6–12 px; shadows only on menus, dialogs and toasts. Body text 16 px / 1.6
+  (see the revision below for the final fonts and colours). v2 token names (`navy`, `link`,
   `saffron`, `line`, `strip`, `gov-table`, `gov-input`) are kept but remapped, so pages not yet migrated pick up the new look.
   `gov-table` now has hairline row dividers, no grid lines and no zebra striping; inside tables, badges lose their fill.
 - **Shell**: one slim top bar (wordmark, a role menu of 4–6 entries with dropdowns, search icon (Ctrl+K), alerts bell, clock chip, user menu).
@@ -1124,6 +1124,12 @@ Done:
   Verification, Regions, Banks and Alerts). Auditor dashboard (`pages/dashboard/AuditorHome.tsx`: integrity card, 3 numbers,
   recent audit events, link to Reports). FAQ, Contact and policy pages use a readable single text column.
 
+Revision (same session, owner's choice): theme changed to **Slate & Blue** (page #F7F9FC, borders #DDE3EA, text #1F2937,
+accent #1D4ED8; status green #15803D, amber #B45309, red #B91C1C). **Inter** for all text, with Noto Sans Devanagari for Hindi;
+the serif is removed. **Two-line header**: a thin line with "All India Council for Technical Education · Security Deposit & FDR
+Portal", the clock chip (+1d/+7d for the admin) and the user menu, then a white menu row with wordmark, menu, search and bell.
+Page wording rewritten to be plainer and more specific.
+
 Deviations / choices:
 - `ROLE_HOME.approver` is now `/approver`; `/dashboard` is still the approver's overview (the demo script opens it directly).
 - Status in tables is the badge's coloured icon plus its text (the icon is the "dot"), so it is never colour alone.
@@ -1139,3 +1145,9 @@ Deviations / choices:
 7. Rules editor, Users, Outbox, Demo tools
 8. Register, Institutions, Alerts inbox (filter bars)
 9. Print layouts and the verify card: deliberately left as they are
+
+Checks (cloud sandbox): `npm run typecheck` green; `node e2e/demo.mjs` 9/9, no console errors; `node e2e/ui-shots.mjs` all
+checks passed; extra Playwright sweep at 1920/1366/1280/768/390 px over login, privacy and the five landing pages: no overflow,
+no console errors, menu on one line. `npm run test`: 302 passed, 1 failed:
+`test_phase09_seed.py::test_ac1_two_runs_identical_and_each_under_15_seconds` (a demo reset takes about 19 s in this sandbox,
+limit 15 s; no backend code changed in this work).

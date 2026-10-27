@@ -71,7 +71,7 @@ export function InstitutionHome() {
     <div className="space-y-12">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-serif text-[2rem] leading-tight font-semibold text-slate-900">Welcome{user ? `, ${user.name}` : ''}</h1>
+          <h1 className="text-[1.75rem] leading-tight font-semibold tracking-tight text-slate-900">Welcome{user ? `, ${user.name}` : ''}</h1>
           <p className="mt-1.5 text-slate-600">{user?.institutionName ?? 'Your institution'} · deposits lodged with AICTE</p>
         </div>
         <Link to="/institution/instruments/new">
@@ -86,9 +86,9 @@ export function InstitutionHome() {
       </StatRow>
 
       <section aria-labelledby="needs-action">
-        <h2 id="needs-action" className="mb-4 font-serif text-xl font-semibold text-slate-900">Needs your action</h2>
+        <h2 id="needs-action" className="mb-4 text-xl font-semibold text-slate-900">Needs your action</h2>
         {items && action.length === 0 ? (
-          <div className="rounded-xl border border-line bg-surface"><EmptyState title="Nothing needs your action" description="We will tell you here when a deposit needs something from you." /></div>
+          <div className="rounded-xl border border-line bg-surface"><EmptyState title="Nothing needs your action" description="Deposits that need a correction, renewal or release request will be listed here." /></div>
         ) : (
           <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
             {action.map(({ r, next }) => (
@@ -112,7 +112,7 @@ export function InstitutionHome() {
       </section>
 
       <section aria-labelledby="all-deposits">
-        <h2 id="all-deposits" className="mb-4 font-serif text-xl font-semibold text-slate-900">All my deposits</h2>
+        <h2 id="all-deposits" className="mb-4 text-xl font-semibold text-slate-900">All my deposits</h2>
         <Table
           caption="Your instruments"
           columns={columns}

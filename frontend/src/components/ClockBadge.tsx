@@ -46,11 +46,11 @@ export function ClockChip() {
       {simulated && <span className="hidden font-medium text-warning-700 2xl:inline">Simulated</span>}
     </>
   );
-  const cls = 'hidden h-9 items-center gap-1.5 rounded-full px-3 text-sm sm:inline-flex ' + (simulated ? 'bg-warning-50 text-warning-700' : 'bg-strip text-slate-700');
+  const cls = 'hidden h-7 items-center gap-1.5 rounded-full px-2.5 text-sm sm:inline-flex ' + (simulated ? 'bg-warning-50 text-warning-700' : 'bg-strip text-slate-700');
   if (user?.role !== 'admin') return <span className={cls} title={label} aria-label={label}>{chip}</span>;
   return (
     <div className="flex items-center gap-1">
-      <button type="button" className={cls + ' hover:ring-1 hover:ring-[#d6d0c4]'} title={`${label}. Change the app clock`} aria-label={`${label}. Change the app clock`} onClick={() => setOpen(true)}>
+      <button type="button" className={cls + ' hover:ring-1 hover:ring-[#cbd5e1] bg-white'} title={`${label}. Change the app clock`} aria-label={`${label}. Change the app clock`} onClick={() => setOpen(true)}>
         {chip}
       </button>
       <span className="hidden xl:contents"><ClockControls quick /></span>
@@ -121,7 +121,7 @@ export function ClockControls({ quick }: { quick?: boolean }) {
   return (
     <div className="flex flex-wrap items-center gap-1" role="group" aria-label="App clock controls">
       {(quick ? [1, 7] : [1, 7, 30, 90]).map((days) => (
-        <Button key={days} size="sm" variant={quick ? 'ghost' : 'secondary'} className={quick ? 'h-8 px-2' : undefined} disabled={mutation.isPending} onClick={() => run({ kind: 'advance', days })}>
+        <Button key={days} size="sm" variant={quick ? 'ghost' : 'secondary'} className={quick ? 'h-7 px-2' : undefined} disabled={mutation.isPending} onClick={() => run({ kind: 'advance', days })}>
           +{days}d
         </Button>
       ))}
