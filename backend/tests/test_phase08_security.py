@@ -21,7 +21,14 @@ from fastapi.routing import APIRoute
 from helpers import api, bearer, create_draft_via_api, pdf_bytes, reset_db, upload_doc, user_for
 
 REPO = Path(__file__).resolve().parents[2]
-PUBLIC = {("GET", "/api/v1/health"), ("POST", "/api/v1/auth/login"), ("GET", "/api/v1/demo/users")}
+# The unauthenticated routes, on purpose. `/verify/release/...` is the public release-order check behind the QR code:
+# read-only, rate-limited, and it returns six fields (no amounts, no personal data). Adding a route here is a decision.
+PUBLIC = {
+    ("GET", "/api/v1/health"),
+    ("POST", "/api/v1/auth/login"),
+    ("GET", "/api/v1/demo/users"),
+    ("GET", "/api/v1/verify/release/{order_no:path}"),
+}
 
 
 @pytest.fixture(autouse=True)

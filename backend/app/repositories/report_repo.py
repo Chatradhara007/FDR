@@ -223,6 +223,19 @@ def open_discrepancy_count(db: Db, f: InstrumentFilter) -> int:
     return int(row["n"])
 
 
+def open_advisory_flag_count(db: Db, f: InstrumentFilter) -> int:
+    """Open advisory flags on submitted instruments (officers' dashboard only; institutions never see flags)."""
+    params: list[object] = []
+    row = one(
+        db,
+        f"""SELECT count(*)::int AS n FROM advisory_flags a JOIN instruments i ON i.id = a.instrument_id
+       JOIN institutions inst ON inst.id = i.institution_id
+      WHERE a.cleared_at IS NULL AND i.status <> 'DRAFT'{filter_sql(f, params)}""",
+        params,
+    )
+    return int(row["n"])
+
+
 # ---- My day ----
 
 

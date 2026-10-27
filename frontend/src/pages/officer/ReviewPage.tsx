@@ -6,6 +6,7 @@ import { useClaim, useReturnInstrument, useReview } from '@/api/scrutiny';
 import { useAuth } from '@/auth/AuthContext';
 import { Button, Card, DateText, EmptyState, Money, StatusChip, Tabs, VerificationChip, WeakestTierBadge, useToast } from '@/components';
 import { ActionBar } from './review/ActionBar';
+import { AdvisoryPanel } from './review/AdvisoryPanel';
 import { Checklist } from './review/Checklist';
 import { DiscrepancyCards } from './review/DiscrepancyCards';
 import { DocumentsTab } from './review/DocumentsTab';
@@ -76,6 +77,8 @@ export function ReviewPage() {
 
       <ActionBar review={review} canAct={isOfficer} onReturn={() => openReturn()} onAddObservation={() => setTab('observations')} />
       <DiscrepancyCards discrepancies={review.discrepancies} canAct={isOfficer} canReturn={canReturn} onReturn={openReturn} />
+
+      <AdvisoryPanel review={review} />
 
       <div className="grid gap-4 lg:grid-cols-5">
         <div className="space-y-4 lg:col-span-2">

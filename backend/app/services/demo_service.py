@@ -14,13 +14,17 @@ from ..repositories.instrument_repo import find_instrument_by_id
 from ..repositories.user_repo import find_user_by_email
 from ..schemas import BankCorrectionInput
 from ..seed.base import INSTITUTIONS
-from ..seed.dataset import A1_RECORD, A4_REPLACEMENT, ANCHORS
+from ..seed.dataset import A1_CLAIMED_AMOUNT, A1_RECORD, A4_REPLACEMENT, ANCHORS
 from ..seed.pdf import sample_document
 from ..seed.replay import SeedResult, document_rows, reset_and_seed
 from . import bank_client
 
-SampleName = Literal["fdr-copy", "bank-letter"]
-SAMPLE_TYPES: dict[str, str] = {"fdr-copy": "FDR_COPY", "bank-letter": "BANK_LETTER"}
+SampleName = Literal["fdr-copy", "fdr-copy-different-amount", "bank-letter"]
+SAMPLE_TYPES: dict[str, str] = {
+    "fdr-copy": "FDR_COPY",
+    "fdr-copy-different-amount": "FDR_COPY",
+    "bank-letter": "BANK_LETTER",
+}
 
 # API (camelCase) field -> mock bank record key
 BANK_KEYS = {
@@ -139,7 +143,8 @@ def anchors() -> list[AnchorView]:
 
 
 def sample_file(name: str) -> tuple[bytes, str]:
-    """Demo step 1's sample PDF, printed from the bank's current A1 record (so its dates match today's seed)."""
+    """Demo step 1's sample PDF, printed from the bank's current A1 record (so its dates match today's seed).
+    The FDR copy shows the amount the institution claims; the "different amount" copy shows the bank's."""
     doc_type = SAMPLE_TYPES.get(name)
     if doc_type is None:
         raise NotFound("No such sample file")
@@ -151,6 +156,9 @@ def sample_file(name: str) -> tuple[bytes, str]:
         "issueDate": rec["issue_date"], "maturityDate": rec["maturity_date"],
         "beneficiaryName": rec["beneficiary_name"], "lienMarked": rec["lien_marked"],
     }  # fmt: skip
+    if name == "fdr-copy":
+        values["amount"] = A1_CLAIMED_AMOUNT  # the amount the presenter claims: the text cross-check shows a match
+    # "fdr-copy-different-amount" keeps the bank's amount, which differs from the claim: the cross-check shows a mismatch
     note = "We confirm the above deposit is held with lien in favour of AICTE." if doc_type == "BANK_LETTER" else ""
     body = sample_document(doc_type, document_rows(values), INSTITUTIONS["inst1"]["name"], rec["bank"], note)
     return body, f"A1-{name}.pdf"

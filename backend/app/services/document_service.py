@@ -20,7 +20,7 @@ from ..repositories.document_repo import (
 from ..repositories.instrument_repo import find_instrument_by_id
 from ..schemas import FieldIssue, doc_type_or_none
 from ..shared_constants import DOC_TYPES, DocType
-from . import storage
+from . import advisory_service, storage
 from .instrument_service import DocumentInfo, lock_own_editable
 
 
@@ -108,6 +108,9 @@ def store_document(
             422,
         )
     stored = storage.save_upload(file.path, instrument_id, detected.ext)
+    # Advisory text cross-check (instrument documents only). Read before the transaction: it is CPU work on the
+    # stored copy, it never raises, and it is not part of what the institution is told about the upload.
+    analysis = None if release_request_id else advisory_service.analyse_stored(stored.storage_path, detected.ext)
     try:
         with transaction() as tx:
             lock(tx)
@@ -145,6 +148,8 @@ def store_document(
                 instrument_id=instrument_id,
                 after=after,
             )
+            if analysis is not None:
+                advisory_service.record_finding(tx, doc["id"], instrument_id, analysis)
     except BaseException:
         storage.discard_unrecorded(stored.storage_path)
         raise

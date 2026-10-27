@@ -27,6 +27,7 @@ from ..shared_constants import (
     VerificationState,
 )
 from . import bank_client
+from .advisory_service import refresh_flags
 from .bank_client import BankPayload, BankResult
 from .scrutiny_service import Review, get_review
 
@@ -183,6 +184,7 @@ def request_verification(user: AuthUser, instrument_id: str) -> VerifyResponse:
                             "responseId": res.get("response_id")})  # fmt: skip
         if not stale:
             apply_result(tx, locked, verification_id, res, user)
+            refresh_flags(tx, instrument_id, actor)  # advisory only
     if stale:
         # Raised after commit so the STALE verification stays on record.
         raise Conflict("The instrument changed during verification. Verify again.", None, "INSTRUMENT_CHANGED")

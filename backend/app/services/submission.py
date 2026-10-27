@@ -12,6 +12,7 @@ from ..repositories.instrument_repo import lock_instrument, set_submission_meta
 from ..repositories.provenance_repo import list_provenance, upsert_provenance
 from ..schemas import submission_issues
 from ..shared_constants import STATUS_LABELS, TRACKED_FIELDS, VerificationState
+from .advisory_service import refresh_flags
 from .instrument_service import (
     InstrumentDetail,
     assert_no_duplicate_ref,
@@ -71,6 +72,7 @@ def submit_instrument(user: AuthUser, instrument_id: str) -> InstrumentDetail:
         transition(tx, {"id": instrument_id, "status": inst["status"]}, "SUBMITTED", actor_of(user))
         if parent:
             raise_replacement_concerns(tx, inst, parent)
+        refresh_flags(tx, instrument_id, actor_of(user))  # advisory only; never blocks the submission
         record_event(
             tx,
             actor=actor_of(user),

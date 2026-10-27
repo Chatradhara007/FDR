@@ -15,6 +15,7 @@ Claude Code updates this file at the end of every phase. Read it first in every 
 | 07 | Dashboard, my day, reports, metrics | done | (this commit) | All 8 checks pass (AC8 run in headless Chromium) |
 | 08 | Admin, audit integrity, security | done | (this commit) | All 10 checks pass (AC10 run in headless Chromium); rules UI scope reduced (see deviations) |
 | 09 | Seed, demo tools, rehearsal, polish | done with known issues | (this commit) | Checks 1–4 automated and passing; check 5 (docker compose from a clean clone) pending, no Docker here; check 6 ticked below |
+| — | Post-Phase-09 features: verifiable release order, advisory flags, PDF text cross-check, printable passport | done | (this commit) | Feature session; see the "Post-Phase-09" subsections below. Tests in `test_phase10_*.py`; the public route is on the security allow-list on purpose |
 
 Status values: `not started` · `in progress` · `done` · `done with known issues`.
 
@@ -241,6 +242,29 @@ Deviations / choices in the port:
 - `npm run seed` = migrations + the full demo dataset (needs the mock bank) + `docs/demo-files/A1-*.pdf`; `npm run e2e` =
   `node e2e/demo.mjs`
 
+**Post-Phase-09 features** (all under `/api/v1`)
+- `GET /verify/release/{orderNo}` — **public, no sign-in** (the only unauthenticated route besides `/health`, `/auth/login` and
+  `/demo/users`; added to the `PUBLIC` allow-list in `test_phase08_security.py` on purpose). `orderNo` is `AICTE/REL/<year>/<8 hex>`
+  (slashes may be percent-encoded; route uses a `:path` converter). Returns `{ valid: true, orderNumber, status, instrumentReference,
+  approvedDate, approverDesignation, eventHash }` or exactly `{ valid: false }` (unknown, malformed, wrong year, not approved,
+  **or a prefix shared by more than one release request**: never a guess). No amounts, names or institutions. Rate-limited to
+  30/min per IP (429 `RATE_LIMITED`), `Cache-Control: no-store`. `approverDesignation` is the final approver's designation, the role
+  label when empty; `eventHash` is the hash of the order's `RELEASE_APPROVED` audit event.
+- `GET /release-requests/:id` and the passport's `releaseRequests[]` gain `verifyUrl` and `qrSvg` (inline SVG, no fixed size) once
+  an order exists, `null` before. The URL is `<PUBLIC_BASE_URL>/verify/<orderNumber>`; `PUBLIC_BASE_URL` defaults to the first
+  `FRONTEND_ORIGIN` (see the README for phone scanning on the LAN).
+- `GET /instruments/:id/review` (internal roles only) gains `advisoryFlags` (open flags: `kind`, plain-language `reason`, `detail`) and
+  `documentFindings` (`items[]` per PDF/image: `status` READ/UNREADABLE, `reason`, `message`, `checks[]` for the main document
+  — `{ field, claimed, found, result: MATCH|DIFFERENT|NOT_FOUND }` — and `metadataSignal`; `note`). Empty for institution users and
+  never present in any institution-facing response (a test greps for it).
+- `GET /dashboard` `kpis` gains `advisoryFlags` (open flags on submitted instruments, honours the region/type filters).
+- Rule `expected_beneficiary` (`GET/PUT /rules`): `{ names[], minSimilarity, amountMultiple, minComparisons }`, default
+  `["MEMBER SECRETARY AICTE", "All India Council for Technical Education"]`, 0.8, 3, 3. Validated like every rule (`config.<path>`).
+- `GET /demo/files/{fdr-copy|fdr-copy-different-amount|bank-letter}` (admin, demo mode): `fdr-copy` now prints the amount the
+  presenter claims (₹25,00,000); `fdr-copy-different-amount` prints the bank's (₹20,00,000); the bank letter always the bank's.
+- New audit events: `ADVISORY_FLAGS_UPDATED` (entity `instrument`, actor the user who submitted/verified, only when the set of flags
+  changed) and `DOCUMENT_TEXT_CHECKED` (entity `document_text_check`, actor `system`). Neither is in `institutionVisibleActions`.
+
 ## Pages added
 
 (append per phase)
@@ -384,6 +408,25 @@ Deviations / choices in the port:
   `SESSION_ENDED` 401, quick buttons for Officer 2 and Approver 2 as well.
 - Favicon (`frontend/public/favicon.svg`) and title "FDR Portal — AICTE".
 - New files: `api/demo.ts`, `pages/admin/DemoTools.tsx`; `e2e/demo.mjs`.
+
+**Post-Phase-09 features**
+- `/verify/*` (**public**, outside the app shell and `ProtectedRoute`): the page behind the QR code. "Valid" (icon + text) with order
+  number, status, instrument reference, approved date, approver designation and the audit hash, or "Not found". Works for
+  `/verify/AICTE/REL/2026/XXXXXXXX`; no navigation, mobile-first.
+- `/releases/:id/order`: the printable order now shows its order number prominently and a QR code ("Scan to verify this order" + the
+  address) beside it.
+- `/officer/review/:id`: a **"Worth a closer look"** card (advisory flags, "advisory only · nothing is blocked · institutions do not
+  see this") and a **"Document text cross-check"** card ("Document text says X, claimed Y", Matches / Differs / Not found, "Text could
+  not be read" with the reason for scans, images, broken, password-protected and oversized files, and "Needs closer look, not proof"
+  for the metadata signal). Both appear only when there is something to show.
+- `/dashboard`: sixth KPI tile **Advisory flags** (links to the scrutiny queue).
+- `/instruments/:id/print` (any role who can see the passport; outside the app shell): printable passport — header, trust tiers per
+  field with source, renewal chain, release order(s) with QR, timeline oldest first — and a **Print / Save as PDF** button
+  (hidden when printing). Advisory events are left out of its timeline. Linked from the passport header ("Printable passport").
+- `/admin/demo`: **A1 FDR copy with a different amount** next to the A1 FDR copy and bank letter downloads.
+- `/admin/rules`: description for `expected_beneficiary` (JSON editor like the other non-structured rules).
+- New files: `api/verify.ts`, `components/QrCode.tsx`, `pages/verify/VerifyPage.tsx`, `pages/passport/PrintPassport.tsx`,
+  `pages/officer/review/AdvisoryPanel.tsx`.
 
 ## Deviations / choices
 
@@ -736,6 +779,62 @@ Phase 09:
   preview); amounts, dates and right-aligned cells never wrap. Login, demo ribbon and favicon as listed under Pages.
 - New event labels `DEMO_RESET`, `DEMO_BANK_CORRECTION` (`shared/constants.json`, `npm run gen:shared`). The source guard allows
   `seed/replay.py` to read `time.monotonic()` for `durationMs` only.
+
+**Post-Phase-09 features**
+- **Public route.** `GET /api/v1/verify/release/{order_no:path}` is deliberately unauthenticated. It sits in the allow-list of
+  `test_ac7_every_api_route_requires_authentication_except_the_allow_list` (and is excluded from the auditor "no mutations" scan, being
+  a GET). Everything it can return is the six fields above; unknown, unapproved and ambiguous numbers all answer `{ valid: false }`
+  with HTTP 200 so the endpoint cannot be used to enumerate orders. Ambiguity: the 8-hex prefix of the request id is matched against
+  every release request in any status; more than one match (or a year that does not match the approval year) is never valid.
+- **Path prefix.** Served under `/api/v1` (CLAUDE.md rule 7), not at a bare `/verify/...`; the page is `/verify/<orderNo>`, as asked.
+- **QR code.** Generated server-side by the small pure-Python `qrcode` package (SVG path factory, no image library), returned in the
+  release view; no JS QR dependency. Address from `PUBLIC_BASE_URL` (new, optional; documented in the README; `.env.example`
+  untouched). Dev-only addition: `types-qrcode` in the `dev` extras for mypy `--strict`.
+- **Advisory flags** (`advisory_flags`, migration 009). Computed inside the submit transaction and after a bank verification inside
+  the verify transaction (not when the verification is STALE). The set is replaced only when it changed, writing one
+  `ADVISORY_FLAGS_UPDATED` event; unchanged results write nothing. The three checks:
+  - *duplicate reference*: same bank and normalised reference on a submitted instrument of **another** institution. D7 already refuses
+    two live instruments with one reference at create/edit/submit, so in practice this fires when the other one is RENEWED or
+    RELEASED (a reference recycled by someone else), or when data arrives another way.
+  - *high amount*: more than `amountMultiple` (3) times the median of the institution's **earlier** submitted instruments (created at or
+    before this one, other than itself), needing at least `minComparisons` (3) of them; money compared as integer paise. Judging
+    against earlier history only keeps the verdict stable however often it is recomputed (a later, bigger deposit never re-flags an
+    older one); a "median of all the others" version made four seeded instruments flag latently on re-verification.
+  - *near-miss beneficiary*: `difflib` ratio of the normalised name (case, punctuation, `A.I.C.T.E.` = `AICTE`) against the
+    `expected_beneficiary` names, flagged at ≥ `minSimilarity` (0.8) when not equal to any. Unrelated names are not flagged.
+  Flags never block, never change a status, verification state or tier, and no institution-facing response contains them.
+- **PDF text cross-check** (`document_findings`, `domain/doc_text.py`, `pypdf`). Runs once per instrument document upload (not release
+  documents), after the file is stored and before the recording transaction, with an `except Exception` around everything: a broken,
+  password-protected, > 10 MB, > 20 pages or text-less (scan) PDF, and any image, is stored as `UNREADABLE` with a reason code and the
+  upload succeeds. Only the values found are stored (labelled amount/reference/dates plus capped candidate lists), never the text. The
+  comparison with the claim is made at read time, so it follows later edits. Only the instrument's **main document** (FDR copy /
+  deposit confirmation) is compared; other PDFs are read for the metadata signal only (a bank letter showing the bank's own amount
+  would otherwise "disagree" with the claim before the bank has been asked). Metadata signal: modified more than 60 s after creation,
+  or an image editor (Photoshop, GIMP, Canva, …) as producer/creator: shown as "needs closer look, not proof". `field_provenance` is never
+  touched by any of this (tested).
+- **Event entity.** `DOCUMENT_TEXT_CHECKED` uses entity type `document_text_check` and actor `system` (it is automatic, and the
+  Phase 8 audit-filter test counts `document` events by actor).
+- **A1 sample files.** `fdr-copy` (and `docs/demo-files/A1-fdr-copy.pdf`) now prints the amount the institution claims, so the text
+  cross-check matches and only the bank reveals the mismatch; `fdr-copy-different-amount` prints the bank's amount so the cross-check
+  disagrees; the bank letter is unchanged. `npm run seed` writes all three.
+- **What the seed produces** (checked after `npm run seed`, and by `test_seed_has_exactly_the_two_deliberate_advisory_flags_and_nothing_else`):
+  **2 open advisory flags, both deliberate**, nothing random:
+  1. `HDFC/FD/2026/32652` (F2, Institution 3): **high amount**, ₹80,00,000 against a middle value of ₹12,00,000 over its 3 earlier
+     instruments. F2 is the seed's "amount typed wrong, returned, corrected" case; the corrected ₹80 L is the flagged value.
+  2. `CNRB/FD/2026/36859` (S4, SUBMITTED, in the officer queue): **near-miss beneficiary**, written "MEMBER SECRETARY AICTI" against
+     the expected "MEMBER SECRETARY AICTE" (new `SUBMITTED_CLAIMS` in `seed/dataset.py`; the bank still holds the right name, so
+     verifying S4 raises the normal beneficiary discrepancy).
+  A1 itself carries **no flag** by design (₹25 L is ordinary for Institution 1, right name, unique reference); its story is the text
+  cross-check matching and only the bank revealing the mismatch. No duplicate-reference flag is seeded. Before the median was
+  restricted to earlier history the same run flagged F2 only, but four seeded instruments (A9 among them) would have flagged on a
+  later re-verification; they no longer do (checked by recomputing every submitted instrument: only the two above come back).
+  Seeded **document findings**: 110 documents read (all text-based), none unreadable, no metadata signals; four main documents
+  disagree with what was typed, all in the seed's existing "institution mistyped" cases where the bank's own copy shows the true
+  value: U1 (₹16,80,000 on the copy, ₹18,00,000 typed), T1 (₹12,00,000 vs ₹21,00,000), U2 (₹4,50,000 vs ₹45,00,000) and U5 (the
+  transposed reference `…19507` vs `…19570`). Those four already carry bank discrepancies, so the cross-check says the same thing earlier.
+  F2's tuning alternative (lowering F2 or raising `minComparisons`) was not needed and A1-A9 are untouched.
+- Vite listens on localhost only in `npm run dev`; the README explains how to open it to the LAN for phone scanning instead of
+  changing the dev script.
 
 ## Known issues / follow-ups
 

@@ -2,7 +2,7 @@ import { ArrowLeft, Printer } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { INSTRUMENT_TYPE_LABELS, RELEASE_DECISION_LABELS, formatDate, formatINR } from '@fdr/shared';
 import { useReleaseRequest } from '@/api/releases';
-import { Button, EmptyState } from '@/components';
+import { Button, EmptyState, QrCode } from '@/components';
 
 const day = (d: string | null) => (d ? formatDate(d) : '—');
 const istDay = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { dateStyle: 'long', timeZone: 'Asia/Kolkata' });
@@ -45,9 +45,17 @@ export function ReleaseOrder() {
           <p className="text-lg font-bold tracking-wide">ALL INDIA COUNCIL FOR TECHNICAL EDUCATION</p>
           <p className="text-sm">Nelson Mandela Marg, Vasant Kunj, New Delhi – 110070</p>
         </header>
-        <div className="mt-4 flex justify-between text-sm">
-          <p>Order No. <span className="font-semibold">{view.orderNumber}</span></p>
-          <p>Dated {istDay(view.request.closedAt ?? r.requestedAt)}</p>
+        <div className="mt-4 flex items-start justify-between gap-4 text-sm">
+          <div>
+            <p>Order No. <span className="font-semibold">{view.orderNumber}</span></p>
+            <p>Dated {istDay(view.request.closedAt ?? r.requestedAt)}</p>
+          </div>
+          {view.qrSvg && view.verifyUrl && (
+            <figure className="flex w-32 shrink-0 flex-col items-center text-center text-[11px] leading-tight">
+              <QrCode svg={view.qrSvg} label={`QR code that verifies order ${view.orderNumber}`} className="size-28" />
+              <figcaption className="mt-1">Scan to verify this order<br /><span className="break-all font-mono">{view.verifyUrl}</span></figcaption>
+            </figure>
+          )}
         </div>
         <h1 className="mt-6 text-center text-base font-bold underline">RELEASE / DISCHARGE ORDER</h1>
         <p className="mt-4">

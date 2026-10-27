@@ -16,6 +16,7 @@ from ..schemas import (
     AfterDaysRule,
     ApprovalLevelsRule,
     EscalationRule,
+    ExpectedBeneficiaryRule,
     ImprovementBaselineRule,
     OverdueRenewalRule,
     ReleaseConditionsRule,
@@ -52,7 +53,7 @@ class Rules:
 def _load[
     M: (
         ReminderRule, AfterDaysRule, OverdueRenewalRule, EscalationRule, RenewalChecksRule, ReleaseConditionsRule,
-        ApprovalLevelsRule, RiskWeightsRule, ImprovementBaselineRule, ReleasePendingRule,
+        ApprovalLevelsRule, RiskWeightsRule, ImprovementBaselineRule, ReleasePendingRule, ExpectedBeneficiaryRule,
     )
 ](db: Db, key: str, model: type[M]) -> M:  # fmt: skip
     config = get_rule_config(db, key)
@@ -96,3 +97,8 @@ def load_risk_weights(db: Db) -> RiskWeightsRule:
 def load_improvement_baseline(db: Db) -> ImprovementBaselineRule:
     """Rule 'improvement_baseline' (Phase 7): the manual-process figures; changed only through the rules table."""
     return _load(db, "improvement_baseline", ImprovementBaselineRule)
+
+
+def load_advisory_rule(db: Db) -> ExpectedBeneficiaryRule:
+    """Rule 'expected_beneficiary': expected names and thresholds of the advisory pattern flags."""
+    return _load(db, "expected_beneficiary", ExpectedBeneficiaryRule)

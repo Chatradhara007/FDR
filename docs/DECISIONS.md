@@ -169,3 +169,13 @@ transaction that opens the discrepancy. Keeping a confirmation the bank now disp
 Fields that were `CLAIMED` or `DOCUMENT` keep their tier, as Phase 03 specifies. This is a deliberate departure from
 `docs/phases/03-scrutiny.md`, which keeps every existing tier on mismatch; it was implemented in Phase 03 and is
 recorded in `docs/PROGRESS.md` under "Deviations / choices".
+
+
+### D30 — Advisory signals never decide anything; the one public route is minimal (decided after Phase 09)
+Suspicious-pattern flags, the PDF text cross-check and the metadata signal are **advisory**: they are shown to officials with a
+plain-language reason and the words "advisory only" / "needs closer look, not proof", they never block a submission, accept,
+verification or release, never change a status, `verification_state` or trust tier, and **institutions never receive them** (no
+institution-facing response carries them; they are not in `institutionVisibleActions`). The tiers stay the product's answer to
+"how much is proven"; these signals only point the official at what to look at. The release-order check
+`GET /api/v1/verify/release/{orderNo}` is the one deliberately public data route: six fields, `{ valid: false }` for anything not
+found or ambiguous, rate-limited, and listed in the security allow-list test.

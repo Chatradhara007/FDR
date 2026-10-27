@@ -14,6 +14,7 @@ from ..domain.gaps import Gap, find_gaps
 from ..domain.rules import load_rules
 from ..domain.state_machine import transition
 from ..jobs.evaluate import sweep_instrument
+from ..repositories.advisory_repo import FlagRow
 from ..repositories.discrepancy_repo import DiscrepancyRow, list_discrepancies, lock_discrepancy, resolve_discrepancy
 from ..repositories.document_repo import find_live_document, list_live_documents
 from ..repositories.instrument_repo import InstrumentRow, lock_instrument, set_acceptance, set_assigned_officer
@@ -36,6 +37,7 @@ from ..shared_constants import (
     VERIFICATION_STATE_LABELS,
     TrackedField,
 )
+from .advisory_service import DocumentFindings, findings_for_review, flags_for_review
 from .instrument_service import InstrumentDetail, ReviewField, doc_rules, field_rows, get_instrument
 from .renewal_service import activate_renewal, check_replacement, parent_of, raise_replacement_concerns
 
@@ -51,6 +53,8 @@ class Review(TypedDict):
     canAccept: bool
     canAcceptWithOverride: bool
     acceptBlockers: list[str]
+    advisoryFlags: list[FlagRow]  # officers only; advisory, never blocks
+    documentFindings: DocumentFindings  # officers only; advisory, never changes a tier
 
 
 class QueueResponse(TypedDict):
@@ -98,6 +102,7 @@ def get_review(user: AuthUser, instrument_id: str, db: Db | None = None) -> Revi
     """Everything the review page needs in one call (§3.6)."""
     db = db or get_pool()
     detail = get_instrument(user, instrument_id, db)
+    internal = user.role != "institution"  # institutions never receive advisory data
     fields = field_rows(detail)
     documents = [d["docType"] for d in detail["documents"]]
     gaps = _gaps(db, detail, documents)
@@ -117,6 +122,8 @@ def get_review(user: AuthUser, instrument_id: str, db: Db | None = None) -> Revi
         "canAccept": not hard and verification is None,
         "canAcceptWithOverride": not hard and verification is not None,
         "acceptBlockers": [*hard, *([verification] if verification else [])],
+        "advisoryFlags": flags_for_review(db, instrument_id) if internal else [],
+        "documentFindings": findings_for_review(db, detail) if internal else {"items": [], "note": ""},
     }
 
 

@@ -29,8 +29,12 @@ def main() -> None:
         sys.exit(1)
     out = REPO_ROOT / "docs" / "demo-files"
     out.mkdir(parents=True, exist_ok=True)
-    for doc_type, name in (("FDR_COPY", "A1-fdr-copy.pdf"), ("BANK_LETTER", "A1-bank-letter.pdf")):
-        (out / name).write_bytes(a1_sample(doc_type, result["d0"]))
+    for doc_type, name, amount_on_copy in (
+        ("FDR_COPY", "A1-fdr-copy.pdf", "claimed"),
+        ("FDR_COPY", "A1-fdr-copy-different-amount.pdf", "bank"),
+        ("BANK_LETTER", "A1-bank-letter.pdf", "claimed"),
+    ):
+        (out / name).write_bytes(a1_sample(doc_type, result["d0"], amount_on_copy=amount_on_copy))
     print(
         f"seed: {result['instruments']} instruments, {result['events']} events, {result['alerts']} alerts "
         f"in {result['durationMs'] / 1000:.1f} s; app clock SIMULATED at {result['d0']}; users' password {DEMO_PASSWORD}"

@@ -1260,7 +1260,56 @@ class ImprovementBaselineRule(ApiModel):
         return _required_text(v, 500, "Note is required", "Note")
 
 
-RULE_CONFIG_MODELS.update({"risk_weights": RiskWeightsRule, "improvement_baseline": ImprovementBaselineRule})
+class ExpectedBeneficiaryRule(ApiModel):
+    """key 'expected_beneficiary': the names AICTE expects on an instrument and the thresholds of the advisory
+    pattern flags (they only advise officers; nothing is blocked)."""
+
+    names: list[str]
+    min_similarity: float
+    amount_multiple: int
+    min_comparisons: int
+
+    @field_validator("names", mode="before")
+    @classmethod
+    def _names(cls, v: object) -> list[str]:
+        if not isinstance(v, list) or not v:
+            raise fail("Enter at least one expected beneficiary name")
+        out: list[str] = []
+        for item in v:
+            if not isinstance(item, str) or not item.strip() or len(item.strip()) > 120:
+                raise fail("Each name must be 1 to 120 characters")
+            out.append(item.strip())
+        return out
+
+    @field_validator("min_similarity", mode="before")
+    @classmethod
+    def _similarity(cls, v: object) -> float:
+        if isinstance(v, bool) or not isinstance(v, int | float) or not 0.5 <= v < 1:
+            raise fail("Enter a similarity from 0.5 up to (not including) 1")
+        return float(v)
+
+    @field_validator("amount_multiple", mode="before")
+    @classmethod
+    def _multiple(cls, v: object) -> int:
+        if isinstance(v, bool) or not isinstance(v, int) or v < 2:
+            raise fail("Enter a whole number, at least 2")
+        return v
+
+    @field_validator("min_comparisons", mode="before")
+    @classmethod
+    def _comparisons(cls, v: object) -> int:
+        if isinstance(v, bool) or not isinstance(v, int) or v < 1:
+            raise fail("Enter a whole number, at least 1")
+        return v
+
+
+RULE_CONFIG_MODELS.update(
+    {
+        "risk_weights": RiskWeightsRule,
+        "improvement_baseline": ImprovementBaselineRule,
+        "expected_beneficiary": ExpectedBeneficiaryRule,
+    }
+)
 
 
 class DashboardQuery(ApiModel):

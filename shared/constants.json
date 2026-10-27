@@ -489,6 +489,20 @@
         "manualCaughtBeforeExpiryPct": 40,
         "note": "Assumed manual process: spreadsheets, letters to banks, email reminders. Illustrative figures."
       }
+    },
+    {
+      "key": "expected_beneficiary",
+      "name": "Expected beneficiary and advisory thresholds",
+      "type": "expected_beneficiary",
+      "config": {
+        "names": [
+          "MEMBER SECRETARY AICTE",
+          "All India Council for Technical Education"
+        ],
+        "minSimilarity": 0.8,
+        "amountMultiple": 3,
+        "minComparisons": 3
+      }
     }
   ],
   "alertKinds": [
@@ -622,7 +636,9 @@
     "LOGIN_SUCCEEDED": "Signed in",
     "LOGIN_FAILED": "Sign-in failed",
     "DEMO_RESET": "Demo data reset",
-    "DEMO_BANK_CORRECTION": "Bank record corrected (demo)"
+    "DEMO_BANK_CORRECTION": "Bank record corrected (demo)",
+    "ADVISORY_FLAGS_UPDATED": "Advisory flags updated",
+    "DOCUMENT_TEXT_CHECKED": "Document text cross-checked (advisory)"
   },
   "institutionVisibleActions": [
     "STATUS_DRAFT",
@@ -758,6 +774,7 @@
     "release_conditions": "Release conditions",
     "approval_levels": "Release approval levels",
     "risk_weights": "My day risk weights",
-    "improvement_baseline": "Improvement baseline (manual process)"
+    "improvement_baseline": "Improvement baseline (manual process)",
+    "expected_beneficiary": "Expected beneficiary and advisory thresholds"
   }
 }

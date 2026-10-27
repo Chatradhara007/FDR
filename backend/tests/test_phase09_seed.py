@@ -287,6 +287,84 @@ def test_ac4_demo_routes_404_when_demo_mode_is_off(seeded: dict[str, Any], monke
     assert api().get("/api/v1/meta", headers=admin).json()["demoMode"] is False
 
 
+# ---- post-Phase-09 additions: advisory flags and the PDF text cross-check in the demo ----
+
+
+def test_seed_has_exactly_the_two_deliberate_advisory_flags_and_nothing_else(seeded: dict[str, Any]) -> None:
+    db = get_pool()
+    rows = many(db, """SELECT i.reference_no, a.kind FROM advisory_flags a JOIN instruments i ON i.id = a.instrument_id
+                        WHERE a.cleared_at IS NULL ORDER BY 1""")  # fmt: skip
+    assert rows == [{"reference_no": "CNRB/FD/2026/36859", "kind": "BENEFICIARY_NEAR_MISS"},   # S4, a look-alike name
+                    {"reference_no": "HDFC/FD/2026/32652", "kind": "HIGH_AMOUNT"}]  # fmt: skip  # F2, ₹80 L
+    # Recomputing for every submitted instrument (what a later verify does) finds the same, nothing latent.
+    from app.repositories.instrument_repo import find_instrument_by_id
+    from app.services.advisory_service import _candidates
+
+    found = []
+    for r in many(db, "SELECT id FROM instruments WHERE status <> 'DRAFT'"):
+        inst = find_instrument_by_id(db, r["id"])
+        assert inst is not None
+        found += [(inst["referenceNo"], c["kind"]) for c in _candidates(db, inst)]
+    assert sorted(found, key=lambda t: str(t[0])) == [("CNRB/FD/2026/36859", "BENEFICIARY_NEAR_MISS"),
+                                                      ("HDFC/FD/2026/32652", "HIGH_AMOUNT")]  # fmt: skip
+    officer = bearer(user_for("officer@demo.in"))
+    assert api().get("/api/v1/dashboard", headers=officer).json()["kpis"]["advisoryFlags"] == 2
+
+
+def sample(name: str, admin: dict[str, str]) -> bytes:
+    res = api().get(f"/api/v1/demo/files/{name}", headers=admin)
+    assert res.status_code == 200, res.text
+    return res.content
+
+
+def test_a1_samples_the_fdr_copy_shows_the_claim_and_the_other_copy_a_different_amount(seeded: dict[str, Any]) -> None:
+    from app.domain import doc_text
+
+    admin = seeded["admin"]
+    printed = {n: doc_text.analyse(sample(n, admin))["extracted"]["labelled"]["amount"]
+               for n in ("fdr-copy", "fdr-copy-different-amount", "bank-letter")}  # fmt: skip
+    assert printed == {"fdr-copy": "2500000.00", "fdr-copy-different-amount": "2000000.00", "bank-letter": "2000000.00"}
+    assert api().get("/api/v1/demo/files/other", headers=admin).status_code == 404
+    officer = bearer(user_for("officer@demo.in"))
+    assert api().get("/api/v1/demo/files/fdr-copy-different-amount", headers=officer).status_code == 403
+
+
+def test_a1_story_text_matches_the_claim_and_only_the_bank_reveals_the_mismatch(seeded: dict[str, Any]) -> None:
+    admin = seeded["admin"]
+    rec = api().get("/api/v1/demo/anchors", headers=admin).json()[0]["bankRecord"]
+    inst1, officer = bearer(user_for("inst1@demo.in")), bearer(user_for("officer@demo.in"))
+    created = api().post("/api/v1/instruments", headers=inst1, json={
+        "type": "FDR", "referenceNo": rec["referenceNo"], "issuingBank": rec["bank"], "branch": "Main Branch",
+        "amount": "25,00,000", "issueDate": rec["issueDate"], "maturityDate": rec["maturityDate"],
+        "beneficiaryName": rec["beneficiaryName"], "lienMarked": True, "purpose": "Security deposit"})  # fmt: skip
+    assert created.status_code == 201, created.text
+    iid = created.json()["id"]
+    # The demo files: the FDR copy (claimed amount), the FDR copy with a different amount, the bank letter.
+    for doc_type, name in (("FDR_COPY", "fdr-copy"), ("FDR_COPY", "fdr-copy-different-amount"),
+                           ("BANK_LETTER", "bank-letter")):  # fmt: skip
+        res = api().post(f"/api/v1/instruments/{iid}/documents", headers=inst1, data={"docType": doc_type},
+                         files={"file": (f"{name}.pdf", sample(name, admin), "application/pdf")})  # fmt: skip
+        assert res.status_code == 201, res.text
+    assert api().post(f"/api/v1/instruments/{iid}/submit", headers=inst1).status_code == 200
+    review = api().get(f"/api/v1/instruments/{iid}/review", headers=officer).json()
+    assert review["advisoryFlags"] == []  # A1 is an ordinary-sized deposit with the right name: nothing to flag
+    copies = [f for f in review["documentFindings"]["items"] if f["docType"] == "FDR_COPY"]
+    assert len(copies) == 2
+    amount_result = sorted(next(c for c in f["checks"] if c["field"] == "amount")["result"] for f in copies)
+    assert amount_result == ["DIFFERENT", "MATCH"]  # the first copy shows the claim, the second the bank's amount
+    matching = next(f for f in copies if {c["field"]: c["result"] for c in f["checks"]}["amount"] == "MATCH")
+    assert {c["result"] for c in matching["checks"]} == {"MATCH"}  # reference, amount and both dates
+    different = next(f for f in copies if f is not matching)
+    amount = next(c for c in different["checks"] if c["field"] == "amount")
+    assert (amount["found"], amount["claimed"]) == ("2000000.00", "2500000.00")
+    # Only the bank, not the text, tells the officer the claim is wrong; the tiers are untouched by the text.
+    assert {f["tier"] for f in review["fields"]} == {"CLAIMED"}
+    assert api().post(f"/api/v1/instruments/{iid}/claim", headers=officer).status_code == 200
+    verify = api().post(f"/api/v1/instruments/{iid}/verify", headers=officer)
+    assert verify.status_code == 200 and verify.json()["result"] == "MISMATCH"
+    assert verify.json()["mismatchedFields"] == ["amount"]
+
+
 def test_first_start_in_demo_mode_seeds_an_empty_database_only(
     seeded: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -24,6 +24,9 @@ amount **₹25,00,000** (deliberately wrong — the bank holds ₹20 L), dates a
 sample letter, lien marked ✓ → Documents: upload FDR copy and bank letter (show the required-documents
 checklist turning green) → Review → **Submit**.
 *Say:* every value is now a **claim** — grey "Claimed by institution" badges.
+*(Optional, 15 s:* the sample FDR copy prints the amount the institution claims, ₹25,00,000, so the officer's
+"Document text cross-check" will say "Matches" on all four values — text alone cannot catch this. To show the cross-check
+disagreeing, upload **A1 FDR copy with a different amount** as well; it prints the bank's ₹20,00,000.)
 
 ## 2. Verification and discrepancy (Officer) — 75 s
 
@@ -34,6 +37,9 @@ the other six fields flip to green "Bank-confirmed". **Accept** is disabled and 
 *(If time allows: Institution 1 corrects the amount and resubmits; Officer verifies again → all green
 → Accept. Otherwise say "the corrected resubmission re-verifies only what changed".)*
 *Say:* this is the statement's "distinguish institution-submitted from bank-confirmed" made visible.
+*Mention:* the review page also carries two advisory cards — "Worth a closer look" (look-alike beneficiary, repeated reference,
+unusually large amount) and "Document text cross-check" — labelled advisory only; they never block and never change a tier,
+and institutions never see them. The dashboard counts open flags (the seed has two: F2 and S4).
 
 ## 3. Validity tracking (Officer/Approver dashboard) — 30 s
 
@@ -67,7 +73,11 @@ amount"**; Recommend disabled. Admin → Demo tools → **A5: bank confirms ₹1
 its record after the institution's representation) → Officer → **Re-verify with bank** → CONFIRMED,
 discrepancy auto-resolved, conditions all green → **Recommend** with remarks.
 Approver → decision page (banner: the decision rests with the competent authority) → **Approve** with
-remarks and refund reference → instrument **RELEASED** → printable **Release Order**.
+remarks and refund reference → instrument **RELEASED** → printable **Release Order** with its QR code. Scan it (set
+`PUBLIC_BASE_URL` to the laptop's LAN address first, see the README) or open `/verify/<order number>` signed out: "Valid", the order
+number, status, instrument reference, approval date, approver designation and the audit hash, nothing else. A wrong number says
+"Not found". From the passport, **Printable passport** gives a clean page (tiers, timeline, renewal chain, release order) for
+Print / Save as PDF.
 Mention A9: above ₹50 L needs a second, different approver.
 
 ## 8. Audit — 30 s

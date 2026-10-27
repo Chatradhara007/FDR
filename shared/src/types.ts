@@ -278,7 +278,73 @@ export interface ReviewPayload {
   /** Only the missing bank confirmation stands in the way; an override note lifts it (D4). */
   canAcceptWithOverride: boolean;
   acceptBlockers: string[];
+  /** Advisory pattern flags (officers only; never blocks anything). */
+  advisoryFlags: AdvisoryFlag[];
+  /** PDF text cross-check (officers only; never changes a trust tier). */
+  documentFindings: DocumentFindings;
 }
+
+export type AdvisoryFlagKind = 'DUPLICATE_REFERENCE' | 'HIGH_AMOUNT' | 'BENEFICIARY_NEAR_MISS';
+
+export interface AdvisoryFlag {
+  id: string;
+  instrumentId: string;
+  kind: AdvisoryFlagKind;
+  /** Plain-language reason. */
+  reason: string;
+  detail: Record<string, unknown>;
+  createdAt: string;
+}
+
+export type TextCheckField = 'reference_no' | 'amount' | 'issue_date' | 'maturity_date';
+
+export interface TextCheck {
+  field: TextCheckField;
+  claimed: string;
+  /** What the document's text prints next to the field's label, when it prints one. */
+  found: string | null;
+  result: 'MATCH' | 'DIFFERENT' | 'NOT_FOUND';
+}
+
+export interface MetadataSignal {
+  reasons: Array<'MODIFIED_AFTER_CREATED' | 'IMAGE_EDITOR'>;
+  producer: string | null;
+  creator: string | null;
+  created: string | null;
+  modified: string | null;
+}
+
+export interface DocumentFinding {
+  documentId: string;
+  filename: string;
+  docType: DocType;
+  status: 'READ' | 'UNREADABLE';
+  reason: string | null;
+  /** Why the text could not be read, in plain words. */
+  message: string | null;
+  /** Only for the main document (FDR copy / deposit confirmation). */
+  checks: TextCheck[];
+  metadataSignal: MetadataSignal | null;
+  advisoryLabel: string;
+}
+
+export interface DocumentFindings {
+  items: DocumentFinding[];
+  note: string;
+}
+
+/** GET /verify/release/:orderNo (public). Nothing but these fields, and `{ valid: false }` when not found. */
+export type ReleaseVerification =
+  | { valid: false }
+  | {
+      valid: true;
+      orderNumber: string;
+      status: string;
+      instrumentReference: string | null;
+      approvedDate: string;
+      approverDesignation: string;
+      eventHash: string;
+    };
 
 export interface VerifyResponse {
   result: VerificationResult;
@@ -563,6 +629,9 @@ export interface ReleaseView {
   blockers: string[];
   approvals: ReleaseApproval[];
   orderNumber: string | null;
+  /** Public address that verifies the order, and the same address as a QR code (inline SVG); null until approved. */
+  verifyUrl: string | null;
+  qrSvg: string | null;
   canRecommend: boolean;
   canDecide: boolean;
   canApprove: boolean;
@@ -623,6 +692,8 @@ export interface Dashboard {
     pendingScrutiny: number;
     openDiscrepancies: number;
     openEscalations: number;
+    /** Open advisory flags on submitted instruments (officers only). */
+    advisoryFlags: number;
   };
   byStatus: Array<CountAmount & { key: string; label: string; statuses: InstrumentStatus[] }>;
   verification: { byState: Record<VerificationState, number>; acceptedWithOverride: number };
