@@ -74,6 +74,14 @@ def find_request(db: Db, request_id: str) -> ReleaseRequestRow | None:
     return cast(ReleaseRequestRow | None, row)
 
 
+def request_ids_with_prefix(db: Db, prefix: str) -> list[str]:
+    """Ids of every release request (any status) whose id starts with `prefix` (hex digits only)."""
+    rows = many(
+        db, "SELECT id FROM release_requests WHERE id::text LIKE $1 ORDER BY seq LIMIT 3", [prefix.lower() + "%"]
+    )
+    return [str(r["id"]) for r in rows]
+
+
 def lock_request(db: Db, request_id: str) -> ReleaseRequestRow:
     row = one(
         db,

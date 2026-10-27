@@ -16,6 +16,7 @@ from .middleware.responses import ApiJSONResponse
 from .middleware.security import SecurityMiddleware
 from .routes import admin, alerts, audit, clock, demo, health, instruments, jobs, meta, releases, reporting, scrutiny
 from .routes.auth import auth_router
+from .routes.public import public_router
 from .security import check_startup_config
 
 
@@ -63,6 +64,7 @@ def create_app(mount_test_routes: Callable[[APIRouter], None] | None = None) -> 
     api = APIRouter()
     api.include_router(health.router)
     api.include_router(auth_router())
+    api.include_router(public_router())
     api.include_router(clock.router)
     api.include_router(instruments.router)
     api.include_router(scrutiny.router)

@@ -36,6 +36,13 @@ class Config:
         return [s.strip() for s in os.environ.get("FRONTEND_ORIGIN", "http://localhost:5173").split(",")]
 
     @property
+    def public_base_url(self) -> str:
+        """PUBLIC_BASE_URL: where the portal's pages are reachable by whoever scans a release order's QR code (for a
+        phone on the demo laptop's Wi-Fi: http://<laptop LAN address>:5173). Defaults to the first frontend origin."""
+        explicit = os.environ.get("PUBLIC_BASE_URL", "").strip().rstrip("/")
+        return explicit or self.frontend_origins[0].rstrip("/")
+
+    @property
     def demo_mode(self) -> bool:
         return os.environ.get("DEMO_MODE") == "true"
 

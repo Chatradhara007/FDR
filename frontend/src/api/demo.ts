@@ -41,6 +41,8 @@ export function useUndoTamper() {
   });
 }
 
-export function downloadSample(name: 'fdr-copy' | 'bank-letter') {
+export type SampleName = 'fdr-copy' | 'fdr-copy-different-amount' | 'bank-letter';
+
+export function downloadSample(name: SampleName) {
   return apiDownload(`/demo/files/${name}`, `A1-${name}.pdf`);
 }

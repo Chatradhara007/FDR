@@ -1,4 +1,4 @@
-import { AlertOctagon, Banknote, CalendarClock, FileWarning, Search, ShieldCheck, Siren } from 'lucide-react';
+import { AlertOctagon, Banknote, CalendarClock, FileWarning, Flag, Search, ShieldCheck, Siren } from 'lucide-react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -254,7 +254,7 @@ export function Dashboard() {
       {q.isError && <EmptyState title="Could not load the dashboard" description={q.error.message} />}
       {d && (
         <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
             <Kpi icon={<Banknote className="size-4" aria-hidden />} label="Live instruments" value={formatINRCompact(d.kpis.live.amount)}
               sub={`${d.kpis.live.count} instruments`} to={registerLink(base, { status: 'ACTIVE,EXPIRING,MATURED,LAPSED,RELEASE_REQUESTED' })} />
             <Kpi icon={<ShieldCheck className="size-4" aria-hidden />} label="Bank-confirmed"
@@ -266,6 +266,8 @@ export function Dashboard() {
               to="/reports?preset=discrepancies" />
             <Kpi icon={<AlertOctagon className="size-4" aria-hidden />} label="Open escalations (L2+)" value={d.kpis.openEscalations}
               to="/alerts" />
+            <Kpi icon={<Flag className="size-4" aria-hidden />} label="Advisory flags" value={d.kpis.advisoryFlags}
+              sub="Worth a closer look; nothing blocked" to="/officer/queue" />
           </div>
           <div className="grid gap-4 xl:grid-cols-2">
             <StatusBreakdown d={d} base={base} />

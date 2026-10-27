@@ -45,6 +45,12 @@ Administrator), `auditor@demo.in` (Internal Audit, read-only).
 | DRAFT | 2 | one nearly complete, one empty |
 | **Total** | **60** | |
 
+Advisory flags (post-Phase-09): the dataset carries exactly two deliberate ones and nothing else: F2 `HDFC/FD/2026/32652`
+(₹80 L, far above what Institution 3 had lodged before: "high amount") and S4 `CNRB/FD/2026/36859` (beneficiary written
+"MEMBER SECRETARY AICTI": "near-miss beneficiary"). A1 carries none. Sample PDFs: A1's FDR copy prints the claimed ₹25,00,000
+(the text cross-check matches; only the bank reveals the mismatch), an extra "FDR copy with a different amount" prints the bank's
+₹20,00,000, and the bank letter shows the bank's values.
+
 A2 is ACTIVE at D0 (97 days to maturity) and only becomes EXPIRING during the demo jump.
 
 Verification state targets: CONFIRMED for all live instruments except the 2 overrides (UNAVAILABLE)

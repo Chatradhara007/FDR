@@ -126,6 +126,7 @@ ANCHORS: tuple[Anchor, ...] = (
 
 A1_RECORD = {"bank": "State Bank of India", "reference_no": "SBIN/FDR/2026/00731", "amount": "2000000.00",
              "issue": -10, "maturity": 355}  # fmt: skip
+A1_CLAIMED_AMOUNT = "2500000.00"  # what the presenter types in demo step 1 (the bank holds A1_RECORD["amount"])
 A4_REPLACEMENT = {"bank": "Union Bank of India", "reference_no": "UBIN/FDR/2026/40977", "amount": "3500000.00",
                   "issue": 5, "maturity": 400}  # fmt: skip
 A5_BANK_AMOUNT_AT_REVERIFY = "1450000.00"
@@ -232,6 +233,9 @@ def release(
 # ---- the dataset ----
 
 
+SUBMITTED_CLAIMS: dict[str, dict[str, object]] = {"S4": {"beneficiary": "MEMBER SECRETARY AICTI"}}
+
+
 def build(d0: str) -> list[Spec]:
     """The 60 instruments for demo date `d0` (deterministic: a fixed PRNG seed)."""
     rng = Mulberry32(26265)
@@ -262,7 +266,8 @@ def build(d0: str) -> list[Spec]:
     ):
         live(sp(key, inst, bank, lakh, issue, mat, type=typ), issue + rng.int_between(3, 9))
     # F2: a full correction cycle in its history (amount typed wrong, returned, corrected, re-verified).
-    # F2's bank amount is ₹80 L; the first claim was ₹8 L (a missing zero).
+    # F2's bank amount is ₹80 L; the first claim was ₹8 L (a missing zero). On its resubmission ₹80 L is far above what
+    # the institution had lodged before, so F2 carries the seed's other deliberate advisory flag ("high amount").
     f2 = sp("F2", 3, "HDFC Bank", 80, -150, 215, claim={"amount": "800000.00"})
     lodge(f2, -144, verify_day=-143)
     f2.steps += [
@@ -366,7 +371,8 @@ def build(d0: str) -> list[Spec]:
                                                 "remarks": "Attach the compliance certificate signed by the "
                                                            "affiliating university and resubmit."}))  # fmt: skip
 
-    # SUBMITTED (5): two waiting more than 5 days; S3 at the slow bank (Bank of India)
+    # SUBMITTED (5): two waiting more than 5 days; S3 at the slow bank (Bank of India). S4 is one of the seed's two
+    # deliberate advisory flags: the institution wrote the beneficiary a letter off ("AICTI"), a look-alike name.
     for key, inst, bank, lakh, issue, mat, submit, typ in (
         ("S1", 2, "Axis Bank", 17, -20, 345, -8, "FDR"),
         ("S2", 6, "State Bank of India", 8, -15, 715, -6, "SECURITY_DEPOSIT"),
@@ -374,7 +380,7 @@ def build(d0: str) -> list[Spec]:
         ("S4", 11, "Canara Bank", 10, -6, 359, -2, "FDR"),
         ("S5", 12, "HDFC Bank", 33, -4, 726, -1, "FDR"),
     ):
-        s = sp(key, inst, bank, lakh, issue, mat, type=typ)
+        s = sp(key, inst, bank, lakh, issue, mat, type=typ, claim=SUBMITTED_CLAIMS.get(key, {}))
         s.steps += [Step(submit, "create", key)] + [Step(submit, "upload", key, {"docType": d})
                                                     for d in required_docs(s)] + [Step(submit, "submit", key)]  # fmt: skip
 

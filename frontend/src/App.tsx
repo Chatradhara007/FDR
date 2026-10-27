@@ -25,6 +25,8 @@ import { ApproverHome } from '@/pages/releases/ApproverHome';
 import { ReleaseList } from '@/pages/releases/ReleaseList';
 import { ReleaseOrder } from '@/pages/releases/ReleaseOrder';
 import { ReleaseReviewPage } from '@/pages/releases/ReleaseReviewPage';
+import { PrintPassport } from '@/pages/passport/PrintPassport';
+import { VerifyPage } from '@/pages/verify/VerifyPage';
 
 /** The Phase 2 detail URL now opens the passport. */
 function ToPassport() {
@@ -38,6 +40,9 @@ export function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      {/* Public: the page behind a release order's QR code (order numbers contain slashes). */}
+      <Route path="/verify/*" element={<VerifyPage />} />
+      <Route path="/instruments/:id/print" element={<ProtectedRoute><PrintPassport /></ProtectedRoute>} />
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<HomeRedirect />} />
         <Route path="/officer" element={<ProtectedRoute roles={['officer']}><OfficerHome /></ProtectedRoute>} />

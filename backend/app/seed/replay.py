@@ -50,7 +50,7 @@ from ..services.audit_service import clear_integrity_cache
 from ..services.document_service import IncomingFile
 from ..shared_constants import FIELD_LABELS
 from .base import INSTITUTIONS, seed_base
-from .dataset import A1_RECORD, A4_REPLACEMENT, AICTE, LIEN_HOLDER, Spec, Step, build
+from .dataset import A1_CLAIMED_AMOUNT, A1_RECORD, A4_REPLACEMENT, AICTE, LIEN_HOLDER, Spec, Step, build
 from .pdf import sample_document
 
 # Evaluate every day of the last weeks (alerts and escalations land on their exact dates), every 5th day before.
@@ -148,10 +148,17 @@ def a1_values(d0: str) -> dict[str, object]:
     }  # fmt: skip
 
 
-def a1_sample(doc_type: str, d0: str) -> bytes:
-    """Demo step 1's sample PDFs (FDR copy, bank letter) with A1's true bank values for today's D0."""
+def a1_sample(doc_type: str, d0: str, *, amount_on_copy: str = "claimed") -> bytes:
+    """Demo step 1's sample PDFs for today's D0. The bank letter always carries the bank's true values.
+
+    The FDR copy carries the amount the institution is going to claim (`amount_on_copy="claimed"`, the default), so
+    the advisory text cross-check shows a match and only the bank reveals the mismatch. `"bank"` prints the bank's
+    own amount instead ("FDR copy with a different amount"): the cross-check then shows a mismatch."""
+    values = a1_values(d0)
+    if doc_type == "FDR_COPY" and amount_on_copy == "claimed":
+        values["amount"] = A1_CLAIMED_AMOUNT
     note = "We confirm the above deposit is held with lien in favour of AICTE." if doc_type == "BANK_LETTER" else ""
-    return sample_document(doc_type, document_rows(a1_values(d0)), INSTITUTIONS["inst1"]["name"],
+    return sample_document(doc_type, document_rows(values), INSTITUTIONS["inst1"]["name"],
                            str(A1_RECORD["bank"]), note)  # fmt: skip
 
 

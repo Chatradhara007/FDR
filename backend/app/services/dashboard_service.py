@@ -34,6 +34,7 @@ class Kpis(TypedDict):
     pendingScrutiny: int
     openDiscrepancies: int
     openEscalations: int
+    advisoryFlags: int
 
 
 class StatusGroupView(TypedDict):
@@ -169,6 +170,7 @@ def get_dashboard(q: DashboardQuery) -> Dashboard:
             "pendingScrutiny": total(["SUBMITTED", "UNDER_SCRUTINY"])["count"],
             "openDiscrepancies": rr.open_discrepancy_count(db, f),
             "openEscalations": sum(a["count"] for a in alert_rows if a["level"] >= 2),
+            "advisoryFlags": rr.open_advisory_flag_count(db, f),
         },
         "byStatus": by_status,
         "verification": {"byState": by_state, "acceptedWithOverride": sum(v["override"] for v in ver)},

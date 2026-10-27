@@ -30,6 +30,7 @@ const DESCRIPTIONS: Record<string, string> = {
   approval_levels: 'The release approval chain and the extra level for large amounts.',
   risk_weights: 'How My day ranks work. The weights must add up to 1.00.',
   improvement_baseline: 'Assumed figures for the manual process, shown on the improvement page.',
+  expected_beneficiary: 'The beneficiary names AICTE expects, and the thresholds of the advisory flags shown to officers (they never block anything).',
 };
 
 function serverErrors(err: unknown): Errors {

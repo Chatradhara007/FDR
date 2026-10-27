@@ -49,6 +49,30 @@ record, tampers with the audit log and lists the demo anchors with sample files.
   Without it, only a `DEMO_MODE` install starts, using a key derived from `JWT_SECRET`. Keep the key: files
   encrypted with it cannot be read without it.
 
+### Verifying a release order from a phone (`PUBLIC_BASE_URL`)
+
+A printed Release / Discharge Order carries a QR code. It encodes `<PUBLIC_BASE_URL>/verify/<order number>`, a public
+page (no sign-in) that shows the order number, status, instrument reference, approved date, approver designation and the
+audit-log hash, plus "Valid" or "Not found" and nothing else. `PUBLIC_BASE_URL` is read by the backend; when it is not
+set it defaults to the first `FRONTEND_ORIGIN` (`http://localhost:5173`), which only works on the machine running the
+portal. To scan from a phone during the demo, use the laptop's LAN address instead (phone and laptop on the same
+Wi-Fi). Find it with `ipconfig` (Windows, "IPv4 Address"), `ipconfig getifaddr en0` (macOS) or `hostname -I` (Linux),
+say `192.168.1.20`, and put this in your local `.env` (not in `.env.example`):
+
+```bash
+PUBLIC_BASE_URL=http://192.168.1.20:5173
+FRONTEND_ORIGIN=http://localhost:5173,http://192.168.1.20:5173   # the phone's page may call the API
+VITE_API_URL=http://192.168.1.20:3000/api/v1                      # the phone cannot reach "localhost"
+```
+
+Then restart the stack so the backend and Vite pick it up, and let Vite listen on the network (`npm run dev` runs
+Vite on localhost only; start the web part yourself with `npm run dev -w frontend -- --host`). Under Docker the
+`frontend` service already listens on all interfaces, but `docker-compose.yml` fixes its `VITE_API_URL` to
+`localhost`; override it for your machine in an untracked `docker-compose.override.yml`. Allow ports 5173 and 3000
+through the laptop's firewall. Open the
+order on the laptop (`/releases/<id>/order`), scan the QR code with the phone and the check page opens. The addresses are
+only used inside that Wi-Fi; the portal does not need to be on the internet.
+
 ## Demo users (password `Demo@123`)
 
 The login page has "Sign in as" buttons for these in demo mode.

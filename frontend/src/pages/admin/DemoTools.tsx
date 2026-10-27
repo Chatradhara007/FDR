@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { BANKS, formatDate, formatINR, type DemoAnchor } from '@fdr/shared';
 import { ApiError } from '@/api/client';
-import { downloadSample, useAnchors, useBankCorrection, useResetDemo, useTamper, useUndoTamper } from '@/api/demo';
+import { downloadSample, type SampleName, useAnchors, useBankCorrection, useResetDemo, useTamper, useUndoTamper } from '@/api/demo';
 import { Badge, Button, Card, FieldError, Modal, PageHeader, StatusChip, Table, VerificationChip, summaryText, useToast, type Column } from '@/components';
 import { useClock, useClockMutation } from '@/hooks/useClock';
 
@@ -200,7 +200,7 @@ function TamperCard() {
 function AnchorsCard() {
   const anchors = useAnchors();
   const toast = useToast();
-  const sample = (name: 'fdr-copy' | 'bank-letter') => downloadSample(name).catch((err: Error) => toast.error(err.message));
+  const sample = (name: SampleName) => downloadSample(name).catch((err: Error) => toast.error(err.message));
   const columns: Column<DemoAnchor>[] = [
     { key: 'code', header: 'Anchor', cell: (a) => <span className="font-semibold">{a.code}</span> },
     {
@@ -222,6 +222,7 @@ function AnchorsCard() {
       actions={
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="secondary" icon={<Download className="size-3.5" aria-hidden />} onClick={() => void sample('fdr-copy')}>A1 FDR copy</Button>
+          <Button size="sm" variant="secondary" icon={<Download className="size-3.5" aria-hidden />} onClick={() => void sample('fdr-copy-different-amount')}>A1 FDR copy with a different amount</Button>
           <Button size="sm" variant="secondary" icon={<Download className="size-3.5" aria-hidden />} onClick={() => void sample('bank-letter')}>A1 bank letter</Button>
         </div>
       }

@@ -13,6 +13,7 @@ from typing import Literal, NotRequired, TypedDict
 
 from psycopg.errors import UniqueViolation
 
+from ..config import config
 from ..db.pool import Conn, Db, get_pool, transaction
 from ..domain import clock
 from ..domain.access import AuthUser, actor_of, assert_can_see, scope_instruments_query
@@ -62,6 +63,7 @@ from ..shared_constants import (
     ReleaseDecision,
     TrackedField,
 )
+from . import qr
 from .document_service import IncomingFile, UploadResponse, store_document
 from .instrument_service import DocumentInfo, get_instrument
 
@@ -123,7 +125,12 @@ class CurrentLevel(TypedDict):
     label: str
 
 
-class ReleaseView(TypedDict):
+class VerifyLink(TypedDict):
+    verifyUrl: str | None
+    qrSvg: str | None
+
+
+class ReleaseView(VerifyLink):
     request: ReleaseRequestRow
     statusLabel: str
     currentLevelInfo: CurrentLevel | None
@@ -357,6 +364,14 @@ def _closed_conditions(db: Db, req: ReleaseRequestRow, approvals: list[ApprovalR
     return out
 
 
+def _verify_link(number: str | None) -> VerifyLink:
+    """Where the order can be checked by anyone, and that address as a QR code (SVG), once the order exists."""
+    if number is None:
+        return {"verifyUrl": None, "qrSvg": None}
+    url = f"{config.public_base_url}/verify/{number}"
+    return {"verifyUrl": url, "qrSvg": qr.svg_for(url)}
+
+
 def build_view(db: Db, user: AuthUser, req: ReleaseRequestRow) -> ReleaseView:
     internal = user.role != "institution"
     detail = get_instrument(user, req["instrumentId"], db)
@@ -392,6 +407,7 @@ def build_view(db: Db, user: AuthUser, req: ReleaseRequestRow) -> ReleaseView:
         "blockers": blockers,
         "approvals": _approval_views(approvals, req, internal),
         "orderNumber": order_number(req),
+        **_verify_link(order_number(req)),
         "canRecommend": can_recommend and not blockers,
         "canDecide": can_decide,
         "canApprove": can_decide and level is not None and level["action"] == "DECIDE" and not blockers,

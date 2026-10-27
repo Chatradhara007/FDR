@@ -22,3 +22,4 @@ export * from './ObservationItem';
 export * from './AlertChips';
 export * from './AlertBell';
 export * from './ReleaseStatusChip';
+export * from './QrCode';

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, ArrowLeft, ClipboardCheck, HandCoins, Pencil, RefreshCcw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ClipboardCheck, HandCoins, Pencil, Printer, RefreshCcw } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   INSTRUMENT_TYPE_LABELS, OPEN_RELEASE_REQUEST_STATUSES, RELEASABLE_STATUSES, RENEWABLE_STATUSES, TERMINAL_STATUSES, type Passport,
@@ -126,7 +126,12 @@ function PassportView({ id }: { id: string }) {
             {s.acceptedWithOverride && (
               <Badge tone="warning" icon={<AlertTriangle className="size-3.5" aria-hidden />}>Accepted without bank confirmation</Badge>
             )}
-            <div className="flex flex-wrap justify-end gap-2"><Actions p={p} onReleaseRequested={() => setTab('release')} /></div>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Link to={`/instruments/${inst.id}/print`}>
+                <Button size="sm" variant="secondary" icon={<Printer className="size-4" aria-hidden />}>Printable passport</Button>
+              </Link>
+              <Actions p={p} onReleaseRequested={() => setTab('release')} />
+            </div>
           </div>
         </div>
         {s.acceptedWithOverride && s.overrideNote && <p className="mt-3 text-sm text-warning-700">Officer’s note: “{s.overrideNote}”</p>}
