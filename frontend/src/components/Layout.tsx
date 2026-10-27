@@ -1,92 +1,71 @@
-import { FlaskConical, Landmark, LogOut } from 'lucide-react';
-import { ROLE_LABELS } from '@fdr/shared';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Outlet } from 'react-router-dom';
 import { useMeta } from '@/api/instruments';
 import { useAuth } from '@/auth/AuthContext';
-import { cn } from '@/lib/cn';
-import { NAV } from '@/lib/nav';
-import { AlertBell } from './AlertBell';
-import { Badge } from './Badge';
-import { Button } from './Button';
-import { ClockBadge, ClockControls } from './ClockBadge';
+import { menuFor, menuLinks } from '@/lib/nav';
+import { Breadcrumbs } from './shell/Breadcrumbs';
+import { CommandPalette } from './shell/CommandPalette';
+import { MenuBar } from './shell/MenuBar';
+import { SiteFooter } from './shell/SiteFooter';
+import { SiteHeader } from './shell/SiteHeader';
+import { UtilityBar } from './shell/UtilityBar';
 
-export function Layout() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const demoMode = useMeta().data?.demoMode === true;
-  const items = user ? NAV[user.role].filter((i) => !i.demoOnly || demoMode) : [];
+/** 4 px tricolour accent line (three flat bands, no gradient). */
+function TricolourLine() {
   return (
-    <div className="flex min-h-screen">
-      <aside className="hidden w-60 print:hidden! shrink-0 flex-col bg-primary-900 text-primary-100 md:flex">
-        <div className="flex items-center gap-2 px-5 py-4 text-white">
-          <Landmark className="size-5" aria-hidden />
-          <div className="leading-tight">
-            <p className="text-sm font-semibold">FDR Portal — AICTE</p>
-            <p className="text-xs text-primary-200">Security deposits</p>
-          </div>
-        </div>
-        {demoMode && (
-          <p data-testid="demo-ribbon" className="mx-3 mb-2 flex items-center gap-1.5 rounded-md bg-amber-400/15 px-2 py-1 text-xs font-medium text-amber-200 ring-1 ring-amber-300/40">
-            <FlaskConical className="size-3.5 shrink-0" aria-hidden /> Demo mode · synthetic data
-          </p>
-        )}
-        <nav aria-label="Main" className="flex-1 px-2 py-2">
-          <ul className="space-y-0.5">
-            {items.map(({ to, label, icon: Icon }) => (
-              <li key={to}>
-                <NavLink
-                  to={to}
-                  end
-                  className={({ isActive }) =>
-                    cn('flex items-center gap-2 rounded-md px-3 py-2 text-sm', isActive ? 'bg-primary-700 text-white' : 'hover:bg-primary-800 hover:text-white')
-                  }
-                >
-                  <Icon className="size-4" aria-hidden />
-                  {label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="print:hidden flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-surface px-6 py-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="text-sm font-medium text-slate-700 md:hidden">FDR Portal — AICTE</p>
-            <ClockBadge />
-            {demoMode && (
-              <span data-testid="demo-ribbon-compact" className="inline-flex items-center gap-1 rounded-full border border-dashed border-amber-400 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 md:hidden">
-                <FlaskConical className="size-3.5" aria-hidden /> Demo
-              </span>
-            )}
-            {user?.role === 'admin' && <ClockControls />}
-          </div>
-          {user && (
-            <div className="flex items-center gap-3">
-              <AlertBell />
-              <div className="text-right leading-tight">
-                <p className="text-sm font-medium text-slate-800" data-testid="user-name">{user.name}</p>
-                {user.institutionName && <p className="text-xs text-slate-500">{user.institutionName}</p>}
-              </div>
-              <Badge tone="primary">{ROLE_LABELS[user.role]}</Badge>
-              <Button
-                size="sm"
-                variant="ghost"
-                icon={<LogOut className="size-4" aria-hidden />}
-                onClick={() => {
-                  logout();
-                  navigate('/login', { replace: true });
-                }}
-              >
-                Sign out
-              </Button>
-            </div>
-          )}
-        </header>
-        <main className="flex-1 p-6 print:p-0">
-          <Outlet />
-        </main>
-      </div>
+    <div className="flex h-1 print:hidden" aria-hidden>
+      <span className="flex-1 bg-saffron" /><span className="flex-1 bg-white" /><span className="flex-1 bg-india-green" />
+    </div>
+  );
+}
+
+/** Centred, fluid content column (max 1600 px). */
+function Main({ children }: { children: ReactNode }) {
+  return (
+    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 outline-none sm:px-6 lg:px-8 print:max-w-none print:p-0">
+      {children}
+    </main>
+  );
+}
+
+/** Signed-in shell: tricolour line, accessibility bar, header, menu bar, breadcrumbs, content, footer. */
+export function Layout() {
+  const { user } = useAuth();
+  const demoMode = useMeta().data?.demoMode === true;
+  const entries = useMemo(() => (user ? menuFor(user.role, demoMode) : []), [user, demoMode]);
+  const [palette, setPalette] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPalette((p) => !p); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+  return (
+    <div className="flex min-h-screen flex-col">
+      <TricolourLine />
+      <UtilityBar />
+      <SiteHeader onSearch={() => setPalette(true)} />
+      <MenuBar entries={entries} />
+      <Breadcrumbs />
+      <Main><Outlet /></Main>
+      <SiteFooter />
+      <CommandPalette open={palette} onClose={() => setPalette(false)} links={menuLinks(entries)} canSearchRegister={!!user && user.role !== 'institution'} />
+    </div>
+  );
+}
+
+/** Public pages (sign in, help, policies, release verification): same header and footer, no menu. */
+export function PublicLayout({ children }: { children?: ReactNode }) {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <TricolourLine />
+      <UtilityBar signedIn={false} />
+      <SiteHeader />
+      <div className="h-2 bg-navy print:hidden" aria-hidden />
+      <Breadcrumbs />
+      <Main>{children ?? <Outlet />}</Main>
+      <SiteFooter />
     </div>
   );
 }

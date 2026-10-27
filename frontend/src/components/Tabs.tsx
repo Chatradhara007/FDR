@@ -16,7 +16,7 @@ export function Tabs({ tabs, value, onChange }: { tabs: TabDef[]; value: string;
   const active = tabs.find((t) => t.id === value) ?? tabs[0];
   return (
     <div>
-      <div role="tablist" className="flex gap-1 border-b border-slate-200">
+      <div role="tablist" className="flex flex-wrap gap-0 border-b-2 border-navy">
         {tabs.map((t, i) => (
           <button
             key={t.id}
@@ -29,8 +29,8 @@ export function Tabs({ tabs, value, onChange }: { tabs: TabDef[]; value: string;
             onClick={() => onChange(t.id)}
             onKeyDown={(e) => onKey(e, i)}
             className={cn(
-              '-mb-px border-b-2 px-3 py-2 text-sm font-medium',
-              t.id === active?.id ? 'border-primary-700 text-primary-700' : 'border-transparent text-slate-600 hover:text-slate-900',
+              'mr-1 border border-b-0 px-4 py-2 text-sm font-semibold',
+              t.id === active?.id ? 'border-navy bg-navy text-white' : 'border-line bg-strip text-navy hover:bg-primary-100',
             )}
           >
             {t.label}

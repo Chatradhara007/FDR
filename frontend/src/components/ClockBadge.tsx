@@ -1,6 +1,7 @@
 import { CalendarClock, CalendarDays, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 import { formatDate, type EvaluationSummary } from '@fdr/shared';
+import { formatDateGov } from '@/lib/format';
 import { ApiError } from '@/api/client';
 import { useClock, useClockMutation, type ClockAction } from '@/hooks/useClock';
 import { Badge } from './Badge';
@@ -13,7 +14,7 @@ import { useToast } from './Toast';
 export function ClockBadge() {
   const clock = useClock();
   if (!clock.data) return null;
-  const date = formatDate(clock.data.today);
+  const date = formatDateGov(clock.data.today);
   return clock.data.mode === 'SIMULATED' ? (
     <Badge tone="warning" icon={<CalendarClock className="size-3.5" aria-hidden />} className="font-semibold" >
       <span data-testid="clock-badge">SIMULATED · {date}</span>

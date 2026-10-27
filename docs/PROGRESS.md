@@ -1027,3 +1027,69 @@ Phase 09:
   - [x] Favicon and title "FDR Portal — AICTE"; login with a one-line description and the "Synthetic demo data" note.
   - [x] No console errors or React key warnings (sweep and e2e run).
 - Phase 09 check 5: pending (no Docker), see known issues.
+
+## UI direction v2 — government-portal shell (frontend only)
+
+Redo of the UI direction in the style of Indian government portals (GIGW 3.0: formal, flat, dense). No backend, API,
+shared-constant, migration or test changes. Branch `claude/beautiful-galileo-fkb452`, based on `main` after PR #13.
+Note: the earlier "session-1" redesign was never merged into this branch, so the command palette, text-size control, skip link
+and count-up were built new here.
+
+**Post-Phase-09 additions confirmed present and working inside the new shell** (checked by `e2e/ui-shots.mjs`): public QR
+verify page `/verify/<order no.>` (shows "Valid" inside the public header and footer, at 1366 and 390 px); advisory flags on the
+officer review page (the "Advisory signals" section is found on a seeded pending instrument); passport `/instruments/:id` (with the
+menu bar); printable passport `/instruments/:id/print` and the release order `/releases/:id/order` (shell hidden in print media).
+
+Done:
+- **Shell** (`components/Layout.tsx`, `components/shell/*`): 4 px tricolour line, then a light-grey accessibility bar (skip link,
+  A- A A+, high-contrast toggle, saved per browser with try/catch; user, role, app-clock badge and the admin clock controls on the right),
+  then a white header (inline-SVG neutral crest, Hindi + English title, "Prototype · SIH 2026 · Problem SIH26265" tag, demo ribbon
+  `data-testid="demo-ribbon"`, alerts bell, Search (Ctrl+K) and Sign out), then a navy menu bar driven by `lib/nav.ts` (`MENU`, role-aware,
+  dropdown groups Records / Monitoring / Administration, saffron underline + `aria-current` on the active item; keyboard: ↓/↑/Enter/Space
+  open, arrows/Home/End move, Esc closes and returns focus; hamburger below 1024 px), then breadcrumbs with "Last updated: <app clock date>",
+  centred content (max 1600 px, 16–32 px padding) and a navy footer (quick links, help, policies, prototype disclaimer, last updated,
+  browser note). `PublicLayout` gives login, `/verify/*` and the policy pages the same header and footer without the menu.
+- **Command palette** (`shell/CommandPalette.tsx`): Ctrl+K, filters the role's menu links; internal roles can also search the register by Ref. No.
+- **Tokens** (`index.css`): Noto Sans + Noto Sans Devanagari via @fontsource (Inter removed); navy #0B2A5B, link #1A4B9B, saffron
+  #E87722, India green #138808, background #F4F6F9, borders #c5cfdd, title strips #e6edf6; shadows set to none and radii to 2–3 px
+  globally, so every page picks up the flat look; `text-xs` is 14 px and `text-sm` 15 px; saffron focus ring; reduced motion respected.
+- **Shared components**: `Panel` (`Card` kept as an alias) with title strip and actions; `Badge` flat rectangular label with icon + text
+  (used by StatusChip, TrustBadge, VerificationChip, ReleaseStatusChip, AlertChips); `Button` navy primary / outlined secondary / danger /
+  ghost / link + `ButtonBar`; `Table` grid style with navy header, zebra, hover, sortable headers, optional `serial` (Sl. No.), `search`
+  and `pageSize` ("Showing 1 to 10 of N entries"); new `FormField`, `MandatoryNote`, `Notice`; Tabs, Modal, Toast, PageHeader, KeyValue
+  restyled; `DateText` shows 27-Oct-2026 (`lib/format.ts`, display only; shared `formatDate` unchanged).
+- **Login**: two columns; "Notices / Instructions for users" (lodging steps, documents table built from the `required_docs` rule defaults
+  in `shared/constants.json` with the doc-type labels, contact links) and the sign-in panel (mandatory note, Sign in / Reset), then
+  "Demo accounts (synthetic data)".
+- **Dashboard**: KPI tiles with a thick coloured left edge, count-up number, label and "More details →"; status, buckets, alerts,
+  verification as grid tables (bars inside the table next to the numbers); maturity chart with its table beside it; region and bank
+  tables with Sl. No., sorting, pagination (bank search). "Download CSV" builds the CSV from the rows the panel shows.
+- **Static pages**: `/help/faq`, `/help/contact`, `/policies/terms`, `/policies/privacy`, `/policies/accessibility`,
+  `/policies/disclaimer`, each with honest placeholder text.
+
+Deviations / choices:
+- The app clock needs a session, so signed-out pages show no "Last updated" date.
+- Policy pages use the public layout, also for signed-in users (the footer's quick links lead back).
+- Strings the e2e script checks are unchanged ("As of …" stays next to the new "Last updated"; chip labels unchanged).
+- Wide tables scroll inside their frame on phones; the page itself never scrolls sideways.
+- `useMeta(enabled)` got an optional flag so the public header does not call `/meta` without a session.
+
+Checks (cloud sandbox, `npm run dev` + `npm run seed`): `npm run typecheck` green; `npm run test` 303 + 9 + 7 passed;
+`node e2e/demo.mjs` 9/9, no console errors; `node e2e/ui-shots.mjs` all checks passed: no horizontal page overflow at
+1920/1366/1280/768/390 px on login, accessibility statement, admin/approver/auditor dashboards and officer My day; admin menu bar on
+one line at 1280 and 1366 px; dropdown keyboard behaviour; Ctrl+K palette; mobile hamburger; post-Phase-09 pages above; no console
+errors. Screenshots in `e2e/screenshots/ui/` (gitignored).
+
+**Pages still in the old table/form style** (they already use the new shell, tokens and shared components, but have their own
+hand-made tables, rounded/shadowed boxes or inline form controls; roughly in order of how much is left):
+1. Audit log (`audit/AuditLog.tsx`), with filters, integrity banner and its own table
+2. My day / Officer home (`myday/MyDay.tsx`, `myday/OfficerHome.tsx`)
+3. Release review and parts (`releases/ReleaseReviewPage.tsx`, `releases/parts.tsx`, `RequestReleaseModal.tsx`), Approver home, Release list
+4. Officer review (`officer/ReviewPage.tsx`, `review/ActionBar.tsx`, `AdvisoryPanel.tsx`, `ObservationsTab.tsx`, `DiscrepancyCards.tsx`,
+   `DocumentsTab.tsx`, `FieldsPanel.tsx`, `Checklist.tsx`, `VerificationHistory.tsx`) and the Scrutiny queue
+5. Reports and Improvement (`reports/Reports.tsx`, `reports/Improvement.tsx`)
+6. Rules editor (`admin/rules/RulesPage.tsx`, `editors.tsx`), Users, Outbox, Demo tools
+7. Passport tabs (`passport/DetailTabs.tsx`, `TimelineTab.tsx`, `ReleaseTab.tsx`, `ChainTab.tsx`, `PassportPage.tsx`)
+8. Instrument wizard forms (`institution/wizard/*`, without labels-above / asterisk / ButtonBar), Institution home and its banners
+9. Register, Institutions, Alerts inbox (tables are restyled by `Table`; filter bars and inline controls are not)
+10. Print layouts (`PrintPassport.tsx`, `ReleaseOrder.tsx`) and the Verify page card: deliberately left as is apart from the shell

@@ -1,50 +1,127 @@
 @import 'tailwindcss';
-@import '@fontsource/inter/400.css';
-@import '@fontsource/inter/500.css';
-@import '@fontsource/inter/600.css';
-@import '@fontsource/inter/700.css';
+@import '@fontsource/noto-sans/400.css';
+@import '@fontsource/noto-sans/600.css';
+@import '@fontsource/noto-sans/700.css';
+@import '@fontsource/noto-sans-devanagari/400.css';
+@import '@fontsource/noto-sans-devanagari/600.css';
 
-/* Design tokens — defined once, used everywhere. Semantic colours carry meaning only:
+/* Design tokens (UI direction v2, GIGW-style): flat, bordered, navy + white, saffron only for thin accents.
+   Semantic colours carry meaning only and are always paired with an icon and text:
    success = bank-confirmed/healthy, warning = expiring/attention, danger = discrepancy/lapsed/blocked,
    info = in progress, neutral = draft/claimed. */
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'Noto Sans', 'Noto Sans Devanagari', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
 
-  --color-primary-50: #eef3f9;
-  --color-primary-100: #d6e1ef;
-  --color-primary-200: #adc3de;
-  --color-primary-500: #3a5f8f;
-  --color-primary-600: #2a4a73;
-  --color-primary-700: #1f3a5f;
-  --color-primary-800: #172c48;
-  --color-primary-900: #0f1e33;
+  /* Body text never below 14px: xs is 14px, sm 15px, base 16px (at the default text size). */
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.35;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.45;
+
+  /* Flat: no shadows anywhere; corners 2–3 px. */
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+  --shadow-2xl: none;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
+  --radius-xl: 3px;
+  --radius-2xl: 3px;
+
+  --color-navy: #0b2a5b;
+  --color-link: #1a4b9b;
+  --color-saffron: #e87722;
+  --color-india-green: #138808;
+  --color-line: #c5cfdd;
+  --color-strip: #e6edf6;
+
+  --color-primary-50: #eef3fa;
+  --color-primary-100: #dbe5f3;
+  --color-primary-200: #b3c6e3;
+  --color-primary-300: #8aa6d2;
+  --color-primary-500: #2d5aa8;
+  --color-primary-600: #1a4b9b;
+  --color-primary-700: #0b2a5b;
+  --color-primary-800: #08214a;
+  --color-primary-900: #061a3b;
 
   --color-surface: #ffffff;
   --color-canvas: #f4f6f9;
 
-  --color-success-50: #ecfdf3;
-  --color-success-600: #15803d;
-  --color-success-700: #166534;
-  --color-warning-50: #fffbeb;
-  --color-warning-600: #b45309;
-  --color-warning-700: #92400e;
-  --color-danger-50: #fef2f2;
-  --color-danger-600: #b91c1c;
-  --color-danger-700: #991b1b;
-  --color-info-50: #eff6ff;
-  --color-info-600: #1d4ed8;
-  --color-info-700: #1e40af;
-  --color-neutral-50: #f8fafc;
-  --color-neutral-600: #475569;
-  --color-neutral-700: #334155;
+  --color-success-50: #edf7ec;
+  --color-success-600: #138808;
+  --color-success-700: #0e6a06;
+  --color-warning-50: #fff6eb;
+  --color-warning-600: #b25600;
+  --color-warning-700: #8a4300;
+  --color-danger-50: #fdeeee;
+  --color-danger-600: #c0262d;
+  --color-danger-700: #9b1c22;
+  --color-info-50: #eef3fa;
+  --color-info-600: #1a4b9b;
+  --color-info-700: #0b2a5b;
+  --color-neutral-50: #f3f5f8;
+  --color-neutral-600: #4a5568;
+  --color-neutral-700: #2d3748;
 }
 
 @layer base {
   html {
     @apply bg-canvas text-slate-800 antialiased;
-    font-feature-settings: 'cv11';
+    font-size: 100%;
   }
+  html[data-text-size='sm'] { font-size: 93.75%; }
+  html[data-text-size='lg'] { font-size: 112.5%; }
+  body { @apply bg-canvas; font-size: 1rem; line-height: 1.5; }
+  a { color: inherit; }
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-primary-500;
+    outline: 3px solid var(--color-saffron);
+    outline-offset: 2px;
   }
+
+  /* High contrast: black on white, darker accents, underlined links. */
+  html[data-contrast='high'] {
+    --color-canvas: #ffffff;
+    --color-line: #000000;
+    --color-strip: #e8e8e8;
+    --color-primary-600: #002a80;
+    --color-primary-700: #000033;
+    --color-slate-500: #1a1a1a;
+    --color-slate-600: #000000;
+    --color-slate-700: #000000;
+    --color-slate-200: #000000;
+    --color-slate-300: #000000;
+    --color-success-600: #0a5203;
+    --color-warning-600: #6b3300;
+    --color-danger-600: #8a0a10;
+  }
+  html[data-contrast='high'] a { text-decoration: underline; }
+  html[data-contrast='high'] :focus-visible { outline-color: #000; }
+}
+
+@layer components {
+  /* Government-style data table: full grid, navy header, zebra rows. */
+  .gov-table { @apply w-full border-collapse text-sm; }
+  .gov-table th { @apply border border-line bg-navy px-3 py-2 text-left font-semibold text-white; }
+  .gov-table td { @apply border border-line px-3 py-2 align-top text-slate-800; }
+  .gov-table tbody tr:nth-child(even) td { background: #f5f8fc; }
+  .gov-table tbody tr:hover td { background: #e9f0fa; }
+  .gov-table .num { @apply whitespace-nowrap text-right tabular-nums; }
+  .gov-link { @apply text-link underline-offset-2 hover:underline; }
+  .gov-input { @apply h-10 w-full rounded-none border border-slate-400 bg-white px-3 text-sm text-slate-900 aria-[invalid=true]:border-danger-600; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.fade-in { animation: fade-in 180ms ease-out; }
+
+@media print {
+  body { background: #fff; }
 }

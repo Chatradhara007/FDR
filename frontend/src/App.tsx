@@ -1,7 +1,8 @@
 import { Navigate, Outlet, Route, Routes, useParams } from 'react-router-dom';
 import type { Role } from '@fdr/shared';
 import { HomeRedirect, ProtectedRoute } from '@/auth/ProtectedRoute';
-import { Layout } from '@/components';
+import { Layout, PublicLayout } from '@/components';
+import { AccessibilityPage, ContactPage, DisclaimerPage, FaqPage, PrivacyPage, TermsPage } from '@/pages/static/StaticPages';
 import { EmptyState } from '@/components/EmptyState';
 import { InstitutionHome } from '@/pages/institution/InstitutionHome';
 import { InstrumentWizard } from '@/pages/institution/wizard/InstrumentWizard';
@@ -39,9 +40,17 @@ const INTERNAL: Role[] = ['officer', 'approver', 'admin', 'auditor'];
 export function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      {/* Public: the page behind a release order's QR code (order numbers contain slashes). */}
-      <Route path="/verify/*" element={<VerifyPage />} />
+      <Route element={<PublicLayout />}>
+        <Route path="/login" element={<Login />} />
+        {/* Public: the page behind a release order's QR code (order numbers contain slashes). */}
+        <Route path="/verify/*" element={<VerifyPage />} />
+        <Route path="/help/faq" element={<FaqPage />} />
+        <Route path="/help/contact" element={<ContactPage />} />
+        <Route path="/policies/terms" element={<TermsPage />} />
+        <Route path="/policies/privacy" element={<PrivacyPage />} />
+        <Route path="/policies/accessibility" element={<AccessibilityPage />} />
+        <Route path="/policies/disclaimer" element={<DisclaimerPage />} />
+      </Route>
       <Route path="/instruments/:id/print" element={<ProtectedRoute><PrintPassport /></ProtectedRoute>} />
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<HomeRedirect />} />

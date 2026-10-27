@@ -7,8 +7,8 @@ import { apiFetch, apiUpload } from './client';
 // Server state for instruments (TanStack Query). Keys: ['instruments', params] lists, ['instrument', id] details,
 // ['passport', id] passports.
 
-export function useMeta() {
-  return useQuery({ queryKey: ['meta'], queryFn: () => apiFetch<Meta>('/meta'), staleTime: 5 * 60_000 });
+export function useMeta(enabled = true) {
+  return useQuery({ queryKey: ['meta'], queryFn: () => apiFetch<Meta>('/meta'), staleTime: 5 * 60_000, enabled });
 }
 
 export function useInstruments(params: Record<string, string | number | string[] | undefined> = {}) {
