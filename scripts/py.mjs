@@ -2,10 +2,11 @@
 // Cross-platform runner for the repo's Python virtualenv (.venv), used by the npm scripts.
 //
 //   node scripts/py.mjs setup                       create .venv and install backend[dev] + mock-bank
-//   node scripts/py.mjs [--cwd <dir>] <python args> run the venv's python, e.g. `-m pytest`
+//   node scripts/py.mjs [--cwd <dir>] [--env K=V]… <python args>  run the venv's python, e.g. `-m pytest`
 //
 // Windows uses .venv/Scripts/python.exe, everything else .venv/bin/python. --cwd is relative to the
-// repo root. The exit code of python is passed through.
+// repo root. --env sets an environment variable for python (works the same in PowerShell, cmd and bash);
+// a value already set in the caller's environment wins. The exit code of python is passed through.
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -17,8 +18,8 @@ const VENV = path.join(ROOT, '.venv');
 const VENV_PYTHON = WIN ? path.join(VENV, 'Scripts', 'python.exe') : path.join(VENV, 'bin', 'python');
 const MIN = [3, 12];
 
-function run(cmd, args, cwd = ROOT) {
-  const res = spawnSync(cmd, args, { cwd, stdio: 'inherit' });
+function run(cmd, args, cwd = ROOT, env = process.env) {
+  const res = spawnSync(cmd, args, { cwd, stdio: 'inherit', env });
   if (res.error) {
     console.error(`py.mjs: could not start ${cmd}: ${res.error.message}`);
     return 1;
@@ -80,11 +81,17 @@ function main(argv) {
     cwd = path.resolve(ROOT, argv[1] ?? '.');
     argv = argv.slice(2);
   }
+  const env = { ...process.env };
+  while (argv[0] === '--env') {
+    const [key, ...rest] = (argv[1] ?? '').split('=');
+    if (key && !(key in process.env)) env[key] = rest.join('=');
+    argv = argv.slice(2);
+  }
   if (!existsSync(VENV_PYTHON)) {
     console.error(`py.mjs: ${path.relative(ROOT, VENV_PYTHON)} not found. Run \`npm run setup:py\` first.`);
     return 1;
   }
-  return run(VENV_PYTHON, argv, cwd);
+  return run(VENV_PYTHON, argv, cwd, env);
 }
 
 process.exit(main(process.argv.slice(2)));

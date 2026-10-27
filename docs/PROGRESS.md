@@ -1147,9 +1147,8 @@ Deviations / choices:
   install without it (it was only present before through a stale lockfile entry).
 - `ApproveModal` is exported from `ReleaseReviewPage.tsx` for reuse on the approver desk.
 
-Checks (cloud sandbox, `npm run dev` + `npm run seed`): `npm run typecheck` green; `npm run test`: 302 passed, 1 failed
-(`test_phase09_seed.py::test_ac1_two_runs_identical_and_each_under_15_seconds`, the 15 s seed-duration limit: a seed takes
-≈ 16–17 s in this sandbox; it passes when its file runs alone; backend-only, unrelated to this change), shared vitest passed;
+Checks (cloud sandbox, `npm run dev` + `npm run seed`): `npm run typecheck` green; `npm run test`: 303 + 9 + 7 passed (after
+the seed-budget change below);
 `node e2e/demo.mjs` 9/9, no console errors; `node e2e/ui-shots.mjs` all checks passed. A scratch Playwright run over the five
 landing pages and login at 1920/1366/1280/768/390 px: no horizontal overflow, header on one line (≤ 62 px), no console errors
 or warnings, J/K move, B opens the confirmation and Esc cancels it, O opens the record, the admin clock popover works.
@@ -1160,3 +1159,12 @@ audit log; release review and parts, release list, request-release modal; office
 dashboard page layout (filters, KPI tiles); reports and Improvement; rules editor, users, outbox, demo tools; passport and its
 tabs; instrument wizard (calm step indicator still to do); register, institutions, alerts inbox; static pages and the verify
 card. Print layouts (printable passport, release order) are deliberately unchanged apart from the shell.
+
+**Seed time budget is configurable** (follow-up, test infrastructure only). `test_phase09_seed.py::test_ac1_two_runs_identical_and_each_under_15_seconds`
+failed only in the full `npm run test` run, where a seed took 16–17 s on the shared sandbox (it passed alone). The budget now comes from
+`SEED_BUDGET_SECONDS` (default 15, the Phase 9 acceptance value), and `npm run test:py` sets 30 for the full-suite run. The
+identical-output checks (fingerprints, instrument/event/alert counts) are unchanged and strict. A single-file run
+(`node scripts/py.mjs --cwd backend -m pytest tests/test_phase09_seed.py`) still uses 15 s. To pass the variable the same way in
+PowerShell, cmd and bash, `scripts/py.mjs` gained `--env KEY=VALUE` (repeatable; a value already set in the caller's
+environment wins). Checked: `SEED_BUDGET_SECONDS=1` makes the test fail, the default passes alone, the full suite is green
+(303 + 9 + 7). Deviation from "no test changes" for the UI session, made at the user's request.
