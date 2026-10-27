@@ -24,7 +24,7 @@ export function ReviewStep({ values, detail, meta, errors, serverMissingDocs, on
   return (
     <div className="space-y-6">
       <KeyValue
-        columns={3}
+        columns={2}
         items={[
           { label: 'Type', value: INSTRUMENT_TYPE_LABELS[values.type] },
           { label: 'Reference number', value: values.referenceNo || '—' },
@@ -39,9 +39,9 @@ export function ReviewStep({ values, detail, meta, errors, serverMissingDocs, on
       />
 
       <section aria-labelledby="checklist-heading">
-        <h3 id="checklist-heading" className="mb-2 text-sm font-semibold text-slate-800">Before you submit</h3>
+        <h3 id="checklist-heading" className="mb-2 text-base font-bold">Before you submit</h3>
         {ready ? (
-          <p className="flex items-center gap-2 text-sm text-success-700"><CheckCircle2 className="size-4" aria-hidden /> Everything required is in place.</p>
+          <p className="flex items-center gap-2 text-[0.9375rem] text-teal-hover"><CheckCircle2 className="size-4" aria-hidden /> Everything required is in place.</p>
         ) : (
           <ul className="space-y-1 text-sm text-danger-700">
             {fieldProblems.map((f) => (
@@ -63,9 +63,9 @@ export function ReviewStep({ values, detail, meta, errors, serverMissingDocs, on
         <div className="mt-3"><DocChecklist required={required} present={present} /></div>
       </section>
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
-        <Button onClick={onSubmit} loading={submitting} icon={<Send className="size-4" aria-hidden />}>Submit for scrutiny</Button>
-        <p className="text-xs text-slate-500">
+      <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
+        <Button size="lg" onClick={onSubmit} loading={submitting} icon={<Send className="size-4" aria-hidden />}>Submit for scrutiny</Button>
+        <p className="text-[0.8125rem] text-muted">
           {dirty ? 'Unsaved changes are saved first. ' : ''}
           After submission the record is locked; an AICTE officer will verify it with the bank.
         </p>

@@ -76,4 +76,4 @@ export const FIELD_LABELS: Record<string, string> = Object.fromEntries([
 ]);
 
 export const inputCls =
-  'h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm aria-[invalid=true]:border-danger-600 disabled:bg-slate-50';
+  'gov-input disabled:bg-subtle disabled:text-muted';

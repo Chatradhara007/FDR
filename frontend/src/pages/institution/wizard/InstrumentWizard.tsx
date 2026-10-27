@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, ArrowRight, RotateCw, Save, Trash2, Undo2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, RotateCw, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { InstrumentDetail } from '@fdr/shared';
@@ -6,7 +6,7 @@ import { ApiError, missingDocumentsOf } from '@/api/client';
 import {
   useCreateInstrument, useDeleteDraft, useInstrument, useMeta, usePatchInstrument, useSubmitInstrument,
 } from '@/api/instruments';
-import { Button, Card, EmptyState, Modal, ObservationItem, PageHeader, StatusChip, useToast } from '@/components';
+import { Button, Card, EmptyState, Modal, Notice, ObservationItem, PageHeader, StatusChip, useToast } from '@/components';
 import { ReturnBanner } from '../ReturnBanner';
 import { ReplacementBanner } from './ReplacementBanner';
 import { cn } from '@/lib/cn';
@@ -17,25 +17,36 @@ import { ReviewStep } from './ReviewStep';
 
 const STEPS = ['Details', 'Documents', 'Review and submit'] as const;
 
+/** Calm step indicator: done = filled teal circle with a tick, current = ringed, later = plain; thin connectors. */
 function Stepper({ step, onSelect, canLeaveDetails }: { step: number; onSelect: (s: number) => void; canLeaveDetails: boolean }) {
   return (
-    <ol className="mb-4 flex flex-wrap gap-2" aria-label="Steps">
-      {STEPS.map((label, i) => (
-        <li key={label}>
-          <button
-            type="button"
-            onClick={() => onSelect(i)}
-            disabled={i > 0 && !canLeaveDetails}
-            aria-current={i === step ? 'step' : undefined}
-            className={cn(
-              'flex items-center gap-2 rounded-full border px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50',
-              i === step ? 'border-primary-700 bg-primary-700 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
-            )}
-          >
-            <span className="tabular-nums">{i + 1}.</span> {label}
-          </button>
-        </li>
-      ))}
+    <ol className="mb-6 flex items-start" aria-label="Steps">
+      {STEPS.map((label, i) => {
+        const done = i < step;
+        const current = i === step;
+        return (
+          <li key={label} className="flex flex-1 items-start last:flex-none">
+            <button
+              type="button"
+              onClick={() => onSelect(i)}
+              disabled={i > 0 && !canLeaveDetails}
+              aria-current={current ? 'step' : undefined}
+              className="group flex flex-col items-center gap-1.5 rounded-[10px] px-1 text-center disabled:cursor-not-allowed disabled:opacity-60 sm:flex-row sm:gap-2.5 sm:text-left"
+            >
+              <span className={cn('box-border flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold',
+                done && 'bg-teal text-white',
+                current && 'border-[3px] border-teal bg-white text-teal',
+                !done && !current && 'border-2 border-border bg-white text-muted')}>
+                {done ? <Check className="size-4" strokeWidth={3} aria-hidden /> : i + 1}
+              </span>
+              <span className={cn('text-sm', current ? 'font-bold text-ink' : 'font-medium text-muted group-hover:text-ink')}>
+                <span className="sr-only">Step {i + 1}: </span>{label}<span className="sr-only">{done ? ' (done)' : current ? ' (current step)' : ''}</span>
+              </span>
+            </button>
+            {i < STEPS.length - 1 && <span aria-hidden className={cn('mx-2 mt-4 h-[2px] min-w-4 flex-1 rounded-sm', done ? 'bg-teal' : 'bg-border')} />}
+          </li>
+        );
+      })}
     </ol>
   );
 }
@@ -163,7 +174,7 @@ export function InstrumentWizard() {
   if (id && detailQuery.isError) {
     return <EmptyState title="Instrument not found" description="It may have been deleted, or it belongs to another institution." />;
   }
-  if (id && !detail) return <p className="text-sm text-slate-500">Loading…</p>;
+  if (id && !detail) return <p className="text-sm text-muted">Loading…</p>;
   if (detail && detail.status !== 'DRAFT' && detail.status !== 'RETURNED') {
     return <Navigate to={`/instruments/${detail.id}`} replace />;
   }
@@ -171,7 +182,7 @@ export function InstrumentWizard() {
   const saving = create.isPending || patch.isPending;
 
   return (
-    <>
+    <div className="mx-auto max-w-[760px]">
       <PageHeader
         back={{ to: id ? `/instruments/${id}` : '/institution', label: id ? 'the deposit' : 'Home' }}
         title={id ? `Edit ${detail?.referenceNo ?? 'draft'}` : 'New instrument'}
@@ -191,11 +202,10 @@ export function InstrumentWizard() {
       )}
 
       {stale && (
-        <div role="alert" className="mb-4 flex flex-wrap items-center gap-3 rounded-md border border-danger-600/30 bg-danger-50 px-4 py-3 text-sm text-danger-700">
-          <AlertTriangle className="size-4 shrink-0" aria-hidden />
-          <p className="flex-1">This record changed in another tab — reload to see the latest version (your unsaved changes here will be discarded).</p>
-          <Button size="sm" variant="secondary" icon={<RotateCw className="size-4" aria-hidden />} onClick={() => void reload()}>Reload</Button>
-        </div>
+        <Notice kind="error" role="alert" className="mb-4">
+          <p>This record changed in another tab — reload to see the latest version (your unsaved changes here will be discarded).</p>
+          <Button size="sm" variant="secondary" className="mt-2" icon={<RotateCw className="size-4" aria-hidden />} onClick={() => void reload()}>Reload</Button>
+        </Notice>
       )}
 
       <Stepper step={step} canLeaveDetails={!!id} onSelect={(s) => (s === step ? undefined : void saveAndGo(s))} />
@@ -220,7 +230,7 @@ export function InstrumentWizard() {
         )}
       </Card>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      <div className="mt-5 flex flex-wrap items-center gap-2">
         {step > 0 && (
           <Button variant="secondary" icon={<ArrowLeft className="size-4" aria-hidden />} onClick={() => void saveAndGo(step - 1)}>Back</Button>
         )}
@@ -228,7 +238,7 @@ export function InstrumentWizard() {
           Save draft
         </Button>
         {step < 2 && (
-          <Button loading={saving} icon={<ArrowRight className="size-4" aria-hidden />} onClick={() => void saveAndGo(step + 1)}>
+          <Button size="lg" loading={saving} icon={<ArrowRight className="size-4" aria-hidden />} onClick={() => void saveAndGo(step + 1)}>
             Next
           </Button>
         )}
@@ -258,8 +268,8 @@ export function InstrumentWizard() {
           </>
         }
       >
-        <p className="text-sm text-slate-700">The draft and its document list are removed. This is recorded in the audit trail.</p>
+        <p className="text-sm text-ink-2">The draft and its document list are removed. This is recorded in the audit trail.</p>
       </Modal>
-    </>
+    </div>
   );
 }

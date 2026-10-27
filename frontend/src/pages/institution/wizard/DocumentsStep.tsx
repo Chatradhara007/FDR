@@ -1,9 +1,9 @@
-import { AlertTriangle, Upload } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { DOC_TYPE_LABELS, type DocType, type InstrumentDetail, type Meta } from '@fdr/shared';
 import { ApiError } from '@/api/client';
 import { useRemoveDocument, useUploadDocument } from '@/api/instruments';
-import { Button, DocChecklist, DocumentList, FieldError, useToast } from '@/components';
+import { Button, DocChecklist, DocumentList, FieldError, Notice, useToast } from '@/components';
 import { inputCls, type FormValues } from './form';
 
 export function DocumentsStep({ detail, meta, type }: { detail: InstrumentDetail; meta: Meta | undefined; type: FormValues['type'] }) {
@@ -51,15 +51,15 @@ export function DocumentsStep({ detail, meta, type }: { detail: InstrumentDetail
   return (
     <div className="space-y-6">
       <section>
-        <h3 className="mb-2 text-sm font-semibold text-slate-800">Required for this type</h3>
+        <h3 className="mb-2 text-base font-bold">Required for this type</h3>
         <DocChecklist required={required} present={present} />
       </section>
 
-      <section className="rounded-md border border-slate-200 bg-slate-50 p-4">
-        <h3 className="mb-3 text-sm font-semibold text-slate-800">Upload a document</h3>
-        <div className="grid gap-3 sm:grid-cols-[14rem_1fr_auto] sm:items-start">
+      <section className="rounded-[12px] border border-border bg-subtle p-5">
+        <h3 className="mb-4 text-base font-bold">Upload a document</h3>
+        <div className="space-y-4">
           <div>
-            <label htmlFor="docType" className="mb-1 block text-xs font-medium text-slate-600">Document type</label>
+            <label htmlFor="docType" className="mb-1.5 block text-sm font-semibold text-ink">Document type</label>
             <select id="docType" className={inputCls} value={chosenType} aria-invalid={!!errors.docType} aria-describedby="docType-error"
               onChange={(e) => setDocType(e.target.value as DocType)}>
               {(meta?.docTypes ?? []).map((t) => <option key={t.value} value={t.value}>{t.label}{required.includes(t.value) ? ' (required)' : ''}</option>)}
@@ -67,30 +67,30 @@ export function DocumentsStep({ detail, meta, type }: { detail: InstrumentDetail
             <FieldError id="docType-error" message={errors.docType} />
           </div>
           <div>
-            <label htmlFor="file" className="mb-1 block text-xs font-medium text-slate-600">File (PDF, PNG or JPEG, up to 10 MB)</label>
-            <input id="file" ref={fileInput} type="file" accept="application/pdf,image/png,image/jpeg" className="block w-full text-sm"
+            <label htmlFor="file" className="mb-1.5 block text-sm font-semibold text-ink">File</label>
+            <input id="file" ref={fileInput} type="file" accept="application/pdf,image/png,image/jpeg"
+              className="block w-full rounded-[10px] border border-dashed border-border bg-white p-3 text-sm file:mr-3 file:rounded-[8px] file:border-0 file:bg-chip file:px-3 file:py-1.5 file:font-semibold file:text-ink"
               aria-invalid={!!errors.file} aria-describedby="file-error" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <p className="mt-1.5 text-[0.8125rem] text-muted">PDF, PNG or JPEG, up to 10 MB. Uploading the same file twice is flagged.</p>
             <FieldError id="file-error" message={errors.file} />
             {progress !== null && (
-              <div className="mt-2 h-1.5 w-full overflow-hidden rounded bg-slate-200" role="progressbar" aria-label="Upload progress"
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded bg-track" role="progressbar" aria-label="Upload progress"
                 aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
-                <div className="h-full bg-primary-600 transition-all" style={{ width: `${Math.round(progress * 100)}%` }} />
+                <div className="h-full bg-teal transition-all motion-reduce:transition-none" style={{ width: `${Math.round(progress * 100)}%` }} />
               </div>
             )}
           </div>
-          <div className="sm:pt-5">
-            <Button onClick={onUpload} loading={upload.isPending} icon={<Upload className="size-4" aria-hidden />}>Upload</Button>
+          <div>
+            <Button variant="dark" onClick={onUpload} loading={upload.isPending} icon={<Upload className="size-4" aria-hidden />}>Upload</Button>
           </div>
         </div>
         {duplicate && (
-          <p role="alert" className="mt-3 flex items-start gap-2 rounded-md border border-warning-600/30 bg-warning-50 px-3 py-2 text-sm text-warning-700">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden /> {duplicate}
-          </p>
+          <Notice kind="warning" role="alert" title="Possible duplicate" className="mt-4">{duplicate}</Notice>
         )}
       </section>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold text-slate-800">Uploaded</h3>
+        <h3 className="mb-2 text-base font-bold">Uploaded</h3>
         <DocumentList
           documents={detail.documents}
           removingId={remove.isPending ? remove.variables : null}

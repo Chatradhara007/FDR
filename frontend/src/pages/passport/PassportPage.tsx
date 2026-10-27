@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { AlertTriangle, ClipboardCheck, HandCoins, Pencil, Printer, RefreshCcw } from 'lucide-react';
+import { AlertOctagon, AlertTriangle, ClipboardCheck, HandCoins, Pencil, Printer, RefreshCcw, ShieldCheck } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   INSTRUMENT_TYPE_LABELS, OPEN_RELEASE_REQUEST_STATUSES, RELEASABLE_STATUSES, RENEWABLE_STATUSES, TERMINAL_STATUSES, type Passport,
 } from '@fdr/shared';
+import { useIntegrity } from '@/api/admin';
 import { usePassport, useRenew } from '@/api/instruments';
 import { useAuth } from '@/auth/AuthContext';
 import {
-  Badge, Button, Card, DateText, DocChecklist, DocumentList, EmptyState, Money, ObservationItem, StatusChip, Tabs, VerificationChip,
-  WeakestTierBadge, WorstAlertChip, useToast,
+  Badge, Button, Card, ConditionLine, DateText, DocChecklist, DocumentList, EmptyState, Kicker, Money, ObservationItem, ProofLegend, ProofStrip,
+  StatusChip, Tabs, VerificationChip, WeakestTierBadge, WorstAlertChip, useToast,
 } from '@/components';
 import { ROLE_HOME, ROLE_HOME_LABEL } from '@/lib/roles';
 import { BackLink } from '@/components/PageHeader';
@@ -23,7 +24,7 @@ function MaturityText({ days }: { days: number | null }) {
   if (days === null) return null;
   if (days < 0) return <span className="font-semibold text-danger-700">matured {Math.abs(days)} d ago</span>;
   if (days === 0) return <span className="font-semibold text-danger-700">matures today</span>;
-  return <span className={days <= 90 ? 'font-medium text-warning-700' : 'text-slate-600'}>{days} d to maturity</span>;
+  return <span className={days <= 90 ? 'font-medium text-warning-700' : 'text-muted'}>{days} d to maturity</span>;
 }
 
 /** Role-aware actions: the institution renews, requests release or edits; AICTE roles open the review screen. */
@@ -38,10 +39,12 @@ function Actions({ p, onReleaseRequested }: { p: Passport; onReleaseRequested: (
   const openRelease = p.releaseRequests.some((r) => OPEN_RELEASE_REQUEST_STATUSES.includes(r.request.status));
   // D6: no release while a replacement is in progress (the server checks again).
   const canRequestRelease = RELEASABLE_STATUSES.includes(inst.status) && !openRelease && (!successor || TERMINAL_STATUSES.includes(successor.status));
+  // One primary action per screen: Request release is primary only when nothing else is.
+  const primaryTaken = inst.status === 'DRAFT' || inst.status === 'RETURNED' || (RENEWABLE_STATUSES.includes(inst.status) && !successor);
   if (user?.role !== 'institution') {
     return (
       <Link to={`/officer/review/${inst.id}`}>
-        <Button size="sm" variant="secondary" icon={<ClipboardCheck className="size-4" aria-hidden />}>Open review</Button>
+        <Button variant="dark" icon={<ClipboardCheck className="size-4" aria-hidden />}>Open review</Button>
       </Link>
     );
   }
@@ -49,11 +52,11 @@ function Actions({ p, onReleaseRequested }: { p: Passport; onReleaseRequested: (
     <>
       {(inst.status === 'DRAFT' || inst.status === 'RETURNED') && (
         <Link to={`/institution/instruments/${inst.id}/edit`}>
-          <Button size="sm" icon={<Pencil className="size-4" aria-hidden />}>{inst.status === 'RETURNED' ? 'Correct and resubmit' : 'Continue editing'}</Button>
+          <Button icon={<Pencil className="size-4" aria-hidden />}>{inst.status === 'RETURNED' ? 'Correct and resubmit' : 'Continue editing'}</Button>
         </Link>
       )}
       {RENEWABLE_STATUSES.includes(inst.status) && !successor && (
-        <Button size="sm" icon={<RefreshCcw className="size-4" aria-hidden />} loading={renew.isPending}
+        <Button icon={<RefreshCcw className="size-4" aria-hidden />} loading={renew.isPending}
           onClick={() => renew.mutate(inst.id, {
             onSuccess: (child) => { toast.success('Replacement draft created — enter the new deposit’s details'); navigate(`/institution/instruments/${child.id}/edit`); },
             onError: (e) => toast.error(e.message),
@@ -63,11 +66,11 @@ function Actions({ p, onReleaseRequested }: { p: Passport; onReleaseRequested: (
       )}
       {successor && (successor.status === 'DRAFT' || successor.status === 'RETURNED') && (
         <Link to={`/institution/instruments/${successor.id}/edit`}>
-          <Button size="sm" variant="secondary" icon={<RefreshCcw className="size-4" aria-hidden />}>Continue renewal</Button>
+          <Button variant="secondary" icon={<RefreshCcw className="size-4" aria-hidden />}>Continue renewal</Button>
         </Link>
       )}
       {canRequestRelease && (
-        <Button size="sm" variant="secondary" icon={<HandCoins className="size-4" aria-hidden />} onClick={() => setReleaseOpen(true)}>Request release</Button>
+        <Button variant={primaryTaken ? 'secondary' : 'primary'} icon={<HandCoins className="size-4" aria-hidden />} onClick={() => setReleaseOpen(true)}>Request release</Button>
       )}
       <RequestReleaseModal open={releaseOpen} instrumentId={inst.id} onClose={() => setReleaseOpen(false)}
         onDone={() => { setReleaseOpen(false); toast.success('Release requested — AICTE will check the conditions'); onReleaseRequested(); }} />
@@ -88,7 +91,7 @@ function PassportView({ id }: { id: string }) {
   const [tab, setTab] = useState('timeline');
   if (q.isError) return <EmptyState title="Instrument not found" description="It may have been deleted, or it belongs to another institution." />;
   const p = q.data;
-  if (!p) return <p className="text-sm text-slate-500">Loading…</p>;
+  if (!p) return <p className="text-sm text-muted">Loading…</p>;
   const inst = p.instrument;
   const s = p.summary;
   const parent = p.chain.find((l) => l.depth === -1);
@@ -96,52 +99,47 @@ function PassportView({ id }: { id: string }) {
   const blockers = s.openProblems.filter((g) => g.severity === 'blocker');
   const home = user ? ROLE_HOME[user.role] : '/';
 
+  const showIntegrity = user?.role === 'admin' || user?.role === 'auditor';
+
   return (
-    <>
+    <div className="mx-auto max-w-[1400px]">
       <BackLink to={home} label={user ? ROLE_HOME_LABEL[user.role] : 'Home'} />
-      <header className="mb-4 rounded-lg border border-slate-200 bg-surface p-4 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">{INSTRUMENT_TYPE_LABELS[inst.type]} · {inst.institutionName} · Passport</p>
-            <h1 className="mt-1 text-xl font-semibold break-all text-slate-900">{inst.referenceNo ?? 'Draft instrument'}</h1>
-            <p className="mt-1 text-sm text-slate-700">
-              {inst.issuingBank ?? 'Bank not given'}{inst.branch ? `, ${inst.branch}` : ''} · <span className="font-semibold"><Money amount={inst.amount} /></span>
-              {inst.maturityDate && <> · matures <DateText value={inst.maturityDate} /> (<MaturityText days={s.daysToMaturity} />)</>}
-            </p>
-            {parent && (
-              <p className="mt-1 text-xs text-slate-600">Replaces <Link className="text-primary-700 hover:underline" to={`/instruments/${parent.id}`}>{parent.referenceNo}</Link></p>
-            )}
-            {successor && (
-              <p className="mt-1 text-xs text-slate-600">Replaced by <Link className="text-primary-700 hover:underline" to={`/instruments/${successor.id}`}>{successor.referenceNo ?? 'a draft replacement'}</Link></p>
-            )}
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <div className="min-w-0">
+          <Kicker>{INSTRUMENT_TYPE_LABELS[inst.type]} · {inst.institutionName} · Passport</Kicker>
+          <h1 className={`mt-1 text-[1.75rem] leading-tight font-bold tracking-[-0.02em] break-all sm:text-[1.875rem] ${inst.referenceNo ? 'mono' : ''}`}>{inst.referenceNo ?? 'Draft instrument'}</h1>
+          <p className="mt-1.5 text-base text-ink-2">
+            {inst.issuingBank ?? 'Bank not given'}{inst.branch ? `, ${inst.branch}` : ''} · <span className="font-semibold"><Money amount={inst.amount} /></span>
+            {inst.maturityDate && <> · matures <DateText value={inst.maturityDate} /> (<MaturityText days={s.daysToMaturity} />)</>}
+          </p>
+          {parent && <p className="mt-1 text-sm text-muted">Replaces <Link className="gov-link mono" to={`/instruments/${parent.id}`}>{parent.referenceNo}</Link></p>}
+          {successor && <p className="mt-1 text-sm text-muted">Replaced by <Link className="gov-link mono" to={`/instruments/${successor.id}`}>{successor.referenceNo ?? 'a draft replacement'}</Link></p>}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <ProofStrip provenance={p.fields} />
+            <ProofLegend />
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex flex-wrap justify-end gap-2">
-              <StatusChip status={inst.status} />
-              {inst.status !== 'DRAFT' && <VerificationChip state={inst.verificationState} />}
-              {s.openAlertCount > 0 && <WorstAlertChip level={s.worstOpenAlertLevel} count={s.openAlertCount} />}
-            </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <StatusChip status={inst.status} />
+            {inst.status !== 'DRAFT' && <VerificationChip state={inst.verificationState} />}
+            {s.openAlertCount > 0 && <WorstAlertChip level={s.worstOpenAlertLevel} count={s.openAlertCount} />}
             <WeakestTierBadge tier={s.weakestTier} />
             {s.acceptedWithOverride && (
               <Badge tone="warning" icon={<AlertTriangle className="size-3.5" aria-hidden />}>Accepted without bank confirmation</Badge>
             )}
-            <div className="flex flex-wrap justify-end gap-2">
-              <Link to={`/instruments/${inst.id}/print`}>
-                <Button size="sm" variant="secondary" icon={<Printer className="size-4" aria-hidden />}>Printable passport</Button>
-              </Link>
-              <Actions p={p} onReleaseRequested={() => setTab('release')} />
-            </div>
           </div>
+          {s.acceptedWithOverride && s.overrideNote && <p className="mt-2 text-sm text-attn-text">Officer’s note: “{s.overrideNote}”</p>}
         </div>
-        {s.acceptedWithOverride && s.overrideNote && <p className="mt-3 text-sm text-warning-700">Officer’s note: “{s.overrideNote}”</p>}
+        <div className="flex flex-wrap gap-2 print:hidden">
+          <Link to={`/instruments/${inst.id}/print`}>
+            <Button variant="secondary" icon={<Printer className="size-4" aria-hidden />}>Printable passport</Button>
+          </Link>
+          <Actions p={p} onReleaseRequested={() => setTab('release')} />
+        </div>
       </header>
       {inst.status === 'RETURNED' && p.returns[0] && <ReturnBanner reason={p.returns[0].reason} />}
-      {blockers.length > 0 && inst.status !== 'DRAFT' && (
-        <Card title="Open problems" className="mb-4">
-          <ul className="list-disc space-y-1 pl-5 text-sm text-danger-700">{blockers.map((g) => <li key={g.message}>{g.message}</li>)}</ul>
-        </Card>
-      )}
-      <Card>
+
+      <div className={`grid items-start gap-5 ${showIntegrity || (blockers.length > 0 && inst.status !== 'DRAFT') ? 'lg:grid-cols-[minmax(0,1fr)_340px]' : ''}`}>
+      <Card className="min-w-0">
         <Tabs
           value={tab}
           onChange={setTab}
@@ -153,7 +151,7 @@ function PassportView({ id }: { id: string }) {
               content: (
                 <div className="grid gap-4 lg:grid-cols-3">
                   <div className="lg:col-span-2"><DocumentList documents={p.documents} /></div>
-                  <div><h3 className="mb-2 text-sm font-semibold text-slate-700">Required documents</h3><DocChecklist required={inst.requiredDocs} present={p.documents.map((d) => d.docType)} /></div>
+                  <div><h3 className="mb-2 text-sm font-semibold text-ink-2">Required documents</h3><DocChecklist required={inst.requiredDocs} present={p.documents.map((d) => d.docType)} /></div>
                 </div>
               ),
             },
@@ -164,7 +162,7 @@ function PassportView({ id }: { id: string }) {
                   <VerificationTab p={p} />
                   {p.observations.length > 0 && (
                     <section>
-                      <h3 className="mb-2 text-sm font-semibold text-slate-700">Observations</h3>
+                      <h3 className="mb-2 text-sm font-semibold text-ink-2">Observations</h3>
                       <ul className="space-y-2">{p.observations.map((o) => <ObservationItem key={o.id} o={o} />)}</ul>
                     </section>
                   )}
@@ -177,6 +175,45 @@ function PassportView({ id }: { id: string }) {
           ]}
         />
       </Card>
-    </>
+      {(showIntegrity || (blockers.length > 0 && inst.status !== 'DRAFT')) && (
+        <aside className="min-w-0 space-y-5 lg:order-last">
+          {blockers.length > 0 && inst.status !== 'DRAFT' && (
+            <Card title="Open problems">
+              {blockers.map((g) => <ConditionLine key={g.message} met={false}>{g.message}</ConditionLine>)}
+            </Card>
+          )}
+          {showIntegrity && <IntegrityCard events={p.timeline} />}
+        </aside>
+      )}
+      </div>
+    </div>
+  );
+}
+
+/** Admin and auditor only (their /audit/integrity endpoint): is the audit chain behind this lifeline intact? */
+function IntegrityCard({ events }: { events: Passport['timeline'] }) {
+  const q = useIntegrity();
+  const i = q.data;
+  const ids = events.map((e) => e.id);
+  const affected = i && !i.ok && i.firstBrokenId !== null && ids.some((id) => id >= (i.firstBrokenId ?? 0));
+  return (
+    <section aria-label="Audit integrity" className={`rounded-[14px] border border-l-[5px] bg-white p-5 ${i && !i.ok ? 'border-danger' : 'border-border border-l-teal'}`}>
+      {!i && <p className="text-muted">Checking the audit log…</p>}
+      {i?.ok && (
+        <>
+          <div className="flex items-center gap-2"><ShieldCheck className="size-5 text-teal" aria-hidden /><span className="kicker text-teal-hover">Audit chain intact</span></div>
+          <p className="mt-2 text-[0.9375rem]">All {i.checked.toLocaleString('en-IN')} events check out, including the {ids.length} on this lifeline.</p>
+          <p className="mt-1 text-[0.8125rem] text-muted">Checked <DateText value={i.verifiedAt} />.</p>
+        </>
+      )}
+      {i && !i.ok && (
+        <>
+          <div className="flex items-center gap-2"><AlertOctagon className="size-5 text-danger" aria-hidden /><span className="kicker text-danger">Audit chain broken</span></div>
+          <p className="mt-2 text-[0.9375rem]">The chain breaks at event <span className="mono">#{i.firstBrokenId}</span>.{' '}
+            {affected ? 'Events on this lifeline from that point on cannot be relied on.' : 'This lifeline’s events come before the break.'}</p>
+        </>
+      )}
+      {i && <Link to="/audit" className="gov-link mt-3 inline-block text-sm font-semibold">Open the audit log</Link>}
+    </section>
   );
 }

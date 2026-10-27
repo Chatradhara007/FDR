@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { RELEASE_DECISION_LABELS, ROLE_LABELS, STATUS_LABELS, type ReleaseApproval, type ReleaseCondition, type ReleaseView } from '@fdr/shared';
 import { ApiError } from '@/api/client';
 import { useUpdateCondition } from '@/api/releases';
-import { Badge, Button, DateText, FieldError, useToast } from '@/components';
+import { Badge, Button, DateText, FieldError, Tracker, useToast, type TrackerStep } from '@/components';
 import { cn } from '@/lib/cn';
 
 const time = (iso: string) => new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });
@@ -14,12 +14,12 @@ export function BlockedBanner({ view }: { view: ReleaseView }) {
   if (!view.blocked) return null;
   const head = view.blockers.length === 1 ? view.blockers[0] : `${view.blockers.length} conditions are not met`;
   return (
-    <div role="alert" className="mb-4 rounded-lg border border-danger-600/30 bg-danger-50 p-4 text-sm text-danger-700">
-      <p className="flex items-center gap-2 font-semibold"><ShieldX className="size-5" aria-hidden /> Release blocked — {head.toLowerCase()}</p>
+    <div role="alert" className="mb-5 rounded-[10px] bg-danger-tint px-4 py-3 text-[0.9375rem] text-danger-700">
+      <p className="flex items-center gap-2 font-semibold"><ShieldX className="size-4 shrink-0" aria-hidden /> Release blocked — {head.toLowerCase()}</p>
       {view.blockers.length > 1 && (
-        <ul className="mt-2 list-disc space-y-1 pl-8">{view.blockers.map((b) => <li key={b}>{b}</li>)}</ul>
+        <ul className="mt-2 list-disc space-y-1 pl-6">{view.blockers.map((b) => <li key={b}>{b}</li>)}</ul>
       )}
-      <p className="mt-2 text-xs">A recommendation or approval is not possible until every mandatory condition is met.</p>
+      <p className="mt-2 text-[0.8125rem]">A recommendation or approval is not possible until every mandatory condition is met.</p>
     </div>
   );
 }
@@ -27,8 +27,8 @@ export function BlockedBanner({ view }: { view: ReleaseView }) {
 /** CLAUDE.md rule 12: the portal never decides. */
 export function DecisionBanner() {
   return (
-    <p className="mb-4 flex items-center gap-2 rounded-md border border-info-600/20 bg-info-50 px-3 py-2 text-sm text-info-700">
-      <Gavel className="size-4 shrink-0" aria-hidden />
+    <p className="flex items-start gap-2 text-[0.8125rem] leading-snug text-muted">
+      <Gavel className="mt-0.5 size-4 shrink-0" aria-hidden />
       The portal supports the decision; the decision rests with the competent authority. Nothing is approved automatically.
     </p>
   );
@@ -56,15 +56,15 @@ function ManualEditor({ c, requestId }: { c: ReleaseCondition; requestId: string
   const dirty = met !== c.met || remarks.trim() !== (c.remarks ?? '');
   const id = `cond-${c.id}`;
   return (
-    <div className="mt-2 space-y-2 rounded-md bg-slate-50 p-2">
+    <div className="mt-2 space-y-2 rounded-[10px] bg-subtle p-3">
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={met} onChange={(e) => setMet(e.target.checked)} className="size-4" />
         Confirmed by me
       </label>
-      <label htmlFor={`${id}-remarks`} className="block text-xs font-medium text-slate-600">Remarks (what did you check?)</label>
+      <label htmlFor={`${id}-remarks`} className="block text-xs font-medium text-muted">Remarks (what did you check?)</label>
       <textarea id={`${id}-remarks`} rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)}
         aria-invalid={!!errors.remarks} aria-describedby={errors.remarks ? `${id}-err` : undefined}
-        className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm" />
+        className="w-full gov-input h-auto py-2" />
       <FieldError id={`${id}-err`} message={errors.remarks} />
       <Button size="sm" variant="secondary" disabled={!dirty} loading={update.isPending}
         onClick={() => update.mutate({ id: c.id, met, remarks: remarks.trim() || undefined }, {
@@ -81,20 +81,20 @@ function ManualEditor({ c, requestId }: { c: ReleaseCondition; requestId: string
 export function ConditionsList({ view, editable = false, internal = true }: { view: ReleaseView; editable?: boolean; internal?: boolean }) {
   const instrumentId = view.request.instrumentId;
   return (
-    <ul className="divide-y divide-slate-100">
+    <ul className="divide-y divide-hairline">
       {view.conditions.map((c) => (
-        <li key={c.id} className={cn('py-2.5', c.changedSinceRecommendation && 'bg-warning-50 px-2')} data-condition={c.code}>
+        <li key={c.id} className={cn('py-3', c.changedSinceRecommendation && 'bg-attn-tint px-2')} data-condition={c.code}>
           <div className="flex items-start gap-2">
-            {c.met
-              ? <CircleCheck className="mt-0.5 size-4 shrink-0 text-success-700" aria-hidden />
-              : <CircleX className="mt-0.5 size-4 shrink-0 text-danger-700" aria-hidden />}
+            <span className={cn('flex size-[22px] shrink-0 items-center justify-center rounded-full', c.met ? 'bg-teal-tint text-teal' : 'bg-danger-tint text-danger-700')}>
+              {c.met ? <CircleCheck className="size-3.5" aria-hidden /> : <CircleX className="size-3.5" aria-hidden />}
+            </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm text-slate-800">
+              <p className="text-[0.9375rem] text-ink">
                 <span className={cn('mr-1 font-semibold', c.met ? 'text-success-700' : 'text-danger-700')}>{c.met ? 'Met' : 'Not met'}:</span>
                 {c.description}
-                {!c.mandatory && <span className="ml-1 text-xs text-slate-500">(optional)</span>}
+                {!c.mandatory && <span className="ml-1 text-xs text-muted">(optional)</span>}
               </p>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
                 {c.auto
                   ? <span className="inline-flex items-center gap-1"><Bot className="size-3.5" aria-hidden /> Checked automatically, live</span>
                   : <span className="inline-flex items-center gap-1"><UserCheck className="size-3.5" aria-hidden /> Officer check{c.checkedByName && c.checkedAt ? ` · ${c.checkedByName}, ${time(c.checkedAt)}` : ''}</span>}
@@ -106,7 +106,7 @@ export function ConditionsList({ view, editable = false, internal = true }: { vi
               </div>
               {!c.met && c.reason && !(internal && c.link?.type === 'discrepancy') && <p className="mt-1 text-xs text-danger-700">{c.reason}</p>}
               {internal && <CauseLink c={c} instrumentId={instrumentId} />}
-              {c.remarks && <p className="mt-1 text-xs text-slate-600">“{c.remarks}”</p>}
+              {c.remarks && <p className="mt-1 text-xs text-muted">“{c.remarks}”</p>}
               {editable && !c.auto && <ManualEditor key={`${c.id}-${c.met}-${c.remarks}`} c={c} requestId={view.request.id} />}
             </div>
           </div>
@@ -125,19 +125,19 @@ export function ApprovalChain({ view }: { view: ReleaseView }) {
         {levels.map((lv) => {
           const current = view.currentLevelInfo?.level === lv.level;
           return (
-            <li key={lv.level} className={cn('rounded-md border px-2 py-1', current ? 'border-primary-600 bg-primary-50 font-semibold text-primary-800' : 'border-slate-200 text-slate-600')}>
+            <li key={lv.level} className={cn('rounded-[8px] border px-2 py-1', current ? 'border-teal bg-teal-tint font-semibold text-teal-hover' : 'border-border text-muted')}>
               L{lv.level} · {lv.label} ({ROLE_LABELS[lv.role].toLowerCase()}){current ? ' — waiting' : ''}
             </li>
           );
         })}
       </ol>
       {view.approvals.length === 0
-        ? <p className="text-sm text-slate-500">No decisions yet.</p>
+        ? <p className="text-sm text-muted">No decisions yet.</p>
         : (
           <table className="min-w-full text-sm">
             <caption className="sr-only">Decisions on this request</caption>
             <thead>
-              <tr className="text-left text-xs text-slate-500">
+              <tr className="text-left text-xs text-muted">
                 <th scope="col" className="py-1 pr-3 font-semibold">Level</th>
                 <th scope="col" className="py-1 pr-3 font-semibold">Who</th>
                 <th scope="col" className="py-1 pr-3 font-semibold">Decision</th>
@@ -145,7 +145,7 @@ export function ApprovalChain({ view }: { view: ReleaseView }) {
                 <th scope="col" className="py-1 font-semibold">When</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-hairline">
               {view.approvals.map((a) => <ApprovalRow key={a.id} a={a} />)}
             </tbody>
           </table>
@@ -155,14 +155,14 @@ export function ApprovalChain({ view }: { view: ReleaseView }) {
 }
 
 function ApprovalRow({ a }: { a: ReleaseApproval }) {
-  const tone = a.decision === 'REJECT' ? 'text-danger-700' : a.decision === 'RETURN' ? 'text-warning-700' : 'text-success-700';
+  const tone = a.decision === 'REJECT' ? 'text-danger-700' : a.decision === 'RETURN' ? 'text-attn-text' : 'text-teal-hover';
   return (
     <tr>
-      <td className="py-2 pr-3 align-top text-slate-600">L{a.level} · {a.label}</td>
-      <td className="py-2 pr-3 align-top">{a.approverName}{a.approverDesignation && <span className="block text-xs text-slate-500">{a.approverDesignation}</span>}</td>
+      <td className="py-2 pr-3 align-top text-muted">L{a.level} · {a.label}</td>
+      <td className="py-2 pr-3 align-top">{a.approverName}{a.approverDesignation && <span className="block text-xs text-muted">{a.approverDesignation}</span>}</td>
       <td className={cn('py-2 pr-3 align-top font-medium', tone)}>{RELEASE_DECISION_LABELS[a.decision]}</td>
-      <td className="py-2 pr-3 align-top text-slate-700">{a.remarks ?? <span className="text-slate-400">—</span>}</td>
-      <td className="py-2 align-top text-xs text-slate-500">{time(a.decidedAt)}</td>
+      <td className="py-2 pr-3 align-top text-ink-2">{a.remarks ?? <span className="text-muted">—</span>}</td>
+      <td className="py-2 align-top text-xs text-muted">{time(a.decidedAt)}</td>
     </tr>
   );
 }
@@ -171,10 +171,37 @@ export function RequestFacts({ view }: { view: ReleaseView }) {
   const r = view.request;
   return (
     <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-      <div><dt className="text-xs text-slate-500">Requested by</dt><dd>{r.requestedByName}, <DateText value={r.requestedAt} /></dd></div>
-      <div><dt className="text-xs text-slate-500">Status before the request</dt><dd>{view.instrument.statusBeforeRelease ? STATUS_LABELS[view.instrument.statusBeforeRelease] : '—'}</dd></div>
-      <div className="sm:col-span-2"><dt className="text-xs text-slate-500">Reason</dt><dd className="whitespace-pre-wrap">{r.reason}</dd></div>
-      {r.refundReference && <div><dt className="text-xs text-slate-500">Refund reference</dt><dd>{r.refundReference}</dd></div>}
+      <div><dt className="text-xs text-muted">Requested by</dt><dd>{r.requestedByName}, <DateText value={r.requestedAt} /></dd></div>
+      <div><dt className="text-xs text-muted">Status before the request</dt><dd>{view.instrument.statusBeforeRelease ? STATUS_LABELS[view.instrument.statusBeforeRelease] : '—'}</dd></div>
+      <div className="sm:col-span-2"><dt className="text-xs text-muted">Reason</dt><dd className="whitespace-pre-wrap">{r.reason}</dd></div>
+      {r.refundReference && <div><dt className="text-xs text-muted">Refund reference</dt><dd>{r.refundReference}</dd></div>}
     </dl>
   );
+}
+
+/** Parcel-style stages of a release request: requested, each approval level, released. */
+export function ReleaseTracker({ view }: { view: ReleaseView }) {
+  const r = view.request;
+  const closed = r.status === 'APPROVED' || r.status === 'REJECTED' || r.status === 'CANCELLED';
+  // Decisions of the current round only: a return or resubmission starts the levels again.
+  const lastReset = Math.max(-1, ...view.approvals.map((a, i) => (a.decision === 'RETURN' || a.decision === 'REJECT' ? i : -1)));
+  const round = view.approvals.slice(lastReset + 1);
+  const steps: TrackerStep[] = [
+    { title: 'Requested', note: <>By {r.requestedByName}, <DateText value={r.requestedAt} /></>, state: 'done' },
+    ...r.requiredLevels.map((lv): TrackerStep => {
+      const done = round.find((a) => a.level === lv.level && (a.decision === 'RECOMMEND' || a.decision === 'APPROVE'));
+      const current = !closed && view.currentLevelInfo?.level === lv.level;
+      return {
+        title: lv.label,
+        note: done ? `${RELEASE_DECISION_LABELS[done.decision]} by ${done.approverName}` : current ? `Waiting for the ${ROLE_LABELS[lv.role].toLowerCase()}` : `By the ${ROLE_LABELS[lv.role].toLowerCase()}`,
+        state: done ? 'done' : current ? 'current' : 'next',
+      };
+    }),
+    {
+      title: r.status === 'REJECTED' ? 'Rejected' : r.status === 'CANCELLED' ? 'Cancelled' : 'Released',
+      note: closed ? <>On <DateText value={r.closedAt} /></> : 'The release order is issued here',
+      state: closed ? 'done' : 'next',
+    },
+  ];
+  return <Tracker steps={steps} />;
 }
