@@ -1,7 +1,7 @@
-import { AlertOctagon, Banknote, CalendarClock, Download, FileWarning, Flag, Search, ShieldCheck, Siren } from 'lucide-react';
-import type { ChangeEvent, ReactNode } from 'react';
+import { AlertOctagon, BarChart3, CalendarClock, Download, FileWarning, Flag, Search, Siren, Table as TableIcon } from 'lucide-react';
+import { useState, type ChangeEvent, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Bar as RBar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar as RBar, BarChart, LabelList, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import {
   INSTRUMENT_TYPES, INSTRUMENT_TYPE_LABELS, VERIFICATION_STATES, VERIFICATION_STATE_LABELS, formatINR, formatINRCompact,
   type Dashboard as DashboardData, type InstrumentStatus,
@@ -9,13 +9,14 @@ import {
 import { useMeta } from '@/api/instruments';
 import { toQuery } from '@/api/reporting';
 import { useDashboard } from '@/api/reporting';
-import { Badge, Button, EmptyState, PageHeader, Panel, StatusChip, Table, VerificationChip, type Column } from '@/components';
-import { useCountUp } from '@/hooks/useCountUp';
+import { useAuth } from '@/auth/AuthContext';
+import { Badge, Button, CountUp, EmptyState, PageHeader, Panel, StatRow, StatTile, StatusChip, Table, Tabs, VerificationChip, type Column } from '@/components';
+import { AuditorHome } from './AuditorHome';
 import { downloadCsv } from '@/lib/csv';
 import { formatDateGov } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
-const selectCls = 'h-10 min-w-48 rounded-none border border-slate-400 bg-white px-2 text-sm';
+const selectCls = 'h-10 min-w-48 rounded-lg border border-[#d6d0c4] bg-white px-3 text-sm';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** Register link with the dashboard's own filters carried over. */
@@ -30,38 +31,18 @@ function addDays(day: string, n: number): string {
 }
 
 type Base = { region?: string; type?: string };
-type Edge = 'navy' | 'green' | 'saffron' | 'red' | 'blue';
-const EDGE: Record<Edge, string> = {
-  navy: 'border-l-navy', green: 'border-l-india-green', saffron: 'border-l-saffron', red: 'border-l-danger-600', blue: 'border-l-primary-500',
-};
-
-function CountUp({ value }: { value: number }) {
-  return <>{useCountUp(value)}</>;
-}
-
-/** Bordered KPI tile: thick coloured left edge, big number, clear label, "More details →". */
-function Kpi({ icon, label, value, sub, to, edge }: { icon: ReactNode; label: string; value: ReactNode; sub?: ReactNode; to: string; edge: Edge }) {
-  return (
-    <Link to={to} className={cn('group flex min-w-0 flex-col border border-line border-l-[6px] bg-surface p-3 hover:bg-primary-50', EDGE[edge])}>
-      <div className="text-3xl font-bold tabular-nums text-navy">{value}</div>
-      <div className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-slate-800">{icon}{label}</div>
-      {sub && <div className="text-sm text-slate-700 tabular-nums">{sub}</div>}
-      <div className="mt-auto pt-2 text-sm text-link group-hover:underline">More details →</div>
-    </Link>
-  );
-}
 
 /** Thin flat bar inside a table cell; the number next to it carries the value (never the bar alone). */
 function Bar({ pct }: { pct: number }) {
   return (
-    <span className="block h-2.5 w-full min-w-16 bg-strip" aria-hidden>
-      <span className="block h-2.5 bg-primary-600" style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
+    <span className="block h-2 w-full min-w-16 rounded-full bg-strip" aria-hidden>
+      <span className="block h-2 rounded-full bg-ink/70" style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
     </span>
   );
 }
 
 function CsvLink({ onClick }: { onClick: () => void }) {
-  return <button type="button" onClick={onClick} className="inline-flex items-center gap-1 text-link hover:underline"><Download className="size-3.5" aria-hidden />Download CSV</button>;
+  return <button type="button" onClick={onClick} className="inline-flex items-center gap-1.5 text-ink hover:underline underline-offset-4"><Download className="size-3.5" aria-hidden />Download CSV</button>;
 }
 
 function StatusBreakdown({ d, base }: { d: DashboardData; base: Base }) {
@@ -71,15 +52,14 @@ function StatusBreakdown({ d, base }: { d: DashboardData; base: Base }) {
       actions={<>
         <CsvLink onClick={() => downloadCsv(`dashboard-status-${d.asOf}.csv`, ['Sl. No.', 'Status', 'No. of instruments', 'Amount (Rs.)'],
           d.byStatus.map((g, i) => [i + 1, g.label, g.count, g.amount]))} />
-        <Link to={registerLink(base, {})} className="text-link hover:underline">View all</Link>
+        <Link to={registerLink(base, {})} className="text-ink hover:underline underline-offset-4">View all</Link>
       </>}>
       <table className="gov-table border-0">
         <caption className="sr-only">Instruments by status, with count and amount</caption>
-        <thead><tr><th scope="col" className="w-16 text-right!">Sl. No.</th><th scope="col">Status</th><th scope="col" className="text-right!">No. of instruments</th><th scope="col" className="text-right!">Amount</th><th scope="col" className="hidden w-1/4 sm:table-cell">Share of amount</th></tr></thead>
+        <thead><tr><th scope="col">Status</th><th scope="col" className="text-right!">No. of instruments</th><th scope="col" className="text-right!">Amount</th><th scope="col" className="hidden w-1/4 sm:table-cell">Share of amount</th></tr></thead>
         <tbody>
-          {d.byStatus.map((g, i) => (
+          {d.byStatus.map((g) => (
             <tr key={g.key}>
-              <td className="num">{i + 1}</td>
               <td>
                 <Link to={registerLink(base, { status: g.statuses.join(',') })} className="inline-flex hover:underline">
                   {g.key === 'PENDING'
@@ -99,35 +79,69 @@ function StatusBreakdown({ d, base }: { d: DashboardData; base: Base }) {
 }
 
 function MaturityChart({ d }: { d: DashboardData }) {
+  const [asTable, setAsTable] = useState(false);
   const data = d.maturityByMonth.map((m) => ({
-    month: `${MONTHS[Number(m.month.slice(5)) - 1]}-${m.month.slice(2, 4)}`,
+    month: `${MONTHS[Number(m.month.slice(5)) - 1]} ${m.month.slice(2, 4)}`,
     crore: Number(m.amount) / 1e7,
     amount: m.amount,
     count: m.count,
   }));
   return (
-    <Panel title="Amount maturing per month (next 12 months)"
-      actions={<CsvLink onClick={() => downloadCsv(`dashboard-maturity-${d.asOf}.csv`, ['Month', 'No. of instruments', 'Amount (Rs.)'], data.map((r) => [r.month, r.count, r.amount]))} />}>
-      <div className="grid gap-4 2xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div className="h-72 min-w-0" role="img" aria-label="Bar chart of the amount maturing in each of the next 12 months, in crore rupees; the same values are in the table">
+    <Panel title="Maturing in the next 12 months"
+      actions={<>
+        <button type="button" aria-pressed={asTable} onClick={() => setAsTable((t) => !t)} className="inline-flex items-center gap-1.5 text-ink hover:underline underline-offset-4">
+          {asTable ? <BarChart3 className="size-4" aria-hidden /> : <TableIcon className="size-4" aria-hidden />}{asTable ? 'Show as chart' : 'Show as table'}
+        </button>
+        <CsvLink onClick={() => downloadCsv(`dashboard-maturity-${d.asOf}.csv`, ['Month', 'No. of instruments', 'Amount (Rs.)'], data.map((r) => [r.month, r.count, r.amount]))} />
+      </>}>
+      {asTable ? (
+        <table className="gov-table">
+          <caption className="sr-only">Amount maturing per month</caption>
+          <thead><tr><th scope="col">Month</th><th scope="col" className="text-right!">No.</th><th scope="col" className="text-right!">Amount</th></tr></thead>
+          <tbody>{data.map((r) => <tr key={r.month}><td>{r.month}</td><td className="num">{r.count}</td><td className="num">{formatINRCompact(r.amount)}</td></tr>)}</tbody>
+        </table>
+      ) : (
+        <div className="h-64 min-w-0" role="img" aria-label="Bar chart of the amount maturing in each of the next 12 months, in crore rupees; use Show as table for the values">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="#c5cfdd" vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 13, fill: '#2d3748' }} />
-              <YAxis tick={{ fontSize: 13, fill: '#2d3748' }} width={44} label={{ value: '₹ Cr', angle: -90, position: 'insideLeft', fontSize: 13 }} />
-              <Tooltip formatter={(_v, _n, p) => [`${formatINR(p.payload.amount as string)} · ${p.payload.count as number} instrument(s)`, 'Maturing']} />
-              <RBar dataKey="crore" fill="#1a4b9b" isAnimationActive={false} />
+            <BarChart data={data} margin={{ top: 24, right: 4, left: 4, bottom: 0 }}>
+              <XAxis dataKey="month" tickLine={false} axisLine={{ stroke: '#e6e1d8' }} tick={{ fontSize: 14, fill: '#57534e' }} interval={0} minTickGap={0} />
+              <Tooltip cursor={{ fill: '#f4f1eb' }} formatter={(_v, _n, p) => [`${formatINR(p.payload.amount as string)} · ${p.payload.count as number} instrument(s)`, 'Maturing']} />
+              <RBar dataKey="crore" fill="#243b6b" radius={[4, 4, 0, 0]} maxBarSize={36} isAnimationActive={false}>
+                <LabelList dataKey="crore" position="top" formatter={(v: unknown) => (Number(v) > 0 ? `${Number(v) < 10 ? Number(v).toFixed(1) : Math.round(Number(v))}` : '')} style={{ fontSize: 14, fill: '#1c1917' }} />
+              </RBar>
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="max-h-72 overflow-y-auto border border-line">
-          <table className="gov-table border-0">
-            <caption className="sr-only">Amount maturing per month</caption>
-            <thead className="sticky top-0"><tr><th scope="col">Month</th><th scope="col" className="text-right!">No.</th><th scope="col" className="text-right!">Amount</th></tr></thead>
-            <tbody>{data.map((r) => <tr key={r.month}><td>{r.month}</td><td className="num">{r.count}</td><td className="num">{formatINRCompact(r.amount)}</td></tr>)}</tbody>
-          </table>
-        </div>
-      </div>
+      )}
+      {!asTable && <p className="mt-2 text-sm text-slate-600">Values in ₹ crore.</p>}
+    </Panel>
+  );
+}
+
+/** The few things that need someone to act, each with its count and a link. */
+function NeedsAttention({ d, base }: { d: DashboardData; base: Base }) {
+  const overdue = d.maturityBuckets.find((b) => b.key === 'overdue');
+  const soon = d.maturityBuckets.find((b) => b.key === 'd0_30');
+  const rows: { icon: ReactNode; label: string; count: number; to: string; tone?: string }[] = [
+    { icon: <AlertOctagon className="size-4" aria-hidden />, label: 'Matured or lapsed, not yet renewed or released', count: overdue?.count ?? 0, to: registerLink(base, { status: 'MATURED,LAPSED' }), tone: 'text-danger-700' },
+    { icon: <FileWarning className="size-4" aria-hidden />, label: 'Open discrepancies', count: d.kpis.openDiscrepancies, to: '/reports?preset=discrepancies', tone: 'text-danger-700' },
+    { icon: <Siren className="size-4" aria-hidden />, label: 'Escalations at approver or admin level', count: d.kpis.openEscalations, to: '/alerts', tone: 'text-warning-700' },
+    { icon: <CalendarClock className="size-4" aria-hidden />, label: 'Maturing within 30 days', count: soon?.count ?? 0, to: registerLink(base, { status: 'ACTIVE,EXPIRING,RELEASE_REQUESTED', maturityFrom: d.asOf, maturityTo: addDays(d.asOf, 30) }), tone: 'text-warning-700' },
+    { icon: <Flag className="size-4" aria-hidden />, label: 'Advisory flags for closer examination', count: d.kpis.advisoryFlags, to: '/officer/queue' },
+  ];
+  return (
+    <Panel title="Needs attention" flush>
+      <ul className="divide-y divide-line">
+        {rows.map((r) => (
+          <li key={r.label}>
+            <Link to={r.to} className="flex items-center gap-3 px-5 py-3.5 hover:bg-[#fbfaf7]">
+              <span className={r.count > 0 ? (r.tone ?? 'text-ink') : 'text-slate-400'}>{r.icon}</span>
+              <span className="min-w-0 flex-1 text-slate-800">{r.label}</span>
+              <span className={cn('font-serif text-xl font-semibold tabular-nums', r.count > 0 ? 'text-slate-900' : 'text-slate-400')}>{r.count}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </Panel>
   );
 }
@@ -165,7 +179,7 @@ function Buckets({ d, base }: { d: DashboardData; base: Base }) {
 function Verification({ d }: { d: DashboardData }) {
   const total = VERIFICATION_STATES.reduce((s, v) => s + d.verification.byState[v], 0);
   return (
-    <Panel title="Verification (submitted instruments)" flush actions={<Link to="/reports?preset=pending-verification" className="text-link hover:underline">View all</Link>}>
+    <Panel title="Verification (submitted instruments)" flush actions={<Link to="/reports?preset=pending-verification" className="text-ink hover:underline underline-offset-4">View all</Link>}>
       <table className="gov-table border-0">
         <thead><tr><th scope="col">Verification state</th><th scope="col" className="text-right!">No.</th><th scope="col" className="hidden w-1/3 sm:table-cell">Share</th></tr></thead>
         <tbody>
@@ -181,7 +195,7 @@ function Verification({ d }: { d: DashboardData }) {
           })}
         </tbody>
       </table>
-      <p className="border-t border-line px-3 py-2 text-sm text-slate-800">Accepted without bank confirmation (override): <strong className="tabular-nums">{d.verification.acceptedWithOverride}</strong></p>
+      <p className="border-t border-line px-5 py-3 text-sm text-slate-700">Accepted without bank confirmation (override): <strong className="tabular-nums">{d.verification.acceptedWithOverride}</strong></p>
     </Panel>
   );
 }
@@ -204,7 +218,7 @@ function Regions({ d, base }: { d: DashboardData; base: Base }) {
   return (
     <Panel title="Region-wise position (current instruments)"
       actions={<CsvLink onClick={() => downloadCsv(`dashboard-regions-${d.asOf}.csv`, ['Sl. No.', 'Region', 'No. of instruments', 'Amount (Rs.)', 'At risk'], d.byRegion.map((r, i) => [i + 1, r.region, r.count, r.amount, r.atRisk]))} />}>
-      <Table columns={columns} rows={d.byRegion} rowKey={(r) => r.region} serial pageSize={10} caption="Region-wise position" emptyTitle="No instruments yet" />
+      <Table columns={columns} rows={d.byRegion} rowKey={(r) => r.region} pageSize={10} caption="Region-wise position" emptyTitle="No instruments yet" />
     </Panel>
   );
 }
@@ -224,7 +238,7 @@ function Banks({ d, base }: { d: DashboardData; base: Base }) {
     <Panel title="Bank-wise verification"
       actions={<CsvLink onClick={() => downloadCsv(`dashboard-banks-${d.asOf}.csv`, ['Sl. No.', 'Bank', 'No. of instruments', 'Verified', 'Mismatch rate (%)', 'Unavailable'],
         d.byBank.map((b, i) => [i + 1, b.bank, b.count, b.verified, b.mismatchRate ?? '', b.unavailable]))} />}>
-      <Table columns={columns} rows={d.byBank} rowKey={(b) => b.bank} serial pageSize={10} search={(b) => b.bank} caption="Bank-wise verification" emptyTitle="No instruments yet" />
+      <Table columns={columns} rows={d.byBank} rowKey={(b) => b.bank} pageSize={10} search={(b) => b.bank} caption="Bank-wise verification" emptyTitle="No instruments yet" />
     </Panel>
   );
 }
@@ -232,7 +246,7 @@ function Banks({ d, base }: { d: DashboardData; base: Base }) {
 function Alerts({ d }: { d: DashboardData }) {
   const levels = [1, 2, 3];
   return (
-    <Panel title={`Open alerts (${d.alerts.total})`} flush actions={<Link to="/alerts" className="text-link hover:underline">View all</Link>}>
+    <Panel title={`Open alerts (${d.alerts.total})`} flush actions={<Link to="/alerts" className="text-ink hover:underline underline-offset-4">View all</Link>}>
       <table className="gov-table border-0">
         <thead><tr><th scope="col">Escalation level</th><th scope="col" className="text-right!">Open</th></tr></thead>
         <tbody>
@@ -253,76 +267,78 @@ function Alerts({ d }: { d: DashboardData }) {
   );
 }
 
-/** /dashboard: management overview; every figure from the app clock's date (asOf). */
+const TABS = ['Status', 'Maturity', 'Verification', 'Regions', 'Banks', 'Alerts'] as const;
+
+/** /dashboard: four numbers, the maturity chart, what needs attention, then the detail panels in tabs. */
 export function Dashboard() {
+  const { user } = useAuth();
   const [params, setParams] = useSearchParams();
   const region = params.get('region') ?? '';
   const type = params.get('type') ?? '';
+  const tab = params.get('tab') ?? 'status';
   const meta = useMeta();
   const q = useDashboard({ region, type });
   const d = q.data;
   const base = { region: region || undefined, type: type || undefined };
 
-  const set = (key: 'region' | 'type') => (e: ChangeEvent<HTMLSelectElement>) => {
+  const setParam = (key: string, value: string) => {
     const next = new URLSearchParams(params);
-    if (e.target.value) next.set(key, e.target.value); else next.delete(key);
+    if (value) next.set(key, value); else next.delete(key);
     setParams(next, { replace: true });
   };
+  const set = (key: 'region' | 'type') => (e: ChangeEvent<HTMLSelectElement>) => setParam(key, e.target.value);
+
+  if (user?.role === 'auditor') return <AuditorHome d={d} />;
 
   return (
     <>
-      <PageHeader title="Dashboard" subtitle="Position of security deposits and FDRs held by AICTE, their verification and maturity."
-        actions={d && <span className="border border-navy bg-white px-3 py-1 text-sm font-semibold text-navy" data-testid="as-of">As of {formatDateGov(d.asOf)}</span>} />
-      <form className="mb-4 flex flex-wrap items-end gap-3 border border-line bg-surface px-4 py-3" onSubmit={(e) => e.preventDefault()} aria-label="Dashboard filters">
+      <PageHeader title="Dashboard" subtitle="Deposits held by AICTE, how much is proven, and what matures next."
+        actions={d && <span className="rounded-full bg-strip px-3 py-1.5 text-sm text-slate-700" data-testid="as-of">As of {formatDateGov(d.asOf)}</span>} />
+      <form className="mb-8 flex flex-wrap items-end gap-4" onSubmit={(e) => e.preventDefault()} aria-label="Dashboard filters">
         <div>
-          <label htmlFor="dash-region" className="mb-1 block text-sm font-semibold text-slate-800">Region</label>
+          <label htmlFor="dash-region" className="mb-1.5 block text-sm font-medium text-slate-700">Region</label>
           <select id="dash-region" className={selectCls} value={region} onChange={set('region')}>
             <option value="">All regions</option>
             {meta.data?.regions.map((r) => <option key={r}>{r}</option>)}
           </select>
         </div>
         <div>
-          <label htmlFor="dash-type" className="mb-1 block text-sm font-semibold text-slate-800">Type of instrument</label>
+          <label htmlFor="dash-type" className="mb-1.5 block text-sm font-medium text-slate-700">Type of instrument</label>
           <select id="dash-type" className={selectCls} value={type} onChange={set('type')}>
             <option value="">All types</option>
             {INSTRUMENT_TYPES.map((t) => <option key={t} value={t}>{INSTRUMENT_TYPE_LABELS[t]}</option>)}
           </select>
         </div>
-        {(region || type) && <Button variant="secondary" onClick={() => setParams(new URLSearchParams(), { replace: true })}>Reset</Button>}
+        {(region || type) && <Button variant="ghost" onClick={() => setParams(new URLSearchParams(), { replace: true })}>Clear filters</Button>}
       </form>
       {q.isError && <EmptyState title="Could not load the dashboard" description={q.error.message} />}
       {d && (
-        <div className="fade-in space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
-            <Kpi edge="navy" icon={<Banknote className="size-4" aria-hidden />} label="Live instruments" value={formatINRCompact(d.kpis.live.amount)}
-              sub={`${d.kpis.live.count} instruments`} to={registerLink(base, { status: 'ACTIVE,EXPIRING,MATURED,LAPSED,RELEASE_REQUESTED' })} />
-            <Kpi edge="green" icon={<ShieldCheck className="size-4" aria-hidden />} label="Bank-confirmed"
-              value={d.kpis.confirmedPct === null ? '—' : <><CountUp value={d.kpis.confirmedPct} />%</>}
-              sub={`${formatINRCompact(d.kpis.confirmedAmount)} of the live amount`} to="/reports?preset=pending-verification" />
-            <Kpi edge="blue" icon={<Search className="size-4" aria-hidden />} label="Pending scrutiny" value={<CountUp value={d.kpis.pendingScrutiny} />}
-              to={registerLink(base, { status: 'SUBMITTED,UNDER_SCRUTINY' })} />
-            <Kpi edge="red" icon={<FileWarning className="size-4" aria-hidden />} label="Open discrepancies" value={<CountUp value={d.kpis.openDiscrepancies} />}
-              to="/reports?preset=discrepancies" />
-            <Kpi edge="red" icon={<AlertOctagon className="size-4" aria-hidden />} label="Open escalations (L2+)" value={<CountUp value={d.kpis.openEscalations} />}
-              to="/alerts" />
-            <Kpi edge="saffron" icon={<Flag className="size-4" aria-hidden />} label="Advisory flags" value={<CountUp value={d.kpis.advisoryFlags} />}
-              sub="For closer examination; nothing is blocked" to="/officer/queue" />
-          </div>
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-            <StatusBreakdown d={d} base={base} />
-            <div className="space-y-4">
-              <Buckets d={d} base={base} />
-              <Alerts d={d} />
-            </div>
-          </div>
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="fade-in space-y-10">
+          <StatRow cols={4}>
+            <StatTile label="Live instruments" value={formatINRCompact(d.kpis.live.amount)} note={`${d.kpis.live.count} instruments`}
+              to={registerLink(base, { status: 'ACTIVE,EXPIRING,MATURED,LAPSED,RELEASE_REQUESTED' })} />
+            <StatTile label="Bank-confirmed" value={d.kpis.confirmedPct === null ? '—' : <><CountUp value={d.kpis.confirmedPct} />%</>}
+              note={`${formatINRCompact(d.kpis.confirmedAmount)} of the live amount`} to="/reports?preset=pending-verification" />
+            <StatTile label="Pending scrutiny" value={<CountUp value={d.kpis.pendingScrutiny} />} to={registerLink(base, { status: 'SUBMITTED,UNDER_SCRUTINY' })} />
+            <StatTile label="Open escalations" value={<CountUp value={d.kpis.openEscalations} />} tone={d.kpis.openEscalations ? 'warning' : undefined} note="Approver or admin level" to="/alerts" />
+          </StatRow>
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
             <MaturityChart d={d} />
-            <Verification d={d} />
+            <NeedsAttention d={d} base={base} />
           </div>
-          <div className="grid gap-4 xl:grid-cols-2">
-            <Regions d={d} base={base} />
-            <Banks d={d} base={base} />
-          </div>
+          <section aria-label="Details">
+            <Tabs value={tab} onChange={(id) => setParam('tab', id === 'status' ? '' : id)}
+              tabs={TABS.map((t) => ({
+                id: t.toLowerCase(),
+                label: t,
+                content: t === 'Status' ? <StatusBreakdown d={d} base={base} />
+                  : t === 'Maturity' ? <Buckets d={d} base={base} />
+                  : t === 'Verification' ? <Verification d={d} />
+                  : t === 'Regions' ? <Regions d={d} base={base} />
+                  : t === 'Banks' ? <Banks d={d} base={base} />
+                  : <Alerts d={d} />,
+              }))} />
+          </section>
         </div>
       )}
     </>

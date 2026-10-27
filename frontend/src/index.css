@@ -4,69 +4,72 @@
 @import '@fontsource/noto-sans/700.css';
 @import '@fontsource/noto-sans-devanagari/400.css';
 @import '@fontsource/noto-sans-devanagari/600.css';
+@import '@fontsource/source-serif-4/500.css';
+@import '@fontsource/source-serif-4/600.css';
 
-/* Design tokens (UI direction v2, GIGW-style): flat, bordered, navy + white, saffron only for thin accents.
-   Semantic colours carry meaning only and are always paired with an icon and text:
-   success = bank-confirmed/healthy, warning = expiring/attention, danger = discrepancy/lapsed/blocked,
-   info = in progress, neutral = draft/claimed. */
+/* Design tokens (UI direction v3, "Calm ledger"): warm off-white page, white surfaces, hairline borders,
+   one ink-blue accent for actions and links. Semantic colours only for status, always with an icon and text.
+   Legacy token names (navy, link, saffron, line, strip) are kept and remapped so every page picks up the look. */
 @theme {
   --font-sans: 'Noto Sans', 'Noto Sans Devanagari', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+  --font-serif: 'Source Serif 4', Georgia, 'Noto Serif', serif;
 
-  /* Body text never below 14px: xs is 14px, sm 15px, base 16px (at the default text size). */
+  /* Nothing below 14px: xs is 14px, sm 15px, base 16px (at the default text size). */
   --text-xs: 0.875rem;
-  --text-xs--line-height: 1.35;
+  --text-xs--line-height: 1.45;
   --text-sm: 0.9375rem;
-  --text-sm--line-height: 1.45;
+  --text-sm--line-height: 1.55;
 
-  /* Flat: no shadows anywhere; corners 2–3 px. */
+  /* Shadows only on floating things (menus, drawers, dialogs); single, soft layer. */
   --shadow-xs: none;
   --shadow-sm: none;
   --shadow: none;
-  --shadow-md: none;
-  --shadow-lg: none;
-  --shadow-xl: none;
-  --shadow-2xl: none;
-  --radius-sm: 2px;
-  --radius-md: 2px;
-  --radius-lg: 3px;
-  --radius-xl: 3px;
-  --radius-2xl: 3px;
+  --shadow-md: 0 6px 24px rgb(36 40 50 / 0.08);
+  --shadow-lg: 0 10px 32px rgb(36 40 50 / 0.10);
+  --shadow-xl: 0 16px 48px rgb(36 40 50 / 0.12);
+  --shadow-2xl: 0 16px 48px rgb(36 40 50 / 0.12);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 12px;
 
-  --color-navy: #0b2a5b;
-  --color-link: #1a4b9b;
-  --color-saffron: #e87722;
-  --color-india-green: #138808;
-  --color-line: #c5cfdd;
-  --color-strip: #e6edf6;
+  --color-ink: #243b6b;
+  --color-navy: #243b6b;
+  --color-link: #243b6b;
+  --color-saffron: #243b6b;
+  --color-india-green: #2f7d5b;
+  --color-line: #e6e1d8;
+  --color-strip: #f4f1eb;
 
-  --color-primary-50: #eef3fa;
-  --color-primary-100: #dbe5f3;
-  --color-primary-200: #b3c6e3;
-  --color-primary-300: #8aa6d2;
-  --color-primary-500: #2d5aa8;
-  --color-primary-600: #1a4b9b;
-  --color-primary-700: #0b2a5b;
-  --color-primary-800: #08214a;
-  --color-primary-900: #061a3b;
+  --color-primary-50: #eef1f7;
+  --color-primary-100: #dfe5f0;
+  --color-primary-200: #c2cde2;
+  --color-primary-300: #94a6c8;
+  --color-primary-500: #3d5a91;
+  --color-primary-600: #2e4a80;
+  --color-primary-700: #243b6b;
+  --color-primary-800: #1c2f56;
+  --color-primary-900: #152340;
 
   --color-surface: #ffffff;
-  --color-canvas: #f4f6f9;
+  --color-canvas: #faf8f4;
 
-  --color-success-50: #edf7ec;
-  --color-success-600: #138808;
-  --color-success-700: #0e6a06;
-  --color-warning-50: #fff6eb;
-  --color-warning-600: #b25600;
-  --color-warning-700: #8a4300;
-  --color-danger-50: #fdeeee;
-  --color-danger-600: #c0262d;
-  --color-danger-700: #9b1c22;
-  --color-info-50: #eef3fa;
-  --color-info-600: #1a4b9b;
-  --color-info-700: #0b2a5b;
-  --color-neutral-50: #f3f5f8;
-  --color-neutral-600: #4a5568;
-  --color-neutral-700: #2d3748;
+  --color-success-50: #edf5f0;
+  --color-success-600: #2f7d5b;
+  --color-success-700: #24634a;
+  --color-warning-50: #fbf3e4;
+  --color-warning-600: #b7791f;
+  --color-warning-700: #8a5a14;
+  --color-danger-50: #f9edeb;
+  --color-danger-600: #b4443c;
+  --color-danger-700: #933530;
+  --color-info-50: #eef1f7;
+  --color-info-600: #3d5a91;
+  --color-info-700: #243b6b;
+  --color-neutral-50: #f4f2ee;
+  --color-neutral-600: #6b6559;
+  --color-neutral-700: #4a453c;
 }
 
 @layer base {
@@ -76,20 +79,25 @@
   }
   html[data-text-size='sm'] { font-size: 93.75%; }
   html[data-text-size='lg'] { font-size: 112.5%; }
-  body { @apply bg-canvas; font-size: 1rem; line-height: 1.5; }
+  body { @apply bg-canvas; font-size: 1rem; line-height: 1.6; }
   a { color: inherit; }
+  h1, .font-display { font-family: var(--font-serif); }
   :focus-visible {
-    outline: 3px solid var(--color-saffron);
+    outline: 2px solid var(--color-ink);
     outline-offset: 2px;
+    border-radius: 4px;
   }
 
   /* High contrast: black on white, darker accents, underlined links. */
   html[data-contrast='high'] {
     --color-canvas: #ffffff;
     --color-line: #000000;
-    --color-strip: #e8e8e8;
+    --color-strip: #eeeeee;
+    --color-ink: #001a4d;
+    --color-navy: #001a4d;
+    --color-link: #001a4d;
     --color-primary-600: #002a80;
-    --color-primary-700: #000033;
+    --color-primary-700: #001a4d;
     --color-slate-500: #1a1a1a;
     --color-slate-600: #000000;
     --color-slate-700: #000000;
@@ -104,15 +112,19 @@
 }
 
 @layer components {
-  /* Government-style data table: full grid, navy header, zebra rows. */
+  /* Ledger table: no grid, no zebra; hairline row dividers, roomy rows, quiet header. */
   .gov-table { @apply w-full border-collapse text-sm; }
-  .gov-table th { @apply border border-line bg-navy px-3 py-2 text-left font-semibold text-white; }
-  .gov-table td { @apply border border-line px-3 py-2 align-top text-slate-800; }
-  .gov-table tbody tr:nth-child(even) td { background: #f5f8fc; }
-  .gov-table tbody tr:hover td { background: #e9f0fa; }
+  .gov-table th { @apply border-b border-line bg-surface px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-600 uppercase; }
+  .gov-table td { @apply border-b border-line px-4 py-3.5 align-top text-slate-800; }
+  .gov-table tbody tr:last-child td { @apply border-b-0; }
+  .gov-table tbody tr:hover td { background: #fbfaf7; }
   .gov-table .num { @apply whitespace-nowrap text-right tabular-nums; }
-  .gov-link { @apply text-link underline-offset-2 hover:underline; }
-  .gov-input { @apply h-10 w-full rounded-none border border-slate-400 bg-white px-3 text-sm text-slate-900 aria-[invalid=true]:border-danger-600; }
+  .gov-link { @apply text-ink underline-offset-4 hover:underline; }
+  .gov-input { @apply h-11 w-full rounded-lg border border-[#d6d0c4] bg-white px-3 text-base text-slate-900 focus:border-ink aria-[invalid=true]:border-danger-600; }
+  /* Status inside tables: no fill, the coloured icon is the dot, text next to it. */
+  .gov-table .badge { background: transparent !important; padding-left: 0 !important; padding-right: 0 !important; }
+  .panel .table-frame { @apply rounded-none border-0; }
+  .content { @apply mx-auto w-full max-w-[1200px]; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -120,7 +132,7 @@
 }
 
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-.fade-in { animation: fade-in 180ms ease-out; }
+.fade-in { animation: fade-in 200ms ease-out; }
 
 @media print {
   body { background: #fff; }

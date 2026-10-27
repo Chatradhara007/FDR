@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react';
-import { Notice, PageHeader, Panel } from '@/components';
+import { PageHeader } from '@/components';
 
 function Page({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="max-w-4xl">
+    <article className="mx-auto max-w-[44rem]">
       <PageHeader title={title} />
-      <Notice className="mb-4">This page belongs to a hackathon prototype. Its text is a placeholder and is not an official policy of any organisation.</Notice>
-      <Panel><div className="space-y-3 text-[0.9375rem] leading-relaxed text-slate-800">{children}</div></Panel>
-    </div>
+      <div className="space-y-4 text-[1.0625rem] leading-[1.75] text-slate-800 [&_h2]:mt-8 [&_h2]:font-serif [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-slate-900 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6">{children}</div>
+      <p className="mt-10 border-t border-line pt-4 text-sm text-slate-600">This page belongs to a hackathon prototype. Its text is a placeholder and is not an official policy of any organisation.</p>
+    </article>
   );
 }
 
@@ -24,9 +24,9 @@ export function FaqPage() {
     <Page title="Frequently asked questions">
       <dl className="divide-y divide-line">
         {FAQ.map((f, i) => (
-          <div key={f.q} className="py-3 first:pt-0">
-            <dt className="font-semibold text-navy">{i + 1}. {f.q}</dt>
-            <dd className="mt-1">{f.a}</dd>
+          <div key={f.q} className="py-5 first:pt-0">
+            <dt className="font-semibold text-slate-900">{f.q}</dt>
+            <dd className="mt-1.5 text-slate-700">{f.a}</dd>
           </div>
         ))}
       </dl>

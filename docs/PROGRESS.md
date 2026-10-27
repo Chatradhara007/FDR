@@ -1093,3 +1093,49 @@ hand-made tables, rounded/shadowed boxes or inline form controls; roughly in ord
 8. Instrument wizard forms (`institution/wizard/*`, without labels-above / asterisk / ButtonBar), Institution home and its banners
 9. Register, Institutions, Alerts inbox (tables are restyled by `Table`; filter bars and inline controls are not)
 10. Print layouts (`PrintPassport.tsx`, `ReleaseOrder.tsx`) and the Verify page card: deliberately left as is apart from the shell
+
+## UI direction v3 — "Calm ledger" (frontend only)
+
+Replaces v2's government-portal look and dense panels. No backend, API, shared-constant, migration or test changes. All test
+IDs, selectors and e2e-asserted strings are unchanged; print layouts untouched.
+
+Done:
+- **Tokens** (`index.css`): page #FAF8F4, white surfaces, hairlines #E6E1D8, one ink-blue accent #243B6B, status colours
+  green #2F7D5B / amber #B7791F / red #B4443C. Radius 6–12 px; shadows only on menus, dialogs and toasts. Source Serif 4
+  (@fontsource) for titles and big numbers, Noto Sans (with Devanagari) for body at 16 px / 1.6. v2 token names (`navy`, `link`,
+  `saffron`, `line`, `strip`, `gov-table`, `gov-input`) are kept but remapped, so pages not yet migrated pick up the new look.
+  `gov-table` now has hairline row dividers, no grid lines and no zebra striping; inside tables, badges lose their fill.
+- **Shell**: one slim top bar (wordmark, a role menu of 4–6 entries with dropdowns, search icon (Ctrl+K), alerts bell, clock chip, user menu).
+  Text size, high contrast, Help/Accessibility links and Sign out moved into the user menu. The skip link shows on focus only.
+  The demo ribbon is a slim strip (same test ID). App pages get one footer line; public pages (login, verify, policies) get a fuller
+  footer with display settings. Hindi title only on the Login header. The menu collapses behind "Menu" below 1280 px.
+  Utility bar, crest header, navy menu band and breadcrumbs are removed.
+- **Admin clock**: the chip opens an "App clock" dialog with the full controls; `+1d`/`+7d` stay inline from 1280 px
+  (the demo script clicks `+7d` directly).
+- **Shared components**: `Badge` (small rounded pill, icon + text; used by every status/trust chip), `Button`, `Panel`/`Card`,
+  `PageHeader` (serif title + one action), `Table` (sticky header, optional `Columns` toggle via `optional` columns,
+  search/pagination only when asked), `Tabs` (underline), `Modal`, `Notice`, `Toast`, `FormField`, and `EmptyState` with a
+  small line drawing. New: `StatTile`/`StatRow`, `CountUp`, `ShowMore`, `StepIndicator` (`components/Stat.tsx`).
+- **Pages**: Login (split layout: three short steps on the left, sign-in card and demo-account buttons on the right).
+  Institution home (greeting, "Submit a new deposit", 3 numbers, "Needs your action" with the next step and a small tracker
+  for each, then "All my deposits"). Officer My day (3 numbers + ranked worklist, "Why this order?"). Approver (`/approver` is now
+  the approver's landing page: 3 numbers, "Awaiting your decision", then My day). Admin/approver dashboard (4 tiles, a
+  single-colour maturity chart with value labels and a "Show as table" toggle, "Needs attention", then tabs for Status, Maturity,
+  Verification, Regions, Banks and Alerts). Auditor dashboard (`pages/dashboard/AuditorHome.tsx`: integrity card, 3 numbers,
+  recent audit events, link to Reports). FAQ, Contact and policy pages use a readable single text column.
+
+Deviations / choices:
+- `ROLE_HOME.approver` is now `/approver`; `/dashboard` is still the approver's overview (the demo script opens it directly).
+- Status in tables is the badge's coloured icon plus its text (the icon is the "dot"), so it is never colour alone.
+- The dashboard's active tab is kept in `?tab=`.
+
+**Pages still to migrate** (they already use the new tokens and shared components, but keep their own v2 layouts and density):
+1. Officer review page and parts (`officer/ReviewPage.tsx`, `officer/review/*`) and the Scrutiny queue filter bar
+2. Release review page and parts, Release list, `RequestReleaseModal`
+3. Passport and its tabs
+4. Instrument wizard (should use `StepIndicator` and `FormField`)
+5. Audit log (filters, integrity banner)
+6. Reports and Improvement
+7. Rules editor, Users, Outbox, Demo tools
+8. Register, Institutions, Alerts inbox (filter bars)
+9. Print layouts and the verify card: deliberately left as they are

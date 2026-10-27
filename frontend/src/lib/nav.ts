@@ -28,23 +28,21 @@ const RECORDS: NavItem[] = [
 const link = (item: NavItem): MenuEntry => ({ kind: 'link', item });
 const group = (label: string, items: NavItem[]): MenuEntry => ({ kind: 'group', label, items });
 
-/** Menu bar per role. Only pages that exist are listed. */
+/** Top-bar menu per role: 4-6 entries, the rest in dropdowns. Only pages that exist are listed. */
 export const MENU: Record<Role, MenuEntry[]> = {
-  institution: [link({ to: '/institution', label: 'My institution' }), link(ALERTS)],
+  institution: [link({ to: '/institution', label: 'My deposits' }), link(ALERTS)],
   officer: [
     link({ to: '/officer', label: 'My day' }),
     link({ to: '/officer/queue', label: 'Scrutiny queue' }),
     link(RELEASES),
     link(DASHBOARD),
-    group('Records', RECORDS),
-    group('Monitoring', [ALERTS]),
+    group('Records', [...RECORDS, ALERTS]),
   ],
   approver: [
-    link(DASHBOARD),
     link({ to: '/approver', label: 'Approvals' }),
+    link(DASHBOARD),
     link({ ...RELEASES, label: 'All releases' }),
-    group('Records', RECORDS),
-    group('Monitoring', [ALERTS]),
+    group('Records', [...RECORDS, ALERTS]),
   ],
   admin: [
     link(DASHBOARD),
@@ -58,8 +56,7 @@ export const MENU: Record<Role, MenuEntry[]> = {
     link(DASHBOARD),
     link(AUDIT),
     group('Records', RECORDS),
-    group('Monitoring', [RELEASES, ALERTS]),
-    group('Administration', [{ ...RULES, label: 'Rules (read-only)' }]),
+    group('More', [RELEASES, ALERTS, { ...RULES, label: 'Rules (read-only)' }]),
   ],
 };
 

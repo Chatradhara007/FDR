@@ -1,36 +1,51 @@
+import { FlaskConical, Search } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useMeta } from '@/api/instruments';
 import { useAuth } from '@/auth/AuthContext';
 import { menuFor, menuLinks } from '@/lib/nav';
-import { Breadcrumbs } from './shell/Breadcrumbs';
+import { AlertBell } from './AlertBell';
+import { ClockChip } from './ClockBadge';
 import { CommandPalette } from './shell/CommandPalette';
 import { MenuBar } from './shell/MenuBar';
-import { SiteFooter } from './shell/SiteFooter';
-import { SiteHeader } from './shell/SiteHeader';
-import { UtilityBar } from './shell/UtilityBar';
+import { useDisplayPrefs } from './shell/prefs';
+import { AppFooter, SiteFooter } from './shell/SiteFooter';
+import { UserMenu } from './shell/UserMenu';
+import { Wordmark } from './shell/Wordmark';
 
-/** 4 px tricolour accent line (three flat bands, no gradient). */
-function TricolourLine() {
+function SkipLink() {
   return (
-    <div className="flex h-1 print:hidden" aria-hidden>
-      <span className="flex-1 bg-saffron" /><span className="flex-1 bg-white" /><span className="flex-1 bg-india-green" />
+    <a href="#main" className="sr-only z-[60] rounded-lg bg-ink px-4 py-2 text-white focus:not-sr-only focus:fixed focus:top-2 focus:left-2">
+      Skip to main content
+    </a>
+  );
+}
+
+/** Slim, unobtrusive strip shown while the server runs in demo mode. */
+function DemoRibbon() {
+  return (
+    <div data-testid="demo-ribbon" className="flex items-center justify-center gap-1.5 bg-strip px-4 py-1 text-sm text-slate-600 print:hidden">
+      <FlaskConical className="size-3.5 text-warning-700" aria-hidden /> Demo mode · synthetic data
     </div>
   );
 }
 
-/** Centred, fluid content column (max 1600 px). */
-function Main({ children }: { children: ReactNode }) {
+function Main({ children, wide }: { children: ReactNode; wide?: boolean }) {
   return (
-    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 outline-none sm:px-6 lg:px-8 print:max-w-none print:p-0">
+    <main id="main" tabIndex={-1} className={`mx-auto w-full flex-1 px-4 py-8 outline-none sm:px-6 lg:px-8 lg:py-10 print:max-w-none print:p-0 ${wide ? 'max-w-[1440px]' : 'max-w-[1264px]'}`}>
       {children}
     </main>
   );
 }
 
-/** Signed-in shell: tricolour line, accessibility bar, header, menu bar, breadcrumbs, content, footer. */
+/** Pages with charts get a little more width. */
+const WIDE = /^\/(dashboard|reports)/;
+
+/** Signed-in shell: one slim top bar, content, one footer line. */
 export function Layout() {
   const { user } = useAuth();
+  const { pathname } = useLocation();
+  useDisplayPrefs();
   const demoMode = useMeta().data?.demoMode === true;
   const entries = useMemo(() => (user ? menuFor(user.role, demoMode) : []), [user, demoMode]);
   const [palette, setPalette] = useState(false);
@@ -43,29 +58,51 @@ export function Layout() {
   }, []);
   return (
     <div className="flex min-h-screen flex-col">
-      <TricolourLine />
-      <UtilityBar />
-      <SiteHeader onSearch={() => setPalette(true)} />
-      <MenuBar entries={entries} />
-      <Breadcrumbs />
-      <Main><Outlet /></Main>
-      <SiteFooter />
+      <SkipLink />
+      {demoMode && <DemoRibbon />}
+      <header className="relative border-b border-line bg-surface print:hidden">
+        <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-4 px-4 sm:px-6 lg:px-8">
+          <Wordmark />
+          <MenuBar entries={entries} />
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
+            <button type="button" onClick={() => setPalette(true)} aria-keyshortcuts="Control+K" aria-label="Search (Ctrl+K)"
+              className="inline-flex h-10 items-center gap-2 rounded-lg px-2.5 text-sm text-slate-600 hover:bg-strip 2xl:border 2xl:border-line 2xl:px-3">
+              <Search className="size-[18px]" aria-hidden />
+              <span className="hidden 2xl:inline">Search</span>
+              <kbd className="hidden rounded border border-line px-1 text-xs 2xl:inline">Ctrl K</kbd>
+            </button>
+            <AlertBell />
+            <ClockChip />
+            <UserMenu />
+          </div>
+        </div>
+      </header>
+      <Main wide={WIDE.test(pathname)}><Outlet /></Main>
+      <AppFooter />
       <CommandPalette open={palette} onClose={() => setPalette(false)} links={menuLinks(entries)} canSearchRegister={!!user && user.role !== 'institution'} />
     </div>
   );
 }
 
-/** Public pages (sign in, help, policies, release verification): same header and footer, no menu. */
+/** Public pages (sign in, help, policies, release verification): wordmark header and a fuller footer. */
 export function PublicLayout({ children }: { children?: ReactNode }) {
+  const { pathname } = useLocation();
+  useDisplayPrefs();
+  const login = pathname === '/login';
   return (
     <div className="flex min-h-screen flex-col">
-      <TricolourLine />
-      <UtilityBar signedIn={false} />
-      <SiteHeader />
-      <div className="h-2 bg-navy print:hidden" aria-hidden />
-      <Breadcrumbs />
-      <Main>{children ?? <Outlet />}</Main>
+      <SkipLink />
+      <header className="border-b border-line bg-surface print:hidden">
+        <div className="mx-auto flex min-h-16 max-w-[1200px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+          <Wordmark bilingual={login} />
+          <span className="text-sm text-slate-600">Prototype · SIH 2026</span>
+        </div>
+      </header>
+      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1200px] flex-1 px-4 py-10 outline-none sm:px-6 lg:px-8 print:max-w-none print:p-0">
+        {children ?? <Outlet />}
+      </main>
       <SiteFooter />
     </div>
   );
 }
+

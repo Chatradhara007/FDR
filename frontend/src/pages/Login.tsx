@@ -2,12 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { FlaskConical, LogIn } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { DOC_TYPE_LABELS, INSTRUMENT_TYPES, INSTRUMENT_TYPE_LABELS, type DemoUser, type DocType, type SessionUser } from '@fdr/shared';
-import constants from '../../../shared/constants.json';
+import type { DemoUser, SessionUser } from '@fdr/shared';
 import { ApiError, apiFetch } from '@/api/client';
 import { useAuth } from '@/auth/AuthContext';
 import { clearSignOutReason, getSignOutReason } from '@/auth/token';
-import { Button, ButtonBar, FormField, MandatoryNote, Notice, Panel } from '@/components';
+import { Button, FormField, Notice } from '@/components';
 import { ROLE_HOME } from '@/lib/roles';
 
 // Demo mode quick sign-in (D17). The seed gives every demo user this password.
@@ -65,14 +64,14 @@ export function Login() {
   const quick = QUICK.map((q) => ({ ...q, user: demoUsers.data?.find((d) => d.email === q.email) })).filter((q) => q.user);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-      <Instructions />
-      <div className="space-y-4">
+    <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:gap-16 lg:py-6">
+      <Intro />
+      <div className="space-y-6">
         {reason && <Notice role="status">{reason}</Notice>}
-        <Panel title="Sign in">
-          <form onSubmit={onSubmit} noValidate className="space-y-4">
+        <section className="rounded-xl border border-line bg-surface p-6 sm:p-8">
+          <h2 className="font-serif text-2xl font-semibold text-slate-900">Sign in</h2>
+          <form onSubmit={onSubmit} noValidate className="mt-6 space-y-5">
             {formError && <Notice kind="error" role="alert">{formError}</Notice>}
-            <MandatoryNote />
             <FormField id="email" label="E-mail address" required error={fieldErrors.email}>
               <input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)}
                 aria-invalid={!!fieldErrors.email} aria-describedby="email-error" className="gov-input" />
@@ -81,23 +80,19 @@ export function Login() {
               <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)}
                 aria-invalid={!!fieldErrors.password} aria-describedby="password-error" className="gov-input" />
             </FormField>
-            <ButtonBar>
-              <Button type="submit" loading={pending === 'form'} disabled={!!pending} icon={<LogIn className="size-4" aria-hidden />}>
-                Sign in
-              </Button>
-              <Button type="reset" variant="secondary" disabled={!!pending} onClick={() => { setEmail(''); setPassword(''); setFieldErrors({}); setFormError(null); }}>
-                Reset
-              </Button>
-            </ButtonBar>
+            <Button type="submit" className="w-full" loading={pending === 'form'} disabled={!!pending} icon={<LogIn className="size-4" aria-hidden />}>
+              Sign in
+            </Button>
           </form>
-        </Panel>
+        </section>
         {quick.length > 0 && (
-          <Panel title="Demo accounts (synthetic data)">
-            <p className="mb-3 text-sm text-slate-700">
-              <FlaskConical className="mr-1 inline size-4 align-text-bottom text-warning-700" aria-hidden />
-              These accounts exist only in the demonstration dataset. No real institutions or deposits are shown.
+          <section>
+            <h2 className="text-base font-semibold text-slate-900">Demo accounts (synthetic data)</h2>
+            <p className="mt-1 mb-3 flex items-start gap-1.5 text-sm text-slate-600">
+              <FlaskConical className="mt-0.5 size-4 shrink-0 text-warning-700" aria-hidden />
+              One click signs in. No real institutions or deposits are shown.
             </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2 2xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2">
               {quick.map((q) => (
                 <Button
                   key={q.email}
@@ -112,52 +107,38 @@ export function Login() {
                 </Button>
               ))}
             </div>
-          </Panel>
+          </section>
         )}
       </div>
     </div>
   );
 }
 
-/** Required documents per instrument type, from the rule defaults in shared/constants.json (an administrator may change the live rule). */
-function requiredDocs(): { type: string; docs: string[] }[] {
-  const rule = (constants.ruleDefaults as { key: string; config: unknown }[]).find((r) => r.key === 'required_docs');
-  const config = (rule?.config ?? {}) as Record<string, DocType[]>;
-  return INSTRUMENT_TYPES.map((t) => ({ type: INSTRUMENT_TYPE_LABELS[t], docs: (config[t] ?? []).map((d) => DOC_TYPE_LABELS[d] ?? d) }));
-}
+const STEPS = [
+  { title: 'Lodge', text: 'Institutions enter the deposit as printed on the receipt and upload the documents.' },
+  { title: 'Verify', text: 'An AICTE officer checks it with the issuing bank and accepts it, or returns it with remarks.' },
+  { title: 'Watch and release', text: 'The portal tracks maturity and renewals. An official decides every release.' },
+];
 
-function Instructions() {
+function Intro() {
   return (
-    <Panel title="Notices / Instructions for users">
-      <div className="space-y-4 text-[0.9375rem] text-slate-800">
-        <section>
-          <h3 className="mb-1 font-bold text-navy">1. Lodging a Fixed Deposit Receipt (institutions)</h3>
-          <ol className="list-decimal space-y-1 pl-6">
-            <li>Sign in with the account issued to your institution.</li>
-            <li>Under <strong>My institution</strong>, choose to add a new instrument.</li>
-            <li>Enter the particulars exactly as printed on the receipt: Ref. No., issuing bank and branch, amount, date of issue, date of maturity and beneficiary.</li>
-            <li>Upload the required documents (below) and submit the record for scrutiny.</li>
-            <li>Track the status on the instrument page. If AICTE returns the record, correct it as advised in the remarks and resubmit.</li>
-          </ol>
-        </section>
-        <section>
-          <h3 className="mb-1 font-bold text-navy">2. Documents required</h3>
-          <table className="gov-table">
-            <thead><tr><th scope="col" className="w-20 text-right!">Sl. No.</th><th scope="col">Type of instrument</th><th scope="col">Documents to be uploaded</th></tr></thead>
-            <tbody>
-              {requiredDocs().map((r, i) => (
-                <tr key={r.type}><td className="num">{i + 1}</td><td>{r.type}</td><td>{r.docs.join(', ') || '—'}</td></tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="mt-1 text-xs text-slate-700">Default list. The administrator may change it; the submission form always shows the documents currently required. Files: PDF, JPEG or PNG, up to 10 MB each.</p>
-        </section>
-        <section>
-          <h3 className="mb-1 font-bold text-navy">3. Whom to contact</h3>
-          <p>For sign-in problems or questions about a record, use <Link className="gov-link" to="/help/contact">Contact helpdesk</Link>. See also the <Link className="gov-link" to="/help/faq">FAQ</Link>.</p>
-        </section>
-        <Notice>The portal supports officials in their work; every acceptance and release is decided by an official.</Notice>
-      </div>
-    </Panel>
+    <div className="max-w-xl">
+      <h1 className="font-serif text-4xl leading-tight font-semibold text-slate-900">Security deposits and FDRs, in one ledger.</h1>
+      <p className="mt-4 text-lg text-slate-600">Sign in with the account issued to you.</p>
+      <ol className="mt-10 space-y-6">
+        {STEPS.map((s, i) => (
+          <li key={s.title} className="flex gap-4">
+            <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-[#d6d0c4] font-serif text-ink">{i + 1}</span>
+            <div>
+              <p className="font-medium text-slate-900">{s.title}</p>
+              <p className="text-slate-600">{s.text}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-10 text-sm text-slate-600">
+        Need help? See the <Link className="gov-link" to="/help/faq">FAQ</Link> or <Link className="gov-link" to="/help/contact">contact the helpdesk</Link>.
+      </p>
+    </div>
   );
 }

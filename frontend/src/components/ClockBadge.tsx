@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { formatDate, type EvaluationSummary } from '@fdr/shared';
 import { formatDateGov } from '@/lib/format';
 import { ApiError } from '@/api/client';
+import { useAuth } from '@/auth/AuthContext';
 import { useClock, useClockMutation, type ClockAction } from '@/hooks/useClock';
 import { Badge } from './Badge';
 import { Button } from './Button';
@@ -10,19 +11,55 @@ import { FieldError } from './FieldError';
 import { Modal } from './Modal';
 import { useToast } from './Toast';
 
-/** Business date for everyone; amber "SIMULATED" when an admin has moved the app clock. */
+/** Business date for everyone; amber "Simulated" when an admin has moved the app clock. */
 export function ClockBadge() {
   const clock = useClock();
   if (!clock.data) return null;
   const date = formatDateGov(clock.data.today);
   return clock.data.mode === 'SIMULATED' ? (
-    <Badge tone="warning" icon={<CalendarClock className="size-3.5" aria-hidden />} className="font-semibold" >
-      <span data-testid="clock-badge">SIMULATED · {date}</span>
+    <Badge tone="warning" icon={<CalendarClock className="size-3.5" aria-hidden />}>
+      <span data-testid="clock-badge">Simulated · {date}</span>
     </Badge>
   ) : (
     <Badge tone="neutral" icon={<CalendarDays className="size-3.5" aria-hidden />}>
       <span data-testid="clock-badge">Today · {date}</span>
     </Badge>
+  );
+}
+
+/**
+ * Small clock chip in the top bar. For the admin it opens the app-clock dialog, and +1d / +7d sit next to it
+ * on wide screens so a demo jump is one click.
+ */
+export function ClockChip() {
+  const clock = useClock();
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  if (!clock.data) return null;
+  const simulated = clock.data.mode === 'SIMULATED';
+  const Icon = simulated ? CalendarClock : CalendarDays;
+  const label = `${simulated ? 'Simulated app date' : 'Today'}: ${formatDateGov(clock.data.today)}`;
+  const chip = (
+    <>
+      <Icon className={simulated ? 'size-4 text-warning-700' : 'size-4 text-slate-500'} aria-hidden />
+      <span data-testid="clock-badge" className="tabular-nums">{formatDateGov(clock.data.today)}</span>
+      {simulated && <span className="hidden font-medium text-warning-700 2xl:inline">Simulated</span>}
+    </>
+  );
+  const cls = 'hidden h-9 items-center gap-1.5 rounded-full px-3 text-sm sm:inline-flex ' + (simulated ? 'bg-warning-50 text-warning-700' : 'bg-strip text-slate-700');
+  if (user?.role !== 'admin') return <span className={cls} title={label} aria-label={label}>{chip}</span>;
+  return (
+    <div className="flex items-center gap-1">
+      <button type="button" className={cls + ' hover:ring-1 hover:ring-[#d6d0c4]'} title={`${label}. Change the app clock`} aria-label={`${label}. Change the app clock`} onClick={() => setOpen(true)}>
+        {chip}
+      </button>
+      <span className="hidden xl:contents"><ClockControls quick /></span>
+      <Modal open={open} title="App clock" onClose={() => setOpen(false)}>
+        <div className="mb-4"><ClockBadge /></div>
+        <ClockControls />
+        <p className="mt-4 text-sm text-slate-600">Every user sees this date. Each change runs the daily evaluation at once.</p>
+      </Modal>
+    </div>
   );
 }
 
@@ -47,7 +84,7 @@ function browserToday(): string {
 }
 
 /** Admin-only: +1 / +7 / +30 / +90 days, set a date, reset to real time. Each change runs the daily job at once. */
-export function ClockControls() {
+export function ClockControls({ quick }: { quick?: boolean }) {
   const toast = useToast();
   const clock = useClock();
   const mutation = useClockMutation();
@@ -83,12 +120,12 @@ export function ClockControls() {
 
   return (
     <div className="flex flex-wrap items-center gap-1" role="group" aria-label="App clock controls">
-      {[1, 7, 30, 90].map((days) => (
-        <Button key={days} size="sm" variant="secondary" disabled={mutation.isPending} onClick={() => run({ kind: 'advance', days })}>
+      {(quick ? [1, 7] : [1, 7, 30, 90]).map((days) => (
+        <Button key={days} size="sm" variant={quick ? 'ghost' : 'secondary'} className={quick ? 'h-8 px-2' : undefined} disabled={mutation.isPending} onClick={() => run({ kind: 'advance', days })}>
           +{days}d
         </Button>
       ))}
-      <Button size="sm" variant="secondary" disabled={mutation.isPending} onClick={() => { setDateError(null); setDate(today ?? ''); setSetOpen(true); }}>
+      {!quick && <><Button size="sm" variant="secondary" disabled={mutation.isPending} onClick={() => { setDateError(null); setDate(today ?? ''); setSetOpen(true); }}>
         Set date…
       </Button>
       <Button
@@ -99,7 +136,7 @@ export function ClockControls() {
         onClick={() => guarded({ kind: 'reset' }, clock.data?.mode === 'SIMULATED' ? browserToday() : null)}
       >
         Reset to today
-      </Button>
+      </Button></>}
       <Modal
         open={setOpen}
         title="Set the app date"
@@ -121,7 +158,7 @@ export function ClockControls() {
           onChange={(e) => setDate(e.target.value)}
           aria-invalid={!!dateError}
           aria-describedby="clock-date-error"
-          className="h-9 w-full rounded-md border border-slate-300 px-3"
+          className="gov-input"
         />
         <FieldError id="clock-date-error" message={dateError} />
         <p className="mt-2 text-xs text-slate-500">Every user sees this date. The daily evaluation runs immediately: statuses, reminders and escalations follow it.</p>

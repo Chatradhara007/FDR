@@ -1,45 +1,30 @@
-import { ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useAlerts } from '@/api/alerts';
+import { useDashboard } from '@/api/reporting';
 import { useReleaseRequests } from '@/api/releases';
-import { AlertKindChip, AlertLevelChip, Card, PageHeader } from '@/components';
+import { CountUp, PageHeader, StatRow, StatTile } from '@/components';
 import { MyDayList } from '@/pages/myday/MyDay';
 import { DecisionBanner } from './parts';
 import { ReleaseTable } from './ReleaseList';
 
-/** /approver: release decisions waiting for the competent authority, and the alerts escalated to it. */
+/** /approver: release decisions waiting for the competent authority first, then My day. */
 export function ApproverHome() {
   const pending = useReleaseRequests({ awaitingMe: true, pageSize: 100 });
-  const alerts = useAlerts({ status: 'open', pageSize: 10 });
-  const items = alerts.data?.items ?? [];
+  const d = useDashboard({}).data;
+  const n = (v: number | undefined) => (v === undefined ? '—' : <CountUp value={v} />);
+  const soon = d?.maturityBuckets.find((b) => b.key === 'd0_30')?.count;
   return (
-    <>
-      <PageHeader title="Approvals" subtitle="Release requests and escalations that need a competent-authority decision." />
-      <DecisionBanner />
-      <div className="space-y-4">
-        <MyDayList limit={10} />
-        <Card title={`Decisions waiting for you (${pending.data?.total ?? 0})`}>
-          <ReleaseTable rows={pending.data?.items} loading={pending.isLoading} emptyTitle="No release decision is waiting for you" />
-        </Card>
-        <Card title={`Open alerts for the competent authority (${alerts.data?.total ?? 0})`}
-          actions={<Link to="/alerts" className="inline-flex items-center gap-1 text-sm text-primary-700 hover:underline">Alerts inbox <ArrowRight className="size-4" aria-hidden /></Link>}>
-          {items.length === 0 ? <p className="text-sm text-slate-500">Nothing escalated to you.</p> : (
-            <ul className="divide-y divide-slate-100">
-              {items.map((a) => (
-                <li key={a.id} className="py-2 text-sm">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <AlertKindChip kind={a.kind} />
-                    <AlertLevelChip level={a.level} role={a.level > 1 ? a.recipientRole : undefined} />
-                    <Link to={`/instruments/${a.instrumentId}`} className="font-medium text-primary-700 hover:underline">{a.instrumentReferenceNo ?? 'Instrument'}</Link>
-                    <span className="text-xs text-slate-500">{a.institutionName}</span>
-                  </div>
-                  <p className="mt-1 text-slate-700">{a.message}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
-    </>
+    <div className="space-y-10">
+      <PageHeader title="Approvals" subtitle="Release requests that need a competent-authority decision." />
+      <StatRow>
+        <StatTile label="Awaiting your decision" value={n(pending.data?.total)} tone={pending.data?.total ? 'warning' : undefined} />
+        <StatTile label="Escalated" value={n(d?.kpis.openEscalations)} to="/alerts" />
+        <StatTile label="Maturing within 30 days" value={n(soon)} to="/dashboard" />
+      </StatRow>
+      <section aria-labelledby="awaiting">
+        <h2 id="awaiting" className="mb-4 font-serif text-xl font-semibold text-slate-900">Awaiting your decision</h2>
+        <DecisionBanner />
+        <ReleaseTable rows={pending.data?.items} loading={pending.isLoading} emptyTitle="No release decision is waiting for you" />
+      </section>
+      <MyDayList limit={10} title="My day" />
+    </div>
   );
 }

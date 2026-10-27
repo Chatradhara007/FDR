@@ -16,7 +16,7 @@ export function Tabs({ tabs, value, onChange }: { tabs: TabDef[]; value: string;
   const active = tabs.find((t) => t.id === value) ?? tabs[0];
   return (
     <div>
-      <div role="tablist" className="flex flex-wrap gap-0 border-b-2 border-navy">
+      <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-line">
         {tabs.map((t, i) => (
           <button
             key={t.id}
@@ -29,8 +29,8 @@ export function Tabs({ tabs, value, onChange }: { tabs: TabDef[]; value: string;
             onClick={() => onChange(t.id)}
             onKeyDown={(e) => onKey(e, i)}
             className={cn(
-              'mr-1 border border-b-0 px-4 py-2 text-sm font-semibold',
-              t.id === active?.id ? 'border-navy bg-navy text-white' : 'border-line bg-strip text-navy hover:bg-primary-100',
+              '-mb-px border-b-2 px-4 py-2.5 text-[0.9375rem] font-medium whitespace-nowrap transition-colors',
+              t.id === active?.id ? 'border-ink text-ink' : 'border-transparent text-slate-600 hover:text-slate-900',
             )}
           >
             {t.label}
@@ -38,7 +38,7 @@ export function Tabs({ tabs, value, onChange }: { tabs: TabDef[]; value: string;
         ))}
       </div>
       {active && (
-        <div role="tabpanel" id={`${base}-panel-${active.id}`} aria-labelledby={`${base}-tab-${active.id}`} className="pt-4">
+        <div role="tabpanel" id={`${base}-panel-${active.id}`} aria-labelledby={`${base}-tab-${active.id}`} className="fade-in pt-6">
           {active.content}
         </div>
       )}

@@ -27,8 +27,8 @@ export function BlockedBanner({ view }: { view: ReleaseView }) {
 /** CLAUDE.md rule 12: the portal never decides. */
 export function DecisionBanner() {
   return (
-    <p className="mb-4 flex items-center gap-2 rounded-md border border-info-600/20 bg-info-50 px-3 py-2 text-sm text-info-700">
-      <Gavel className="size-4 shrink-0" aria-hidden />
+    <p className="mb-4 flex items-center gap-2 text-sm text-slate-600">
+      <Gavel className="size-4 shrink-0 text-ink" aria-hidden />
       The portal supports the decision; the decision rests with the competent authority. Nothing is approved automatically.
     </p>
   );

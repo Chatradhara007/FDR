@@ -33,7 +33,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           const s = STYLE[t.kind];
           const Icon = s.icon;
           return (
-            <div key={t.id} className={cn('flex items-start gap-2 border border-l-4 px-3 py-2 text-sm', s.cls)}>
+            <div key={t.id} className={cn('flex items-start gap-2 rounded-xl border px-4 py-3 text-sm shadow-md', s.cls)}>
               <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
               <p className="flex-1"><span className="sr-only">{s.label}: </span>{t.message}</p>
               <button type="button" onClick={() => dismiss(t.id)} aria-label="Dismiss" className="rounded p-0.5 hover:bg-black/5">

@@ -30,16 +30,16 @@ export function Modal({ open, title, onClose, children, footer }: { open: boolea
 
   if (!open) return null;
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={panel} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="fade-in w-full max-w-lg rounded-[3px] border border-line bg-surface">
-        <header className="flex items-center justify-between border-b border-line bg-strip px-5 py-2.5">
-          <h2 id={titleId} className="text-base font-bold text-navy">{title}</h2>
-          <button type="button" onClick={onClose} className="p-1 text-navy hover:bg-primary-100" aria-label="Close">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div ref={panel} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="fade-in w-full max-w-lg rounded-xl border border-line bg-surface shadow-lg">
+        <header className="flex items-center justify-between px-6 pt-5 pb-2">
+          <h2 id={titleId} className="font-serif text-xl font-semibold text-slate-900">{title}</h2>
+          <button type="button" onClick={onClose} className="rounded-md p-1.5 text-slate-600 hover:bg-strip" aria-label="Close">
             <X className="size-4" aria-hidden />
           </button>
         </header>
-        <div className="px-5 py-4 text-sm">{children}</div>
-        {footer && <footer className="flex justify-end gap-2 border-t border-line px-5 py-3">{footer}</footer>}
+        <div className="px-6 py-3">{children}</div>
+        {footer && <footer className="flex justify-end gap-3 px-6 pt-2 pb-5">{footer}</footer>}
       </div>
     </div>,
     document.body,
