@@ -17,7 +17,7 @@ export interface EditorProps<T> { value: T; onChange: (next: T) => void; errors:
 const LEVEL_ROLES: Role[] = ['officer', 'approver', 'admin'];
 const LEVEL_ACTIONS: ReleaseLevelAction[] = ['RECOMMEND', 'DECIDE'];
 const ACTION_LABELS: Record<ReleaseLevelAction, string> = { RECOMMEND: 'Recommends', DECIDE: 'Decides' };
-const smallInput = 'h-9 rounded-md border border-slate-300 bg-white px-2 text-sm aria-[invalid=true]:border-danger-600';
+const smallInput = 'h-9 rounded-[10px] border border-border bg-white px-2 text-sm aria-[invalid=true]:border-danger-600';
 
 function Err({ errors, path, id }: { errors: Errors; path: string; id: string }) {
   return <FieldError id={id} message={errors[path]} />;
@@ -38,12 +38,12 @@ export function ReminderEditor({ value, onChange, errors, idBase }: EditorProps<
     onChange({ offsets: offsets.map((o, j) => (j === i ? { ...o, ...patch } : o)) });
   return (
     <div className="space-y-2">
-      <p className="text-xs text-slate-500">A reminder goes out when maturity is this many days away. The largest offset also starts the Expiring status.</p>
+      <p className="text-xs text-muted">A reminder goes out when maturity is this many days away. The largest offset also starts the Expiring status.</p>
       {offsets.map((o, i) => {
         const daysId = `${idBase}-days-${i}`;
         const p = `config.offsets.${i}`;
         return (
-          <div key={i} className="rounded-md border border-slate-200 p-2" data-testid="reminder-row">
+          <div key={i} className="rounded-[10px] border border-hairline p-2" data-testid="reminder-row">
             <div className="flex flex-wrap items-center gap-3">
               <label className="text-sm" htmlFor={daysId}>Days before maturity</label>
               <input id={daysId} type="number" min={1} className={`${smallInput} w-24`} value={intValue(o.days)}
@@ -86,13 +86,13 @@ export function EscalationEditor({ value, onChange, errors, idBase }: EditorProp
     onChange({ ...value, kinds: on ? [...value.kinds, k] : value.kinds.filter((x) => x !== k) });
   return (
     <div className="space-y-3">
-      <p className="text-xs text-slate-500">Days are counted from the first alert. Each level must start later than the one before.</p>
+      <p className="text-xs text-muted">Days are counted from the first alert. Each level must start later than the one before.</p>
       <ol className="space-y-2">
         {levels.map((l, i) => {
           const id = `${idBase}-lvl-${i}`;
           const p = `config.levels.${i}`;
           return (
-            <li key={i} className="rounded-md border border-slate-200 p-2" data-testid="escalation-row">
+            <li key={i} className="rounded-[10px] border border-hairline p-2" data-testid="escalation-row">
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-sm font-medium">Level {i + 1}</span>
                 <label className="text-sm" htmlFor={`${id}-role`}>Goes to</label>
@@ -119,7 +119,7 @@ export function EscalationEditor({ value, onChange, errors, idBase }: EditorProp
         Add level
       </Button>
       <fieldset>
-        <legend className="text-sm font-medium text-slate-700">Alert kinds that escalate</legend>
+        <legend className="text-sm font-medium text-ink">Alert kinds that escalate</legend>
         <div className="mt-1 flex flex-wrap gap-3">
           {ALERT_KINDS.map((k) => (
             <label key={k} className="inline-flex items-center gap-1 text-sm">
@@ -166,10 +166,10 @@ export function ApprovalLevelsEditor({ value, onChange, errors, idBase }: Editor
   const aboveId = `${idBase}-above`;
   return (
     <div className="space-y-3">
-      <p className="text-xs text-slate-500">Level 1 is the scrutiny officer's recommendation; the last level decides. The same person can act at only one level of a request.</p>
+      <p className="text-xs text-muted">Level 1 is the scrutiny officer's recommendation; the last level decides. The same person can act at only one level of a request.</p>
       <ol className="space-y-2">
         {levels.map((l, i) => (
-          <li key={i} className="rounded-md border border-slate-200 p-2" data-testid="approval-row">
+          <li key={i} className="rounded-[10px] border border-hairline p-2" data-testid="approval-row">
             <div className="mb-1 flex items-center justify-between">
               <span className="text-sm font-medium">Level {i + 1}</span>
               <Button size="sm" variant="ghost" icon={<Trash2 className="size-4" aria-hidden />}
@@ -184,12 +184,12 @@ export function ApprovalLevelsEditor({ value, onChange, errors, idBase }: Editor
         onClick={() => onChange({ ...value, levels: renumber([...levels, { level: 0, role: 'approver', action: 'DECIDE', label: '' }]) })}>
         Add level
       </Button>
-      <div className="rounded-md border border-slate-200 p-2">
+      <div className="rounded-[10px] border border-hairline p-2">
         <label className="text-sm font-medium" htmlFor={aboveId}>Extra approval above (₹)</label>
         <input id={aboveId} className={`${inputCls} mt-1 max-w-xs`} inputMode="decimal" value={above} placeholder="Leave empty for no extra level"
           aria-invalid={!!errors['config.extraApprovalAbove']} aria-describedby={`${aboveId}-err`}
           onChange={(e) => onChange({ ...value, extraApprovalAbove: e.target.value === '' ? null : e.target.value })} />
-        {above && /^\d+(\.\d{1,2})?$/.test(above) && <p className="mt-1 text-xs text-slate-500">{amountInWords(above)}</p>}
+        {above && /^\d+(\.\d{1,2})?$/.test(above) && <p className="mt-1 text-xs text-muted">{amountInWords(above)}</p>}
         <Err errors={errors} path="config.extraApprovalAbove" id={`${aboveId}-err`} />
         {extra ? (
           <div className="mt-2">

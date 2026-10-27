@@ -43,7 +43,7 @@ function Stepper({ step, onSelect, canLeaveDetails }: { step: number; onSelect: 
                 <span className="sr-only">Step {i + 1}: </span>{label}<span className="sr-only">{done ? ' (done)' : current ? ' (current step)' : ''}</span>
               </span>
             </button>
-            {i < STEPS.length - 1 && <span aria-hidden className={cn('mx-2 mt-4 h-[2px] min-w-4 flex-1 rounded-sm', done ? 'bg-teal' : 'bg-border')} />}
+            {i < STEPS.length - 1 && <span aria-hidden className={cn('mx-2 mt-4 h-[2px] min-w-4 flex-1 rounded-[6px]', done ? 'bg-teal' : 'bg-border')} />}
           </li>
         );
       })}

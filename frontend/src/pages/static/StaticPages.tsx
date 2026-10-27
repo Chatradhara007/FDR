@@ -3,10 +3,10 @@ import { Notice, PageHeader, Panel } from '@/components';
 
 function Page({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="max-w-4xl">
-      <PageHeader title={title} />
+    <div className="mx-auto max-w-[760px]">
+      <PageHeader back={{ to: '/', label: 'the portal' }} title={title} />
       <Notice className="mb-4">This page belongs to a hackathon prototype. Its text is a placeholder and is not an official policy of any organisation.</Notice>
-      <Panel><div className="space-y-3 text-[0.9375rem] leading-relaxed text-slate-800">{children}</div></Panel>
+      <Panel><div className="space-y-4 text-base leading-relaxed text-ink">{children}</div></Panel>
     </div>
   );
 }
@@ -22,10 +22,10 @@ const FAQ: { q: string; a: string }[] = [
 export function FaqPage() {
   return (
     <Page title="Frequently asked questions">
-      <dl className="divide-y divide-line">
+      <dl className="divide-y divide-hairline">
         {FAQ.map((f, i) => (
           <div key={f.q} className="py-3 first:pt-0">
-            <dt className="font-semibold text-navy">{i + 1}. {f.q}</dt>
+            <dt className="font-semibold text-ink">{i + 1}. {f.q}</dt>
             <dd className="mt-1">{f.a}</dd>
           </div>
         ))}

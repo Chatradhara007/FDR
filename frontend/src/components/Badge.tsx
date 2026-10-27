@@ -8,7 +8,7 @@ export const toneClasses: Record<Tone, string> = {
   success: 'bg-teal-tint text-teal-hover',
   warning: 'bg-attn-tint text-attn-text',
   danger: 'bg-danger-tint text-danger-700',
-  info: 'bg-info-50 text-ink-2',
+  info: 'bg-subtle text-ink-2',
   neutral: 'bg-chip text-ink-2',
   primary: 'bg-teal-tint text-teal-hover',
 };

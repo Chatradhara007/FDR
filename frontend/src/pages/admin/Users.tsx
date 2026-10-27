@@ -5,7 +5,7 @@ import { useCreateUser, useResetPassword, useUpdateUser, useUsers, type NewUserI
 import { ApiError } from '@/api/client';
 import { useInstitutions } from '@/api/reporting';
 import { useAuth } from '@/auth/AuthContext';
-import { Badge, Button, FieldError, Modal, PageHeader, Table, useToast, type Column } from '@/components';
+import { Badge, Button, Drawer, FieldError, Modal, PageHeader, Table, useToast, type Column } from '@/components';
 import { inputCls } from '@/pages/institution/wizard/form';
 
 type Errors = Record<string, string>;
@@ -19,7 +19,7 @@ function errorsOf(err: unknown): Errors {
 function Field({ id, label, error, children }: { id: string; label: string; error?: string; children: ReactNode }) {
   return (
     <div>
-      <label htmlFor={id} className="mb-1 block text-sm font-medium text-slate-700">{label}</label>
+      <label htmlFor={id} className="mb-1.5 block text-sm font-semibold text-ink">{label}</label>
       {children}
       <FieldError id={`${id}-err`} message={error} />
     </div>
@@ -46,9 +46,8 @@ function CreateUserModal({ open, onClose }: { open: boolean; onClose: () => void
   };
   const aria = (k: string) => ({ 'aria-invalid': !!errors[k], 'aria-describedby': `new-${k}-err` });
   return (
-    <Modal open={open} title="Create user" onClose={close}
-      footer={<><Button variant="secondary" onClick={close}>Cancel</Button><Button loading={create.isPending} onClick={submit}>Create user</Button></>}>
-      <div className="space-y-3">
+    <Drawer open={open} title="Create user" onClose={close} description="The person signs in with this email and the initial password you give them.">
+      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); submit(); }} noValidate>
         <Field id="new-name" label="Name" error={errors.name}><input id="new-name" className={inputCls} value={form.name} onChange={set('name')} {...aria('name')} /></Field>
         <Field id="new-email" label="Email" error={errors.email}><input id="new-email" type="email" className={inputCls} value={form.email} onChange={set('email')} {...aria('email')} /></Field>
         <Field id="new-role" label="Role" error={errors.role}>
@@ -67,11 +66,15 @@ function CreateUserModal({ open, onClose }: { open: boolean; onClose: () => void
         <Field id="new-designation" label="Designation (optional)" error={errors.designation}><input id="new-designation" className={inputCls} value={form.designation} onChange={set('designation')} {...aria('designation')} /></Field>
         <Field id="new-password" label="Initial password" error={errors.password}>
           <input id="new-password" type="password" autoComplete="new-password" className={inputCls} value={form.password} onChange={set('password')} {...aria('password')} />
-          <p className="mt-1 text-xs text-slate-500">{PASSWORD_HINT}</p>
+          <p className="mt-1.5 text-[0.8125rem] text-muted">{PASSWORD_HINT}</p>
         </Field>
         <FieldError id="new-form-err" message={errors.form} />
-      </div>
-    </Modal>
+        <div className="flex gap-2 pt-2">
+          <Button type="submit" className="flex-1" loading={create.isPending}>Create user</Button>
+          <Button variant="secondary" onClick={close}>Cancel</Button>
+        </div>
+      </form>
+    </Drawer>
   );
 }
 
@@ -111,11 +114,11 @@ function ResetPasswordModal({ user, onClose }: { user: AdminUser | null; onClose
       onError: (err) => setErrors(errorsOf(err)),
     });
   return (
-    <Modal open title={`Reset password — ${user.name}`} onClose={onClose}
+    <Modal open title={`Reset password: ${user.name}`} onClose={onClose}
       footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button loading={reset.isPending} onClick={submit}>Reset password</Button></>}>
       <Field id="reset-password" label="New password" error={errors.password ?? errors.form}>
         <input id="reset-password" type="password" autoComplete="new-password" className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={!!errors.password} aria-describedby="reset-password-err" />
-        <p className="mt-1 text-xs text-slate-500">{PASSWORD_HINT} Existing sessions stay valid; deactivate the user to end them.</p>
+        <p className="mt-1.5 text-[0.8125rem] text-muted">{PASSWORD_HINT} Existing sessions stay valid; deactivate the user to end them.</p>
       </Field>
     </Modal>
   );
@@ -132,7 +135,7 @@ export function Users() {
   const [resetting, setResetting] = useState<AdminUser | null>(null);
   const toggleActive = (u: AdminUser) =>
     update.mutate({ id: u.id, version: u.version, active: !u.active }, {
-      onSuccess: (x) => toast.success(x.active ? `${x.name} reactivated` : `${x.name} deactivated — their sessions have ended`),
+      onSuccess: (x) => toast.success(x.active ? `${x.name} reactivated` : `${x.name} deactivated. Their sessions have ended.`),
       onError: (err) => toast.error(err instanceof ApiError ? Object.values(err.fieldErrors())[0] ?? err.message : 'Update failed'),
     });
   const columns: Column<AdminUser>[] = [
@@ -163,10 +166,11 @@ export function Users() {
     },
   ];
   return (
-    <div>
+    <div className="mx-auto max-w-[1400px]">
       <PageHeader title="Users" subtitle="Who can sign in, and as what. Deactivating a user ends their sessions immediately."
         actions={<Button icon={<UserPlus className="size-4" aria-hidden />} onClick={() => setCreating(true)}>Create user</Button>} />
-      <Table caption="Users" columns={columns} rows={users.data} rowKey={(u) => u.id} loading={users.isLoading} emptyTitle="No users" />
+      <Table caption="Users" columns={columns} rows={users.data} rowKey={(u) => u.id} loading={users.isLoading}
+        error={users.error} onRetry={() => void users.refetch()} search={(u) => `${u.name} ${u.email} ${u.institutionName ?? ''}`} emptyTitle="No users match" />
       <CreateUserModal open={creating} onClose={() => setCreating(false)} />
       {editing && <EditUserModal key={editing.id} user={editing} onClose={() => setEditing(null)} />}
       {resetting && <ResetPasswordModal key={resetting.id} user={resetting} onClose={() => setResetting(null)} />}

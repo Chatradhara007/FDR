@@ -18,17 +18,17 @@ export function SeverityChip({ severity }: { severity: ObservationSeverity }) {
 
 export function ObservationItem({ o, onResolve }: { o: Observation; onResolve?: () => void }) {
   return (
-    <li className="rounded-md border border-slate-200 p-3 text-sm">
+    <li className="rounded-[10px] border border-hairline p-3 text-sm">
       <div className="flex flex-wrap items-center gap-2">
         <SeverityChip severity={o.severity} />
         {o.status === 'RESOLVED' && <Badge tone="neutral" icon={<CheckCircle2 className="size-3.5" aria-hidden />}>Resolved</Badge>}
-        <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+        <span className="inline-flex items-center gap-1 text-xs text-muted">
           {o.visibleToInstitution ? <><Eye className="size-3.5" aria-hidden /> Visible to institution</> : <><EyeOff className="size-3.5" aria-hidden /> Internal</>}
         </span>
-        <span className="ml-auto text-xs text-slate-500">{o.authorName ?? 'System'} · <DateText value={o.createdAt} /></span>
+        <span className="ml-auto text-xs text-muted">{o.authorName ?? 'System'} · <DateText value={o.createdAt} /></span>
       </div>
-      <p className="mt-2 text-slate-800">{o.text}</p>
-      {o.resolutionNote && <p className="mt-1 text-xs text-slate-600">Resolution: {o.resolutionNote}</p>}
+      <p className="mt-2 text-ink">{o.text}</p>
+      {o.resolutionNote && <p className="mt-1 text-xs text-muted">Resolution: {o.resolutionNote}</p>}
       {onResolve && o.status === 'OPEN' && <Button className="mt-2" size="sm" variant="secondary" onClick={onResolve}>Resolve</Button>}
     </li>
   );

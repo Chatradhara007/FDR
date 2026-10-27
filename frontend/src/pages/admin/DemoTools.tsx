@@ -12,12 +12,12 @@ const A5_CORRECTION = { bank: 'Punjab National Bank', referenceNo: 'PUNB/FDR/202
 /** Admin → Demo tools (DEMO_MODE only): reset, clock presets, bank correction, tamper, and the demo anchors. */
 export function DemoTools() {
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-[1400px] space-y-6">
       <PageHeader
         title="Demo tools"
-        subtitle="Synthetic demo data only. These tools exist only while the portal runs in demo mode."
+        subtitle="Tools for running the judged demo on synthetic data. They exist only while the portal runs in demo mode."
       />
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-2">
         <ResetCard />
         <JumpCard />
         <BankCorrectionCard />
@@ -45,7 +45,7 @@ function ResetCard() {
     });
   return (
     <Card title="Reset demo data">
-      <p className="mb-3 text-sm text-slate-600">
+      <p className="mb-4 text-[0.9375rem] text-muted">
         Wipes everything and replays the demo dataset (60 instruments with their history) through the real services.
         The app clock ends <strong>simulated at today's date</strong>. Takes about 15 seconds; you stay signed in.
       </p>
@@ -83,7 +83,7 @@ function JumpCard() {
   };
   return (
     <Card title="Jump the clock">
-      <p className="mb-3 text-sm text-slate-600">
+      <p className="mb-4 text-[0.9375rem] text-muted">
         Same as the clock controls in the header: the daily evaluation runs for the new date at once.
         {today && <> App date now: <strong>{formatDate(today)}</strong>.</>}
       </p>
@@ -131,29 +131,29 @@ function BankCorrectionCard() {
   };
   return (
     <Card title="Bank correction (demo step 7)">
-      <p className="mb-3 text-sm text-slate-600">
+      <p className="mb-4 text-[0.9375rem] text-muted">
         Simulates the bank correcting its own record after the institution's representation. Only the mock bank changes;
         the officer still has to <strong>re-verify</strong>.
       </p>
-      <Button icon={<Landmark className="size-4" aria-hidden />} loading={correct.isPending} onClick={() => send(A5_CORRECTION)}>
+      <Button variant="dark" icon={<Landmark className="size-4" aria-hidden />} loading={correct.isPending} onClick={() => send(A5_CORRECTION)}>
         A5: bank confirms ₹15,00,000
       </Button>
-      <form onSubmit={onSubmit} className="mt-4 grid gap-3 border-t border-slate-100 pt-3 sm:grid-cols-3" noValidate>
+      <form onSubmit={onSubmit} className="mt-4 grid gap-3 border-t border-hairline pt-4 sm:grid-cols-3" noValidate>
         <div>
-          <label htmlFor="bc-bank" className="mb-1 block text-sm font-medium text-slate-700">Bank</label>
-          <select id="bc-bank" value={bank} onChange={(e) => setBank(e.target.value)} className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+          <label htmlFor="bc-bank" className="mb-1.5 block text-sm font-semibold text-ink">Bank</label>
+          <select id="bc-bank" value={bank} onChange={(e) => setBank(e.target.value)} className="gov-input">
             {BANKS.map((b) => <option key={b}>{b}</option>)}
           </select>
           <FieldError id="bc-bank-error" message={errors.bank} />
         </div>
         <div>
-          <label htmlFor="bc-ref" className="mb-1 block text-sm font-medium text-slate-700">Reference number</label>
-          <input id="bc-ref" value={ref} onChange={(e) => setRef(e.target.value)} className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm" />
+          <label htmlFor="bc-ref" className="mb-1.5 block text-sm font-semibold text-ink">Reference number</label>
+          <input id="bc-ref" value={ref} onChange={(e) => setRef(e.target.value)} className="gov-input" />
           <FieldError id="bc-ref-error" message={errors.referenceNo} />
         </div>
         <div>
-          <label htmlFor="bc-amount" className="mb-1 block text-sm font-medium text-slate-700">Bank's amount (₹)</label>
-          <input id="bc-amount" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm tabular-nums" />
+          <label htmlFor="bc-amount" className="mb-1.5 block text-sm font-semibold text-ink">Bank's amount (₹)</label>
+          <input id="bc-amount" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" className="gov-input tabular-nums" />
           <FieldError id="bc-amount-error" message={errors['fields.amount'] ?? errors.fields} />
         </div>
         <div className="sm:col-span-3">
@@ -170,7 +170,7 @@ function TamperCard() {
   const undo = useUndoTamper();
   return (
     <Card title="Tamper with the audit log (demo step 8)">
-      <p className="mb-3 text-sm text-slate-600">
+      <p className="mb-4 text-[0.9375rem] text-muted">
         Changes the data of one stored event (the latest submission: its amount goes up by ₹10 lakh) <em>without</em> recomputing
         its hash. The auditor's integrity check then fails at that event. Undo restores the original, and the chain verifies again.
       </p>
@@ -189,7 +189,7 @@ function TamperCard() {
           })}>
           Undo tampering
         </Button>
-        <Link to="/audit" className="inline-flex items-center gap-1 self-center text-sm text-primary-700 hover:underline">
+        <Link to="/audit" className="inline-flex items-center gap-1 self-center text-sm font-medium text-teal hover:underline">
           <ShieldCheck className="size-4" aria-hidden /> Open the audit log
         </Link>
       </div>
@@ -205,7 +205,7 @@ function AnchorsCard() {
     { key: 'code', header: 'Anchor', cell: (a) => <span className="font-semibold">{a.code}</span> },
     {
       key: 'ref', header: 'Reference', cell: (a) => (a.instrumentId
-        ? <Link className="font-medium text-primary-700 hover:underline" to={`/instruments/${a.instrumentId}`}>{a.reference}</Link>
+        ? <Link className="mono font-medium text-teal hover:underline" to={`/instruments/${a.instrumentId}`}>{a.reference}</Link>
         : <span className="font-medium">{a.reference}</span>),
     },
     {
@@ -214,20 +214,20 @@ function AnchorsCard() {
         : <Badge tone="neutral">Bank record only</Badge>),
     },
     { key: 'purpose', header: 'Used for', className: 'min-w-72', cell: (a) => <AnchorPurpose a={a} /> },
-    { key: 'who', header: 'Sign in as', cell: (a) => <span className="whitespace-nowrap">{a.signInAsName ?? a.signInAs}<br /><span className="text-xs text-slate-500">{a.signInAs}</span></span> },
+    { key: 'who', header: 'Sign in as', cell: (a) => <span className="whitespace-nowrap">{a.signInAsName ?? a.signInAs}<br /><span className="text-[0.8125rem] text-muted">{a.signInAs}</span></span> },
   ];
   return (
     <Card
       title="Demo anchors"
       actions={
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="secondary" icon={<Download className="size-3.5" aria-hidden />} onClick={() => void sample('fdr-copy')}>A1 FDR copy</Button>
-          <Button size="sm" variant="secondary" icon={<Download className="size-3.5" aria-hidden />} onClick={() => void sample('fdr-copy-different-amount')}>A1 FDR copy with a different amount</Button>
-          <Button size="sm" variant="secondary" icon={<Download className="size-3.5" aria-hidden />} onClick={() => void sample('bank-letter')}>A1 bank letter</Button>
+          <Button size="sm" variant="secondary" icon={<Download className="size-4" aria-hidden />} onClick={() => void sample('fdr-copy')}>A1 FDR copy</Button>
+          <Button size="sm" variant="secondary" icon={<Download className="size-4" aria-hidden />} onClick={() => void sample('fdr-copy-different-amount')}>A1 FDR copy with a different amount</Button>
+          <Button size="sm" variant="secondary" icon={<Download className="size-4" aria-hidden />} onClick={() => void sample('bank-letter')}>A1 bank letter</Button>
         </div>
       }
     >
-      <p className="mb-3 text-sm text-slate-600">
+      <p className="mb-4 text-[0.9375rem] text-muted">
         Stable records the demo script (<code>docs/demo-script.md</code>) uses.
         Everyone's password is <code>Demo@123</code>. The sample PDFs carry A1's values for step 1.
       </p>
@@ -243,8 +243,8 @@ function AnchorPurpose({ a }: { a: DemoAnchor }) {
     <div className="space-y-1">
       <p>{a.purpose}</p>
       {r && (
-        <p className="text-xs text-slate-500">
-          Bank record: {r.referenceNo} · <span className="tabular-nums">{formatINR(r.amount)}</span> · issued {formatDate(r.issueDate)} · matures {formatDate(r.maturityDate)} · {r.beneficiaryName}
+        <p className="text-[0.8125rem] text-muted">
+          Bank record: <span className="mono">{r.referenceNo}</span> · <span className="tabular-nums">{formatINR(r.amount)}</span> · issued {formatDate(r.issueDate)} · matures {formatDate(r.maturityDate)} · {r.beneficiaryName}
         </p>
       )}
     </div>

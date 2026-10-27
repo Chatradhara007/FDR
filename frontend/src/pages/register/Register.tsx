@@ -106,7 +106,7 @@ export function Register() {
           </select>
         </label>
         <Button variant="secondary" icon={<SlidersHorizontal className="size-4" aria-hidden />} onClick={() => setDrawer(true)} aria-haspopup="dialog">
-          Filters{filterCount > 0 && <span className="rounded-full bg-ink px-1.5 text-[0.75rem] text-white tabular-nums">{filterCount}</span>}
+          Filters{filterCount > 0 && <span className="rounded-[6px] bg-ink px-1.5 text-xs text-white tabular-nums">{filterCount}</span>}
         </Button>
         <Button variant="ghost" icon={<Columns3 className="size-4" aria-hidden />} aria-pressed={moreCols} onClick={() => setMoreCols((v) => !v)}>
           {moreCols ? 'Fewer columns' : 'More columns'}

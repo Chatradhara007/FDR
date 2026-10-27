@@ -147,7 +147,7 @@ export function AlertsInbox() {
         subtitle="Reminders, overdue items and escalations addressed to you, grouped by instrument. Fixing the cause closes an alert automatically."
         actions={
           <Button variant="secondary" icon={<SlidersHorizontal className="size-4" aria-hidden />} onClick={() => setDrawer(true)} aria-haspopup="dialog">
-            Filters{filterCount > 0 && <span className="rounded-full bg-ink px-1.5 text-[0.75rem] text-white tabular-nums">{filterCount}</span>}
+            Filters{filterCount > 0 && <span className="rounded-[6px] bg-ink px-1.5 text-xs text-white tabular-nums">{filterCount}</span>}
           </Button>
         }
       />

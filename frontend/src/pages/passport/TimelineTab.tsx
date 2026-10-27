@@ -32,7 +32,7 @@ function Diff({ before, after }: { before: Record<string, unknown> | null; after
         {keys.map((k) => {
           const changed = before !== null && JSON.stringify(before[k]) !== JSON.stringify(after?.[k]);
           return (
-            <tr key={k} className={cn(changed && 'bg-warning-50')} data-changed={changed || undefined}>
+            <tr key={k} className={cn(changed && 'bg-attn-tint')} data-changed={changed || undefined}>
               <td className="py-1 pr-3 font-medium text-ink-2">{k}{changed && <span className="sr-only"> (changed)</span>}</td>
               {before && <td className="py-1 pr-3 break-all text-muted">{show(before[k])}</td>}
               <td className={cn('py-1 break-all', changed ? 'font-semibold text-ink' : 'text-muted')}>{show(after?.[k])}</td>

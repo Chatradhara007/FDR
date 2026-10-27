@@ -3,7 +3,8 @@ import { useEffect, useState, type ComponentType } from 'react';
 import { formatDateTime, type RuleView } from '@fdr/shared';
 import { useEvaluateNow, useRestoreRule, useRules, useSaveRule } from '@/api/admin';
 import { ApiError } from '@/api/client';
-import { Badge, Button, Card, FieldError, PageHeader, useToast } from '@/components';
+import { Badge, Button, Card, EmptyState, ErrorState, FieldError, LoadingState, PageHeader, Panel, useToast } from '@/components';
+import { cn } from '@/lib/cn';
 import { summaryText } from '@/components/ClockBadge';
 import { useAuth } from '@/auth/AuthContext';
 import { ApprovalLevelsEditor, EscalationEditor, ReminderEditor, type EditorProps, type Errors } from './editors';
@@ -91,7 +92,7 @@ function RuleCard({ rule, canEdit }: { rule: RuleView; canEdit: boolean }) {
   const idBase = `rule-${rule.key}`;
   return (
     <Card
-      title={<span className="inline-flex items-center gap-2">{rule.name}{!rule.active && <Badge tone="warning">Inactive — default applies</Badge>}</span>}
+      title={<span className="inline-flex items-center gap-2">{rule.name}{!rule.active && <Badge tone="warning" icon={<Info className="size-3.5" aria-hidden />}>Inactive: default applies</Badge>}</span>}
       actions={canEdit && friendly && (
         <Button size="sm" variant="ghost" icon={json ? <SlidersHorizontal className="size-4" aria-hidden /> : <Braces className="size-4" aria-hidden />} onClick={() => switchMode(!json)}>
           {json ? 'Simple editor' : 'Advanced (JSON)'}
@@ -99,13 +100,13 @@ function RuleCard({ rule, canEdit }: { rule: RuleView; canEdit: boolean }) {
       )}
     >
       <div className="space-y-3" data-testid={`rule-${rule.key}`}>
-        <p className="text-sm text-slate-600">{DESCRIPTIONS[rule.key] ?? ''}</p>
+        <p className="text-[0.9375rem] text-muted">{DESCRIPTIONS[rule.key] ?? ''}</p>
         {!canEdit ? (
-          <pre className="overflow-x-auto rounded-md bg-slate-50 p-3 text-xs">{JSON.stringify(rule.config, null, 2)}</pre>
+          <pre className="overflow-x-auto mono rounded-[10px] border border-hairline bg-subtle p-3 text-[0.8125rem]">{JSON.stringify(rule.config, null, 2)}</pre>
         ) : json ? (
           <div>
             <label className="sr-only" htmlFor={`${idBase}-json`}>{rule.name} configuration (JSON)</label>
-            <textarea id={`${idBase}-json`} className="h-56 w-full rounded-md border border-slate-300 p-2 font-mono text-xs aria-[invalid=true]:border-danger-600"
+            <textarea id={`${idBase}-json`} className="mono h-72 w-full rounded-[10px] border border-border p-3 text-[0.8125rem] aria-[invalid=true]:border-danger"
               spellCheck={false} value={text} aria-invalid={!!errors.json || jsonErrors.length > 0} aria-describedby={`${idBase}-json-err`}
               onChange={(e) => setText(e.target.value)} />
             <FieldError id={`${idBase}-json-err`} message={errors.json} />
@@ -122,9 +123,9 @@ function RuleCard({ rule, canEdit }: { rule: RuleView; canEdit: boolean }) {
         ) : null}
         <FieldError id={`${idBase}-form-err`} message={errors.form} />
         {canEdit && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4">
             <label className="inline-flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
+              <input type="checkbox" className="size-4 accent-teal" checked={active} onChange={(e) => setActive(e.target.checked)} />
               Active (when off, the built-in default applies)
             </label>
             <div className="flex gap-2">
@@ -136,11 +137,11 @@ function RuleCard({ rule, canEdit }: { rule: RuleView; canEdit: boolean }) {
             </div>
           </div>
         )}
-        {rule.updatedAt && <p className="text-xs text-slate-500">Last changed {formatDateTime(rule.updatedAt)}{rule.updatedByName ? ` by ${rule.updatedByName}` : ''}</p>}
+        {rule.updatedAt && <p className="text-[0.8125rem] text-muted">Last changed {formatDateTime(rule.updatedAt)}{rule.updatedByName ? ` by ${rule.updatedByName}` : ''}</p>}
         {runHint && (
-          <div className="flex flex-wrap items-center gap-3 rounded-md bg-info-50 px-3 py-2 text-sm text-info-700" role="status">
+          <div className="flex flex-wrap items-center gap-3 rounded-[10px] bg-teal-tint px-4 py-3 text-sm text-ink" role="status">
             <Info className="size-4" aria-hidden />
-            Takes effect on the next evaluation — run now?
+            This takes effect on the next evaluation. Run it now?
             <Button size="sm" icon={<PlayCircle className="size-4" aria-hidden />} loading={evaluate.isPending}
               onClick={() => evaluate.mutate(undefined, {
                 onSuccess: (s) => { toast.success(`Evaluation run: ${summaryText(s)}`); setRunHint(false); },
@@ -155,19 +156,41 @@ function RuleCard({ rule, canEdit }: { rule: RuleView; canEdit: boolean }) {
   );
 }
 
-/** /admin/rules: every rule the system reads, edited and validated by the server. Auditors see the same page read-only. */
+/** /admin/rules: every rule the system reads, edited and validated by the server. Auditors see the same page read-only.
+ *  A list of rules on the left; the chosen rule's editor on the right. */
 export function RulesPage() {
   const { user } = useAuth();
   const rules = useRules();
   const canEdit = user?.role === 'admin';
+  const [selected, setSelected] = useState<string | null>(null);
+  const current = rules.data?.find((r) => r.key === selected) ?? rules.data?.[0];
   return (
-    <div>
-      <PageHeader title="Rules" subtitle="Reminder offsets, escalation, required documents, release conditions, approval levels and risk weights. Changes take effect on the next operation or evaluation run." />
-      {rules.isLoading && <p className="text-sm text-slate-500">Loading rules…</p>}
-      {rules.error && <p className="text-sm text-danger-700">{rules.error.message}</p>}
-      <div className="grid gap-4 xl:grid-cols-2">
-        {rules.data?.map((r) => <RuleCard key={r.key} rule={r} canEdit={canEdit} />)}
-      </div>
+    <div className="mx-auto max-w-[1400px]">
+      <PageHeader title="Rules" subtitle="The settings the portal reads at the start of every operation. Changes take effect on the next operation or evaluation run." />
+      {rules.isLoading && <Panel><LoadingState rows={4} label="Loading rules…" /></Panel>}
+      {rules.isError && <Panel><ErrorState error={rules.error} onRetry={() => void rules.refetch()} /></Panel>}
+      {rules.data && rules.data.length === 0 && <Panel><EmptyState title="No rules are stored" description="Run the seed to create the default rules." /></Panel>}
+      {current && (
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+          <nav aria-label="Rules" className="overflow-hidden rounded-[14px] border border-border bg-surface">
+            <ul>
+              {rules.data?.map((r) => {
+                const on = r.key === current.key;
+                return (
+                  <li key={r.key} className="border-b border-hairline last:border-b-0">
+                    <button type="button" aria-current={on ? 'true' : undefined} onClick={() => setSelected(r.key)}
+                      className={cn('block w-full px-4 py-3 text-left hover:bg-subtle', on && 'bg-teal-tint shadow-[inset_4px_0_0_var(--color-teal)] hover:bg-teal-tint')}>
+                      <span className="block font-semibold text-ink">{r.name}</span>
+                      <span className="block text-[0.8125rem] text-muted">{r.active ? 'Active' : 'Inactive: default applies'}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+          <RuleCard key={current.key} rule={current} canEdit={canEdit} />
+        </div>
+      )}
     </div>
   );
 }

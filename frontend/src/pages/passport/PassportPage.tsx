@@ -24,7 +24,7 @@ function MaturityText({ days }: { days: number | null }) {
   if (days === null) return null;
   if (days < 0) return <span className="font-semibold text-danger-700">matured {Math.abs(days)} d ago</span>;
   if (days === 0) return <span className="font-semibold text-danger-700">matures today</span>;
-  return <span className={days <= 90 ? 'font-medium text-warning-700' : 'text-muted'}>{days} d to maturity</span>;
+  return <span className={days <= 90 ? 'font-medium text-attn-text' : 'text-muted'}>{days} d to maturity</span>;
 }
 
 /** Role-aware actions: the institution renews, requests release or edits; AICTE roles open the review screen. */

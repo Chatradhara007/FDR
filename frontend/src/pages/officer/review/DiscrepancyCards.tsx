@@ -27,13 +27,13 @@ export function DiscrepancyCards({ discrepancies, canAct }: { discrepancies: Dis
           <div className="grid gap-px bg-hairline sm:grid-cols-2">
             <div className="bg-surface px-5 py-3">
               <p className="kicker text-muted">Institution claimed</p>
-              <p className="mt-1 inline-block rounded bg-warning-50 px-1.5 text-lg font-semibold text-warning-700 tabular-nums">
+              <p className="mt-1 inline-block rounded bg-attn-tint px-1.5 text-lg font-semibold text-attn-text tabular-nums">
                 {fieldValue(d.fieldName, d.claimedValue)}
               </p>
             </div>
             <div className="bg-surface px-5 py-3">
               <p className="kicker text-muted">Bank confirmed</p>
-              <p className="mt-1 inline-block rounded bg-success-50 px-1.5 text-lg font-semibold text-success-700 tabular-nums">
+              <p className="mt-1 inline-block rounded bg-teal-tint px-1.5 text-lg font-semibold text-teal-hover tabular-nums">
                 {d.confirmedValue === null ? 'No record at bank' : fieldValue(d.fieldName, d.confirmedValue)}
               </p>
             </div>

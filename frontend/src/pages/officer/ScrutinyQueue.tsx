@@ -1,22 +1,33 @@
-import { AlertTriangle, Clock, Hand, TimerOff } from 'lucide-react';
+import { Clock, Hand, TimerOff } from 'lucide-react';
 import { useState, type ChangeEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { VERIFICATION_STATES, VERIFICATION_STATE_LABELS, type QueueItem } from '@fdr/shared';
 import { useMeta } from '@/api/instruments';
 import { useClaim, useQueue } from '@/api/scrutiny';
 import { useAuth } from '@/auth/AuthContext';
-import { Button, DateText, Money, PageHeader, StatusChip, Table, VerificationChip, WorstAlertChip, useToast, type Column } from '@/components';
+import { Button, DateText, Money, PageHeader, Pager, ReasonChip, StatusChip, Table, VerificationChip, useToast, type Column, type Reason } from '@/components';
 
-/** Days since submission: amber after 5, red after 10 (icon + text, never colour alone). */
+/** Days since submission: attention after 5, danger after 10 (icon + text, never colour alone). */
 export function Ageing({ days }: { days: number | null }) {
-  if (days === null) return <span className="text-slate-400">—</span>;
+  if (days === null) return <span className="text-muted">—</span>;
   const label = `${days} d`;
   if (days > 10) return <span className="inline-flex items-center gap-1 font-medium text-danger-700"><TimerOff className="size-3.5" aria-hidden />{label} · overdue</span>;
-  if (days > 5) return <span className="inline-flex items-center gap-1 font-medium text-warning-700"><Clock className="size-3.5" aria-hidden />{label} · ageing</span>;
+  if (days > 5) return <span className="inline-flex items-center gap-1 font-medium text-attn-text"><Clock className="size-3.5" aria-hidden />{label} · ageing</span>;
   return <span className="tabular-nums">{label}</span>;
 }
 
-const selectCls = 'h-9 rounded-md border border-slate-300 bg-white px-2 text-sm';
+/** Why a case needs attention, as the same reason chips the officer desk uses. */
+function reasonsOf(r: QueueItem): Reason[] {
+  const out: Reason[] = [];
+  if (r.openDiscrepancies) out.push({ text: `${r.openDiscrepancies} open discrepanc${r.openDiscrepancies === 1 ? 'y' : 'ies'}`, urgent: true });
+  if (r.ageingDays !== null && r.ageingDays > 10) out.push({ text: `Waiting ${r.ageingDays} days`, urgent: true });
+  else if (r.ageingDays !== null && r.ageingDays > 5) out.push({ text: `Waiting ${r.ageingDays} days` });
+  if (r.openAlertCount) out.push({ text: `${r.openAlertCount} open alert${r.openAlertCount === 1 ? '' : 's'}`, urgent: (r.worstOpenAlertLevel ?? 0) >= 2 });
+  return out;
+}
+
+const selectCls = 'gov-input mt-1 block w-auto';
+const labelCls = 'text-sm font-semibold text-ink';
 
 export function ScrutinyQueue() {
   const { user } = useAuth();
@@ -41,36 +52,38 @@ export function ScrutinyQueue() {
     });
 
   const columns: Column<QueueItem>[] = [
-    { key: 'institution', header: 'Institution', sortValue: (r) => r.institution, cell: (r) => <div><p className="font-medium">{r.institution}</p><p className="text-xs text-slate-500">{r.region}</p></div> },
     {
-      key: 'ref', header: 'Reference', sortValue: (r) => r.referenceNo,
+      key: 'deposit', header: 'Deposit', sortValue: (r) => r.institution,
       cell: (r) => (
-        <div className="space-y-1">
-          <Link to={`/instruments/${r.id}`} title="Open passport" onClick={(e) => e.stopPropagation()} className="font-medium whitespace-nowrap text-primary-700 hover:underline">{r.referenceNo}</Link>
-          <div><StatusChip status={r.status} /></div>
+        <div className="min-w-[14rem]">
+          <p className="font-semibold">{r.institution}</p>
+          <p className="text-[0.8125rem] text-muted">
+            <Link to={`/instruments/${r.id}`} title="Open passport" onClick={(e) => e.stopPropagation()} className="mono text-teal hover:underline">{r.referenceNo}</Link>
+            {' · '}{r.issuingBank} · {r.region}
+          </p>
         </div>
       ),
     },
-    { key: 'bank', header: 'Bank', sortValue: (r) => r.issuingBank, cell: (r) => r.issuingBank },
     { key: 'amount', header: 'Amount', align: 'right', className: 'whitespace-nowrap', sortValue: (r) => Number(r.amount ?? 0), cell: (r) => <Money amount={r.amount} /> },
     {
-      key: 'submitted', header: 'Submitted · ageing', className: 'whitespace-nowrap', sortValue: (r) => r.ageingDays,
-      cell: (r) => <div><DateText value={r.submittedAt} /><div className="text-xs"><Ageing days={r.ageingDays} /></div></div>,
-    },
-    { key: 'verification', header: 'Verification', cell: (r) => <VerificationChip state={r.verificationState} /> },
-    { key: 'alerts', header: 'Alerts', sortValue: (r) => r.worstOpenAlertLevel, cell: (r) => <WorstAlertChip level={r.worstOpenAlertLevel} count={r.openAlertCount} /> },
-    {
-      key: 'disc', header: 'Discrepancies', align: 'right', className: 'whitespace-nowrap', sortValue: (r) => r.openDiscrepancies,
-      cell: (r) => r.openDiscrepancies ? <span className="inline-flex items-center gap-1 font-medium text-danger-700"><AlertTriangle className="size-3.5" aria-hidden />{r.openDiscrepancies} open</span> : <span className="text-slate-400">None</span>,
+      key: 'submitted', header: 'Submitted', className: 'whitespace-nowrap', sortValue: (r) => r.ageingDays,
+      cell: (r) => <div><DateText value={r.submittedAt} /><div className="text-[0.8125rem]"><Ageing days={r.ageingDays} /></div></div>,
     },
     {
-      key: 'officer', header: 'Assigned officer', className: 'whitespace-nowrap',
+      key: 'why', header: 'Needs attention', cell: (r) => {
+        const reasons = reasonsOf(r);
+        return reasons.length ? <div className="flex flex-wrap gap-1.5">{reasons.map((x) => <ReasonChip key={x.text} reason={x} />)}</div> : <span className="text-muted">Nothing flagged</span>;
+      },
+    },
+    { key: 'state', header: 'Status', cell: (r) => <div className="flex flex-col items-start gap-1"><StatusChip status={r.status} /><VerificationChip state={r.verificationState} /></div> },
+    {
+      key: 'officer', header: 'Officer', className: 'whitespace-nowrap',
       cell: (r) => r.assignedOfficerId
         ? <span>{r.assignedOfficerId === user?.id ? 'You' : r.assignedOfficerName}</span>
         : isOfficer && r.status === 'SUBMITTED'
           ? <Button size="sm" variant="secondary" icon={<Hand className="size-4" aria-hidden />} loading={claim.isPending && claim.variables === r.id}
               onClick={(e) => { e.stopPropagation(); onClaim(r); }}>Claim</Button>
-          : <span className="text-slate-400">Unassigned</span>,
+          : <span className="text-muted">Unassigned</span>,
     },
   ];
 
@@ -78,28 +91,28 @@ export function ScrutinyQueue() {
   const pages = Math.max(1, Math.ceil(total / 25));
 
   return (
-    <>
-      <PageHeader title="Scrutiny queue" subtitle="Submitted instruments waiting for scrutiny, oldest first. Claim a case to review it." />
+    <div className="mx-auto max-w-[1400px]">
+      <PageHeader title="Scrutiny queue" subtitle="Submitted deposits waiting for scrutiny, oldest first. Claim a case to review it." />
       <div className="mb-4 flex flex-wrap items-end gap-3">
-        <label className="text-xs font-medium text-slate-600">Region<br />
+        <label className={labelCls}>Region
           <select className={selectCls} value={filters.region} onChange={set('region')}>
             <option value="">All regions</option>
             {meta.data?.regions.map((r) => <option key={r}>{r}</option>)}
           </select>
         </label>
-        <label className="text-xs font-medium text-slate-600">Bank<br />
+        <label className={labelCls}>Bank
           <select className={selectCls} value={filters.bank} onChange={set('bank')}>
             <option value="">All banks</option>
             {meta.data?.banks.map((b) => <option key={b}>{b}</option>)}
           </select>
         </label>
-        <label className="text-xs font-medium text-slate-600">Verification<br />
+        <label className={labelCls}>Verification
           <select className={selectCls} value={filters.verificationState} onChange={set('verificationState')}>
             <option value="">Any</option>
             {VERIFICATION_STATES.map((s) => <option key={s} value={s}>{VERIFICATION_STATE_LABELS[s]}</option>)}
           </select>
         </label>
-        <label className="text-xs font-medium text-slate-600">Assigned<br />
+        <label className={labelCls}>Assigned
           <select className={selectCls} value={filters.assigned} onChange={set('assigned')}>
             <option value="all">Everyone</option>
             <option value="me">Assigned to me</option>
@@ -113,17 +126,13 @@ export function ScrutinyQueue() {
         rows={q.data?.items}
         rowKey={(r) => r.id}
         loading={q.isLoading}
+        error={q.error}
+        onRetry={() => void q.refetch()}
         onRowClick={(r) => navigate(`/officer/review/${r.id}`)}
         emptyTitle="The queue is empty"
         emptyDescription="No submitted instruments match these filters."
       />
-      {total > 25 && (
-        <div className="mt-3 flex items-center justify-end gap-2 text-sm">
-          <Button size="sm" variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-          <span>Page {page} of {pages}</span>
-          <Button size="sm" variant="secondary" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>Next</Button>
-        </div>
-      )}
-    </>
+      <Pager page={page} pages={pages} onPage={setPage} total={q.data?.total} noun="cases" />
+    </div>
   );
 }

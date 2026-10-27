@@ -170,7 +170,7 @@ export function Tracker({ steps, note }: { steps: TrackerStep[]; note?: ReactNod
                   s.state === 'next' && 'border-2 border-dashed border-[#AEB8C2] bg-white text-sm text-[#7B8794]')}>
                   {s.state === 'done' ? <Check className="size-4" strokeWidth={3} aria-hidden /> : i + 1}
                 </span>
-                {!last && <span aria-hidden className={cn('mx-2 h-[3px] flex-1 rounded-sm', s.state === 'done' ? 'bg-teal' : 'bg-[repeating-linear-gradient(to_right,#AEB8C2_0_6px,transparent_6px_12px)]')} />}
+                {!last && <span aria-hidden className={cn('mx-2 h-[3px] flex-1 rounded-[6px]', s.state === 'done' ? 'bg-teal' : 'bg-[repeating-linear-gradient(to_right,#AEB8C2_0_6px,transparent_6px_12px)]')} />}
               </div>
               <div className="mt-3 text-[0.96875rem] font-bold">
                 <span className="sr-only">{s.state === 'done' ? 'Done: ' : s.state === 'current' ? 'Now: ' : 'Next: '}</span>{s.title}
@@ -203,14 +203,27 @@ export function KeyLegend({ keys }: { keys: { k: string[]; label: string }[] }) 
 // ---- Drawer ----
 
 /** Right-hand drawer for secondary detail (the one floating surface besides menus that may carry a shadow). */
-export function Drawer({ open, title, onClose, children }: { open: boolean; title: string; onClose: () => void; children: ReactNode }) {
+export function Drawer({ open, title, onClose, children, width = 'md', description }: {
+  open: boolean; title: string; onClose: () => void; children: ReactNode;
+  /** md = 448 px (filters, short details), lg = 720 px (before/after, long bodies). */
+  width?: 'md' | 'lg'; description?: ReactNode;
+}) {
   const titleId = useId();
   const panel = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
     panel.current?.focus();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab' || !panel.current) return;
+      // Keep Tab inside the drawer while it is open.
+      const items = panel.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+      if (items.length === 0) { e.preventDefault(); return; }
+      const first = items[0]; const last = items[items.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === panel.current)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('keydown', onKey); previous?.focus(); };
   }, [open, onClose]);
@@ -218,9 +231,12 @@ export function Drawer({ open, title, onClose, children }: { open: boolean; titl
   return createPortal(
     <div className="fixed inset-0 z-50 bg-ink/30" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div ref={panel} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}
-        className="fade-in absolute inset-y-0 right-0 flex w-full max-w-md flex-col border-l border-border bg-white shadow-xl outline-none">
-        <header className="flex items-center justify-between px-6 pt-5 pb-3">
-          <h2 id={titleId} className="text-lg font-bold">{title}</h2>
+        className={cn('fade-in absolute inset-y-0 right-0 flex w-full flex-col border-l border-border bg-white shadow-xl outline-none', width === 'lg' ? 'max-w-3xl' : 'max-w-md')}>
+        <header className="flex items-start justify-between gap-3 px-6 pt-5 pb-3">
+          <div className="min-w-0">
+            <h2 id={titleId} className="text-lg font-bold break-words">{title}</h2>
+            {description && <div className="mt-1 text-sm text-muted">{description}</div>}
+          </div>
           <button type="button" onClick={onClose} aria-label="Close" className="rounded-[8px] p-1.5 text-muted hover:bg-chip hover:text-ink"><X className="size-4" aria-hidden /></button>
         </header>
         <div className="flex-1 overflow-y-auto px-6 pb-6 text-[0.9375rem]">{children}</div>

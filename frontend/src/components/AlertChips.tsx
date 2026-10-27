@@ -31,7 +31,7 @@ export function AlertLevelChip({ level, role }: { level: number; role?: Role }) 
 
 /** Table cell: worst open alert level on an instrument, with the count. */
 export function WorstAlertChip({ level, count }: { level: number | null; count: number }) {
-  if (!level || !count) return <span className="text-slate-400">—</span>;
+  if (!level || !count) return <span className="text-muted">—</span>;
   const tone: Tone = level >= 3 ? 'danger' : level === 2 ? 'warning' : 'neutral';
   const Icon = level >= 2 ? AlertOctagon : Siren;
   return (
