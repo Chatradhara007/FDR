@@ -4,7 +4,7 @@ import { Badge } from '@/components';
 import { fieldValue } from '@/lib/display';
 
 const RESULT: Record<TextCheck['result'], { icon: typeof CheckCircle2; text: string; cls: string }> = {
-  MATCH: { icon: CheckCircle2, text: 'Matches', cls: 'text-success-700' },
+  MATCH: { icon: CheckCircle2, text: 'Matches', cls: 'text-teal-hover' },
   DIFFERENT: { icon: XCircle, text: 'Differs', cls: 'text-danger-700' },
   NOT_FOUND: { icon: HelpCircle, text: 'Not found in the text', cls: 'text-muted' },
 };
@@ -52,7 +52,7 @@ function Finding({ f }: { f: DocumentFinding }) {
         )
       )}
       {f.metadataSignal && (
-        <p className="mt-2 flex items-start gap-2 rounded-[8px] bg-warning-50 px-3 py-2 text-sm text-warning-700">
+        <p className="mt-2 flex items-start gap-2 rounded-[8px] bg-attn-tint px-3 py-2 text-sm text-attn-text">
           <Flag className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span><strong>Needs closer look, not proof:</strong> {metadataText(f.metadataSignal)}.</span>
         </p>

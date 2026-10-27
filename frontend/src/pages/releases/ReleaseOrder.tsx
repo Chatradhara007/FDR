@@ -57,7 +57,7 @@ export function ReleaseOrder() {
             <p>Dated {istDay(view.request.closedAt ?? r.requestedAt)}</p>
           </div>
           {view.qrSvg && view.verifyUrl && (
-            <figure className="flex w-32 shrink-0 flex-col items-center text-center text-[11px] leading-tight">
+            <figure className="flex w-32 shrink-0 flex-col items-center text-center text-xs leading-tight print:text-[11px]">
               <QrCode svg={view.qrSvg} label={`QR code that verifies order ${view.orderNumber}`} className="size-28" />
               <figcaption className="mt-1">Scan to verify this order<br /><span className="break-all font-mono">{view.verifyUrl}</span></figcaption>
             </figure>

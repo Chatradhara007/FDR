@@ -1223,3 +1223,87 @@ identical-output checks (fingerprints, instrument/event/alert counts) are unchan
 PowerShell, cmd and bash, `scripts/py.mjs` gained `--env KEY=VALUE` (repeatable; a value already set in the caller's
 environment wins). Checked: `SEED_BUDGET_SECONDS=1` makes the test fail, the default passes alone, the full suite is green
 (303 + 9 + 7). Deviation from "no test changes" for the UI session, made at the user's request.
+
+**Mission Desk, part 3: remaining pages and consistency pass** (frontend only; branch `claude/bold-bell-l41rlm`). No backend, API,
+constants, migration or test changes; every e2e selector and string kept; print layouts unchanged.
+
+- **Shared components** (extended, not duplicated):
+  - `Drawer` gained `width` (`md` 448 px / `lg` 720 px), an optional `description`, and a focus trap. Tab stays inside, Esc closes
+    and returns focus.
+  - `Table` gained `error`/`onRetry` (shared error state) and `rowTestId`. New `Pager` handles server-side paging
+    ("Page n of m", Previous / Next).
+  - `EmptyState.tsx` now also holds `LoadingState` and `ErrorState` ("Try again"), so empty, loading and error look the same on
+    every page.
+  - `TrustBadge` now uses the proof-strip square (solid / half-filled / dashed) plus its text, so tier labels and proof strips match
+    everywhere.
+- **Audit log**: integrity card first ("Log integrity verified" with "Check again"; when broken, "Integrity check failed at
+  event #n" with "Show event #n"). The events table opens before/after in a large drawer. Filters, "Show sign-ins" and Export CSV
+  are unchanged; the Document access tab is kept.
+- **Reports**: filters in one card, report title, one hairline table, "Download CSV" as the primary action.
+- **Improvement**: one table (measure, manual baseline, portal, better when, source). Every row keeps its "Simulated on demo
+  data" label, and the note above the table is kept.
+- **Rules**: the list of rules on the left, the chosen rule's editor on the right (it stacks on narrow screens). Save is the one
+  primary action.
+- **Users**: searchable table; "Create user" opens a drawer form. Edit and reset password stay small dialogs.
+- **Outbox**: the message body opens in a drawer; shared Pager.
+- **Demo tools**: "Reset demo data" is the only primary button. The A5 bank-correction button is now dark. Inputs use the shared
+  control style.
+- **Scrutiny queue**: still a table, because the e2e script finds the row by role "row" and clicks Claim.
+  - Each row: institution with mono reference, bank and region; amount; submitted and ageing; reason chips like the desk
+    (discrepancies, waiting days, alerts); status and verification; officer or Claim.
+  - Shared Pager.
+- **Releases list**: mono reference, token colours, shared empty and error states.
+- **Request-release modal**: one column with labels above the fields and a dashed file input.
+- **Institutions**: search box and region filter, hairline table.
+- **Institution profile**: "← Back to Institutions", 3 headline numbers (held, expiring, open problems), then tabs:
+  - Deposits: shows the weakest tier per deposit; no per-row record loads.
+  - Open alerts, Release requests, Profile.
+- **Dashboard**: 3 headline numbers (live, bank-confirmed, open escalations), then tabs: Status (default; status, buckets, alerts),
+  Work in progress (pending scrutiny, discrepancies, advisory flags), Maturity, Verification, Regions, Banks. "As of" and the admin
+  clock controls are kept.
+- **Officer review tabs** (documents, observations, verification history): bordered lists in the card style, with shared empty
+  states.
+- **Static pages**: 760 px reading column with "← Back to the portal".
+- **Verify**: kicker, a plain-question title, and one card with a large icon and text verdict ("Valid" / "Not found",
+  `data-testid="verify-verdict"`) and the mono order number and hash.
+- **Consistency pass across `pages/` and `components/`** (print files excluded):
+  - v2 slate / primary / warning / info classes mapped to the Mission Desk tokens, so muted text is never the failing
+    `slate-400`.
+  - Radii set to 6 / 10 / 14 px.
+  - `shadow-sm` removed. Shadows are left only on floating menus, dialogs, the drawer and toasts.
+  - Count badges are no longer pills.
+  - The alert-bell count is 13 px instead of 11 px.
+  - The release order's QR caption is 13 px on screen and still 11 px in print.
+
+Contrast (computed): every text pair passes AA (4.5:1 or better):
+
+| Pair | Ratio |
+|---|---|
+| muted on canvas / surface / chip | 5.95 / 6.46 / 5.52 |
+| teal on surface / tint | 5.47 / 4.84 |
+| attention text on tint | 7.01 |
+| attention on tint | 4.65 |
+| danger on tint | 5.75 |
+| white on teal | 5.47 |
+
+The tier shapes pass the 3:1 UI threshold (dashed claimed border 3.01, document border 3.37).
+
+Deviations / choices:
+- The scrutiny queue keeps a table rather than the desk's `QueueRow` list, because `e2e/demo.mjs` selects the case by `row` role.
+- Edit-user and reset-password stay small modal dialogs (two fields each). Create-user moved to a drawer.
+- Dialogs (`Modal`) keep their floating shadow, like menus and drawers.
+
+Checks (cloud sandbox, `npm run dev` + `npm run seed`):
+- `npm run typecheck` green.
+- `npm run test`: 303 + 9 + 7 passed.
+- `node e2e/demo.mjs`: 9/9, no console errors.
+- `node e2e/ui-shots.mjs`: all checks passed.
+- A scratch Playwright sweep over 33 routes (every role, public pages and verify) at 1920/1366/1280/768/390 px found:
+  - no horizontal overflow and no visible text under 12 px;
+  - exactly one `h1` per page;
+  - a visible focus ring on the first 12 Tab stops of every page at 1366;
+  - no console errors or warnings.
+- Audit drawer: focus is trapped while it is open, and Esc returns focus to the row's Details button.
+- Screenshots in `e2e/screenshots/mission-desk-3/` (gitignored).
+
+**Pages still to migrate**: none.

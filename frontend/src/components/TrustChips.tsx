@@ -1,6 +1,7 @@
-import { AlertTriangle, BadgeCheck, Circle, CircleHelp, FileCheck2, Hourglass, ShieldCheck, WifiOff, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, CircleHelp, Hourglass, WifiOff, type LucideIcon } from 'lucide-react';
 import { TRUST_TIER_LABELS, VERIFICATION_STATE_LABELS, type TrustTier, type VerificationState } from '@fdr/shared';
 import { Badge, type Tone } from './Badge';
+import { TierSquare } from './desk';
 
 const VERIFICATION: Record<VerificationState, { tone: Tone; icon: LucideIcon }> = {
   UNVERIFIED: { tone: 'neutral', icon: CircleHelp },
@@ -21,18 +22,18 @@ export function VerificationChip({ state }: { state: VerificationState }) {
   );
 }
 
-const TIER: Record<TrustTier, { tone: Tone; icon: LucideIcon; label: string }> = {
-  CLAIMED: { tone: 'neutral', icon: Circle, label: 'Claimed by institution' },
-  DOCUMENT: { tone: 'info', icon: FileCheck2, label: TRUST_TIER_LABELS.DOCUMENT },
-  BANK_CONFIRMED: { tone: 'success', icon: ShieldCheck, label: TRUST_TIER_LABELS.BANK_CONFIRMED },
+// The tier label everywhere: the same square shape as the proof strip, then the words (never colour alone).
+const TIER: Record<TrustTier, { tone: Tone; label: string }> = {
+  CLAIMED: { tone: 'neutral', label: 'Claimed by institution' },
+  DOCUMENT: { tone: 'info', label: TRUST_TIER_LABELS.DOCUMENT },
+  BANK_CONFIRMED: { tone: 'success', label: TRUST_TIER_LABELS.BANK_CONFIRMED },
 };
 
-/** Trust tier of one field: Claimed (outline circle), Document-checked (file check), Bank-confirmed (shield check). */
+/** Trust tier of one field: the proof-strip square (solid, half-filled, dashed) plus its label. */
 export function TrustBadge({ tier, short }: { tier: TrustTier; short?: boolean }) {
   const t = TIER[tier];
-  const Icon = t.icon;
   return (
-    <Badge tone={t.tone} icon={<Icon className="size-3.5" aria-hidden />}>
+    <Badge tone={t.tone} icon={<TierSquare tier={tier} size={12} />}>
       {short ? TRUST_TIER_LABELS[tier] : t.label}
     </Badge>
   );
@@ -45,7 +46,7 @@ export const TrustChip = TrustBadge;
 export function WeakestTierBadge({ tier }: { tier: TrustTier | null }) {
   if (!tier) return null;
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-slate-600">
+    <span className="inline-flex items-center gap-1 text-xs text-muted">
       <span>Weakest field:</span>
       <TrustBadge tier={tier} short />
     </span>

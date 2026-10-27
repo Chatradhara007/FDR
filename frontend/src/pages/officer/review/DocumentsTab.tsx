@@ -4,7 +4,7 @@ import { DOC_TYPE_LABELS, FIELD_LABELS, TRACKED_FIELDS, type DocumentInfo, type 
 import { apiOpenInTab } from '@/api/client';
 import { documentPath } from '@/api/instruments';
 import { useCheckDocument } from '@/api/scrutiny';
-import { Button, DateText, useToast } from '@/components';
+import { Button, DateText, EmptyState, useToast } from '@/components';
 import { formatSize } from '@/components/DocumentList';
 
 function DocumentRow({ doc, review, canCheck }: { doc: DocumentInfo; review: ReviewPayload; canCheck: boolean }) {
@@ -28,12 +28,12 @@ function DocumentRow({ doc, review, canCheck }: { doc: DocumentInfo; review: Rev
   };
 
   return (
-    <li className="space-y-2 px-3 py-3 text-sm">
+    <li className="space-y-2 border-b border-hairline px-5 py-4 text-sm last:border-b-0">
       <div className="flex flex-wrap items-center gap-3">
-        <FileText className="size-4 shrink-0 text-slate-500" aria-hidden />
+        <FileText className="size-4 shrink-0 text-muted" aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-slate-800">{DOC_TYPE_LABELS[doc.docType]}</p>
-          <p className="truncate text-xs text-slate-500">{doc.filename} · {formatSize(doc.sizeBytes)} · <DateText value={doc.uploadedAt} /></p>
+          <p className="font-medium text-ink">{DOC_TYPE_LABELS[doc.docType]}</p>
+          <p className="truncate text-xs text-muted">{doc.filename} · {formatSize(doc.sizeBytes)} · <DateText value={doc.uploadedAt} /></p>
         </div>
         <Button size="sm" variant="ghost" icon={<Eye className="size-4" aria-hidden />}
           onClick={() => apiOpenInTab(documentPath(doc.instrumentId, doc.id, 'preview')).catch((e: Error) => toast.error(e.message))}>
@@ -41,14 +41,14 @@ function DocumentRow({ doc, review, canCheck }: { doc: DocumentInfo; review: Rev
         </Button>
       </div>
       {checkedHere.length > 0 && (
-        <p className="flex items-center gap-1 text-xs text-info-700">
+        <p className="flex items-center gap-1 text-[0.8125rem] text-ink-2">
           <FileCheck2 className="size-3.5" aria-hidden /> Checked against this document: {checkedHere.map((f) => FIELD_LABELS[f.fieldName]).join(', ')}
         </p>
       )}
       {canCheck && claimed.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <label className="sr-only" htmlFor={`check-${doc.id}`}>Field checked against this document</label>
-          <select id={`check-${doc.id}`} value={field} onChange={(e) => setField(e.target.value as TrackedField)} className="h-8 rounded-md border border-slate-300 bg-white px-2 text-sm">
+          <select id={`check-${doc.id}`} value={field} onChange={(e) => setField(e.target.value as TrackedField)} className="gov-input h-9 w-auto">
             <option value="">Choose a claimed field…</option>
             {TRACKED_FIELDS.filter((f) => claimed.includes(f)).map((f) => <option key={f} value={f}>{FIELD_LABELS[f]}</option>)}
           </select>
@@ -63,11 +63,11 @@ function DocumentRow({ doc, review, canCheck }: { doc: DocumentInfo; review: Rev
 
 export function DocumentsTab({ review, canCheck }: { review: ReviewPayload; canCheck: boolean }) {
   const docs = review.instrument.documents;
-  if (!docs.length) return <p className="text-sm text-slate-500">No documents attached.</p>;
+  if (!docs.length) return <EmptyState icon={FileText} title="No documents attached" description="The institution has not uploaded any document yet." />;
   return (
     <>
-      {canCheck && <p className="mb-2 text-xs text-slate-500">Open a document, compare it with a claimed value, then record the check. Bank-confirmed fields are never lowered.</p>}
-      <ul className="divide-y divide-slate-100 rounded-md border border-slate-200">
+      {canCheck && <p className="mb-2 text-xs text-muted">Open a document, compare it with a claimed value, then record the check. Bank-confirmed fields are never lowered.</p>}
+      <ul className="overflow-hidden rounded-[14px] border border-border bg-surface">
         {docs.map((d) => <DocumentRow key={d.id} doc={d} review={review} canCheck={canCheck} />)}
       </ul>
     </>

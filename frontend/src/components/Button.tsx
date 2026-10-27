@@ -8,11 +8,11 @@ type Size = 'sm' | 'md' | 'lg';
 /** Primary teal for the one main action per screen; outlined secondary; dark for secondary-important. */
 const variants: Record<Variant, string> = {
   primary: 'bg-teal text-white border border-teal hover:bg-teal-hover hover:border-teal-hover disabled:bg-slate-400 disabled:border-slate-400',
-  secondary: 'bg-white text-ink border border-border hover:bg-subtle hover:border-slate-400 disabled:text-slate-500',
+  secondary: 'bg-white text-ink border border-border hover:bg-subtle hover:border-slate-400 disabled:text-muted',
   dark: 'bg-ink text-white border border-ink hover:bg-ink-2 disabled:bg-slate-400 disabled:border-slate-400',
   danger: 'bg-danger text-white border border-danger hover:bg-danger-700 disabled:bg-slate-400 disabled:border-slate-400',
-  ghost: 'text-ink border border-transparent hover:bg-chip disabled:text-slate-500',
-  link: 'text-teal border border-transparent underline-offset-2 hover:underline hover:text-teal-hover disabled:text-slate-500 px-0!',
+  ghost: 'text-ink border border-transparent hover:bg-chip disabled:text-muted',
+  link: 'text-teal border border-transparent underline-offset-2 hover:underline hover:text-teal-hover disabled:text-muted px-0!',
 };
 const sizes: Record<Size, string> = {
   sm: 'h-9 px-3 text-sm rounded-[8px]',

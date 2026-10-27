@@ -90,7 +90,7 @@ export function ConditionsList({ view, editable = false, internal = true }: { vi
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-[0.9375rem] text-ink">
-                <span className={cn('mr-1 font-semibold', c.met ? 'text-success-700' : 'text-danger-700')}>{c.met ? 'Met' : 'Not met'}:</span>
+                <span className={cn('mr-1 font-semibold', c.met ? 'text-teal-hover' : 'text-danger-700')}>{c.met ? 'Met' : 'Not met'}:</span>
                 {c.description}
                 {!c.mandatory && <span className="ml-1 text-xs text-muted">(optional)</span>}
               </p>

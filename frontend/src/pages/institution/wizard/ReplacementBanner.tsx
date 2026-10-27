@@ -7,7 +7,7 @@ import { useInstrument } from '@/api/instruments';
 export function ReplacementBanner({ parentId }: { parentId: string }) {
   const parent = useInstrument(parentId).data;
   return (
-    <div className="mb-4 flex items-start gap-2 rounded-md border border-info-600/30 bg-info-50 px-4 py-3 text-sm text-info-700">
+    <div className="mb-4 flex items-start gap-2 rounded-[10px] border border-border bg-subtle px-4 py-3 text-sm text-ink">
       <RefreshCcw className="mt-0.5 size-4 shrink-0" aria-hidden />
       <div>
         <p className="font-medium">

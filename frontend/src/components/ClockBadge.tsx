@@ -113,7 +113,7 @@ export function ClockControls() {
           </>
         }
       >
-        <label htmlFor="clock-date" className="mb-1 block font-medium text-slate-700">Simulated date</label>
+        <label htmlFor="clock-date" className="mb-1 block font-medium text-ink">Simulated date</label>
         <input
           id="clock-date"
           type="date"
@@ -121,10 +121,10 @@ export function ClockControls() {
           onChange={(e) => setDate(e.target.value)}
           aria-invalid={!!dateError}
           aria-describedby="clock-date-error"
-          className="h-9 w-full rounded-md border border-slate-300 px-3"
+          className="h-9 w-full rounded-[10px] border border-border px-3"
         />
         <FieldError id="clock-date-error" message={dateError} />
-        <p className="mt-2 text-xs text-slate-500">Every user sees this date. The daily evaluation runs immediately: statuses, reminders and escalations follow it.</p>
+        <p className="mt-2 text-xs text-muted">Every user sees this date. The daily evaluation runs immediately: statuses, reminders and escalations follow it.</p>
       </Modal>
       <Modal
         open={!!confirm}
@@ -147,7 +147,7 @@ export function ClockControls() {
           </>
         }
       >
-        <p className="text-slate-700">{confirm?.message}</p>
+        <p className="text-ink">{confirm?.message}</p>
       </Modal>
     </div>
   );

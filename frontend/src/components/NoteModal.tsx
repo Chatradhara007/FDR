@@ -41,8 +41,8 @@ export function NoteModal({ open, title, label, submitLabel, intro, initial = ''
         </>
       }
     >
-      {intro && <div className="mb-3 text-slate-700">{intro}</div>}
-      <label htmlFor="note-modal-text" className="mb-1 block text-xs font-medium text-slate-600">{label}</label>
+      {intro && <div className="mb-3 text-ink">{intro}</div>}
+      <label htmlFor="note-modal-text" className="mb-1 block text-xs font-medium text-muted">{label}</label>
       <textarea
         id="note-modal-text"
         value={text}
@@ -50,7 +50,7 @@ export function NoteModal({ open, title, label, submitLabel, intro, initial = ''
         rows={4}
         aria-invalid={!!message}
         aria-describedby={message ? 'note-modal-error' : undefined}
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+        className="w-full rounded-[10px] border border-border px-3 py-2 text-sm"
       />
       <FieldError id="note-modal-error" message={message} />
     </Modal>

@@ -20,15 +20,15 @@ export function DocumentList({ documents, onRemove, removingId }: {
 }) {
   const toast = useToast();
   const fail = (err: unknown) => toast.error(err instanceof Error ? err.message : 'Could not open the file');
-  if (!documents.length) return <p className="text-sm text-slate-500">No documents uploaded yet.</p>;
+  if (!documents.length) return <p className="text-sm text-muted">No documents uploaded yet.</p>;
   return (
-    <ul className="divide-y divide-slate-100 rounded-md border border-slate-200">
+    <ul className="divide-y divide-hairline rounded-[10px] border border-hairline">
       {documents.map((d) => (
         <li key={d.id} className="flex flex-wrap items-center gap-3 px-3 py-2 text-sm">
-          <FileText className="size-4 shrink-0 text-slate-500" aria-hidden />
+          <FileText className="size-4 shrink-0 text-muted" aria-hidden />
           <div className="min-w-0 flex-1">
-            <p className="font-medium text-slate-800">{DOC_TYPE_LABELS[d.docType] ?? d.docType}</p>
-            <p className="truncate text-xs text-slate-500">
+            <p className="font-medium text-ink">{DOC_TYPE_LABELS[d.docType] ?? d.docType}</p>
+            <p className="truncate text-xs text-muted">
               {d.filename} · {formatSize(d.sizeBytes)} · SHA-256 <code title={d.sha256}>{d.sha256.slice(0, 12)}…</code> · <DateText value={d.uploadedAt} />
             </p>
           </div>

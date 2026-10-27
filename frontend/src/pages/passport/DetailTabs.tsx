@@ -44,7 +44,7 @@ export function VerificationTab({ p }: { p: Passport }) {
               {TRACKED_FIELDS.filter((f) => v.fieldMatches[f] !== undefined).map((f) => (
                 <li key={f} className="flex items-center gap-1">
                   {v.fieldMatches[f]
-                    ? <><CircleCheck className="size-3.5 text-success-700" aria-hidden /> {FIELD_LABELS[f]}: matches</>
+                    ? <><CircleCheck className="size-3.5 text-teal-hover" aria-hidden /> {FIELD_LABELS[f]}: matches</>
                     : <><CircleX className="size-3.5 text-danger-700" aria-hidden /> <span className="font-medium text-danger-700">{FIELD_LABELS[f]}: does not match</span></>}
                 </li>
               ))}
