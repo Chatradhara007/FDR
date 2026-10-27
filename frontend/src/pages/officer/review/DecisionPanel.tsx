@@ -61,7 +61,7 @@ export function DecisionPanel({ review, canAct, onReturn, onAddObservation }: {
 
   const state = inst.verificationState;
   return (
-    <Panel title={inScrutiny || inst.status === 'SUBMITTED' ? 'Can this be accepted?' : 'Bank check'} className="lg:sticky lg:top-4">
+    <Panel title={inScrutiny || inst.status === 'SUBMITTED' ? 'Can this be accepted?' : 'Bank check'}>
       <section aria-label="Actions" className="space-y-4">
         {state === 'PENDING' && (
           <Notice role="status">{retryIn > 0 ? `Bank is processing — retry in ${retryIn}s` : 'Bank is processing — you can ask again now'}</Notice>
@@ -70,7 +70,7 @@ export function DecisionPanel({ review, canAct, onReturn, onAddObservation }: {
           <Notice role="status" kind="warning">Bank verification unavailable — confirm against documents and use override</Notice>
         )}
         {(inScrutiny || inst.status === 'SUBMITTED') && (
-          <div id="accept-blockers" className="-mt-1">
+          <div id="accept-blockers">
             {review.canAccept ? (
               <ConditionLine met>Nothing stands in the way. Accepting is your decision.</ConditionLine>
             ) : (
@@ -103,6 +103,14 @@ export function DecisionPanel({ review, canAct, onReturn, onAddObservation }: {
               <Button variant="secondary" icon={<ShieldAlert className="size-4" aria-hidden />} onClick={() => { accept.reset(); setOverrideOpen(true); }}>
                 Accept with override
               </Button>
+            )}
+            {inst.status === 'SUBMITTED' && (
+              <>
+                <Button variant="dark" icon={<Landmark className="size-4" aria-hidden />} disabled aria-describedby="verify-hint">
+                  Verify with bank
+                </Button>
+                <p id="verify-hint" className="text-[0.8125rem] text-muted">Claim this case first</p>
+              </>
             )}
             {verifiable && (
               <Button variant="dark" icon={<Landmark className="size-4" aria-hidden />} loading={verify.isPending} disabled={retryIn > 0} onClick={onVerify}>

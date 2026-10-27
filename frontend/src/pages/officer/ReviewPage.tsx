@@ -72,8 +72,11 @@ export function ReviewPage() {
       )}
       {inst.acceptedWithOverride && <Notice kind="warning" className="mb-4">Accepted without bank confirmation: {inst.overrideNote}</Notice>}
 
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="min-w-0 space-y-5">
+      {/* Under 1100px the side column stacks below the main content. From 1100px it is ONE sticky container, capped
+          to the screen height (the shell header scrolls away, so: 100vh - 16px top - 24px) with its own scroll, so
+          the cards inside stack with a normal gap and every action stays reachable on a short screen. */}
+      <div className="grid items-start gap-5 min-[1100px]:grid-cols-[minmax(0,1fr)_380px]">
+        <div data-testid="review-main" className="min-w-0 space-y-5">
           <Comparison review={review} onReturn={isOfficer && canReturn ? openReturn : undefined} />
           <DiscrepancyCards discrepancies={review.discrepancies} canAct={isOfficer} />
           <Card>
@@ -88,7 +91,8 @@ export function ReviewPage() {
             />
           </Card>
         </div>
-        <aside className="min-w-0 space-y-5">
+        <aside data-testid="review-side" aria-label="Decision"
+          className="min-w-0 space-y-5 min-[1100px]:sticky min-[1100px]:top-4 min-[1100px]:max-h-[calc(100vh-40px)] min-[1100px]:overflow-y-auto min-[1100px]:overscroll-contain min-[1100px]:rounded-[14px]">
           <DecisionPanel review={review} canAct={isOfficer} onReturn={() => openReturn()} onAddObservation={() => setTab('observations')} />
           <AdvisoryPanel review={review} />
         </aside>

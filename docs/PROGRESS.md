@@ -1335,3 +1335,27 @@ row counts of every table — was compared byte for byte before and after; `test
 
 Result: ~17,300 statements (−39 %), ~1,000 fewer transactions. Locally 18.4 s → 11.7–12.8 s; with an injected 1 ms per round
 trip (approximating WSL) 71.8 s → 41.7 s. Remaining cost is mostly the evaluation candidate queries and service reads.
+
+## Officer case page: right-column layout fix
+
+Bug: on `/officer/review/:id` the "Can this be accepted?" card was `lg:sticky` on its own inside a normal-flow `<aside>`, so the
+advisory card below it scrolled underneath it and was covered; the card (1,037 px with A1's blockers) was also taller than a
+1366×768 or 1280×720 screen, so its header and buttons could not both be seen.
+
+- `ReviewPage.tsx`: the `<aside>` (`data-testid="review-side"`, new; main column `data-testid="review-main"`, new) is now the ONE sticky
+  container from 1100 px: `top: 16px`, `max-height: calc(100vh - 40px)` (the shell header is not sticky and scrolls away, so
+  "header height" is 0 here: 16 px top offset + 24 px), `overflow-y: auto`, `overscroll-behavior: contain`. Cards inside keep the
+  normal `space-y-5` gap. No negative margins, no z-index. Under 1100 px (was 1024 px, Tailwind `lg`) the grid is one column and the
+  aside stacks below the main content, not sticky.
+- `DecisionPanel.tsx`: no longer sticky itself; the `-mt-1` on the blocker list is gone.
+- **Ask the bank on this page** is the "Verify with bank" button in the decision card (the B key belongs to the officer's
+  My day desk, `OfficerHome.tsx`, and is unchanged — J/K/R/B/O untouched). It was hidden while the case is SUBMITTED (unclaimed),
+  because the server only verifies a case under scrutiny. It is now shown **disabled** for an unclaimed case, with the hint
+  "Claim this case first" (`aria-describedby`). All existing data-testids and button names are unchanged.
+- New `e2e/review-layout.mjs` (`node e2e/review-layout.mjs [before|after]`): 1860×930, 1366×768, 1280×720 and 1024×768, each
+  scrolled to top, middle and bottom. It checks that the cards never overlap, that the column fits the viewport and scrolls
+  internally, that it stacks under 1100 px, that Return/Add observation can be reached, and that the unclaimed bank button and
+  hint are there. If A1 (`SBIN/FDR/2026/00731`) does not exist yet it runs demo steps 1–2 through the API first (submitted
+  at ₹25 L, claimed, verified → mismatch). Before the fix: 31 checks failed; after: all pass. Screenshots in
+  `e2e/screenshots/review-layout/{before,after}/` (gitignored). `npm run typecheck`, `node e2e/ui-shots.mjs` and `npm run e2e`
+  (9/9) pass.
