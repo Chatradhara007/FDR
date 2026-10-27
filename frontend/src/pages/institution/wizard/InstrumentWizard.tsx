@@ -173,6 +173,7 @@ export function InstrumentWizard() {
   return (
     <>
       <PageHeader
+        back={{ to: id ? `/instruments/${id}` : '/institution', label: id ? 'the deposit' : 'Home' }}
         title={id ? `Edit ${detail?.referenceNo ?? 'draft'}` : 'New instrument'}
         subtitle="Save a draft at any time; submit when the details and documents are complete."
         actions={detail && <StatusChip status={detail.status} />}

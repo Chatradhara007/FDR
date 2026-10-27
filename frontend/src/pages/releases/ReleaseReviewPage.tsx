@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, CheckCircle2, ClipboardCheck, FileText, Landmark, Printer, ThumbsUp, Undo2, XCircle } from 'lucide-react';
+import { CheckCircle2, ClipboardCheck, FileText, Landmark, Printer, ThumbsUp, Undo2, XCircle } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { INSTRUMENT_TYPE_LABELS, VERIFIABLE_STATUSES, type ReleaseView, type VerifyResponse } from '@fdr/shared';
@@ -11,13 +11,14 @@ import {
   Button, Card, DateText, DocumentList, EmptyState, FieldError, Modal, Money, ReleaseStatusChip, StatusChip, VerificationChip, useToast,
 } from '@/components';
 import { NoteModal } from '@/components/NoteModal';
-import { ROLE_HOME } from '@/lib/roles';
+import { ROLE_HOME, ROLE_HOME_LABEL } from '@/lib/roles';
+import { BackLink } from '@/components/PageHeader';
 import { ApprovalChain, BlockedBanner, ConditionsList, DecisionBanner, RequestFacts } from './parts';
 
 type Pending = null | 'recommend' | 'approve' | 'return' | 'reject';
 
 /** Approve: mandatory remarks plus the refund reference at the final level. */
-function ApproveModal({ open, final, onClose, onSubmit, pending, error }: {
+export function ApproveModal({ open, final, onClose, onSubmit, pending, error }: {
   open: boolean; final: boolean; onClose: () => void; onSubmit: (remarks: string, refund: string) => void; pending: boolean; error: unknown;
 }) {
   const [remarks, setRemarks] = useState('');
@@ -176,9 +177,7 @@ export function ReleaseReviewPage() {
 
   return (
     <>
-      <Link to={back} className="mb-3 inline-flex items-center gap-1 text-sm text-primary-700 hover:underline">
-        <ArrowLeft className="size-4" aria-hidden /> Back
-      </Link>
+      <BackLink to={back} label={user?.role === 'officer' ? 'Releases' : user ? ROLE_HOME_LABEL[user.role] : 'Home'} />
       <header className="mb-4 rounded-lg border border-slate-200 bg-surface p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">

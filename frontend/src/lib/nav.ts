@@ -28,33 +28,36 @@ const RECORDS: NavItem[] = [
 const link = (item: NavItem): MenuEntry => ({ kind: 'link', item });
 const group = (label: string, items: NavItem[]): MenuEntry => ({ kind: 'group', label, items });
 
-/** Menu bar per role. Only pages that exist are listed. */
+const HOME = (to: string, label = 'Home'): MenuEntry => link({ to, label });
+
+/** Header nav pills per role (Mission Desk: a few pills, the rest in small dropdowns). Only pages that exist are listed. */
 export const MENU: Record<Role, MenuEntry[]> = {
-  institution: [link({ to: '/institution', label: 'My institution' }), link(ALERTS)],
+  institution: [HOME('/institution'), link(ALERTS), link({ to: '/help/faq', label: 'Help' })],
   officer: [
-    link({ to: '/officer', label: 'My day' }),
+    HOME('/officer', 'My day'),
     link({ to: '/officer/queue', label: 'Scrutiny queue' }),
     link(RELEASES),
-    link(DASHBOARD),
     group('Records', RECORDS),
-    group('Monitoring', [ALERTS]),
+    group('Monitoring', [ALERTS, DASHBOARD]),
   ],
   approver: [
+    HOME('/approver', 'Awaiting decision'),
     link(DASHBOARD),
-    link({ to: '/approver', label: 'Approvals' }),
     link({ ...RELEASES, label: 'All releases' }),
     group('Records', RECORDS),
     group('Monitoring', [ALERTS]),
   ],
   admin: [
+    HOME('/admin'),
     link(DASHBOARD),
     link(RELEASES),
     group('Records', RECORDS),
     group('Monitoring', [ALERTS, OUTBOX, AUDIT]),
     group('Administration', [RULES, USERS, DEMO]),
   ],
-  /** Read-only: dashboard, audit log and reports first (§8.6); rules and releases to look at, never to change. */
+  /** Read-only: audit log and reports first (§8.6); rules and releases to look at, never to change. */
   auditor: [
+    HOME('/auditor'),
     link(DASHBOARD),
     link(AUDIT),
     group('Records', RECORDS),
@@ -76,43 +79,4 @@ export function menuFor(role: Role, demoMode: boolean): MenuEntry[] {
 /** Every link of a menu, flat (command palette). */
 export function menuLinks(entries: MenuEntry[]): (NavItem & { group?: string })[] {
   return entries.flatMap((e) => (e.kind === 'link' ? [e.item] : e.items.map((i) => ({ ...i, group: e.label }))));
-}
-
-/** Breadcrumb labels for known paths; detail pages fall back to their section label. */
-export const CRUMBS: { match: RegExp; trail: string[] }[] = [
-  { match: /^\/dashboard$/, trail: ['Dashboard'] },
-  { match: /^\/officer$/, trail: ['My day'] },
-  { match: /^\/officer\/queue$/, trail: ['Scrutiny', 'Scrutiny queue'] },
-  { match: /^\/officer\/review\//, trail: ['Scrutiny', 'Scrutiny queue', 'Review'] },
-  { match: /^\/officer\/releases$/, trail: ['Releases'] },
-  { match: /^\/(officer|approver)\/releases\//, trail: ['Releases', 'Release request'] },
-  { match: /^\/releases\/.+\/order$/, trail: ['Releases', 'Release order'] },
-  { match: /^\/approver$/, trail: ['Approvals'] },
-  { match: /^\/register$/, trail: ['Records', 'Register'] },
-  { match: /^\/institutions$/, trail: ['Records', 'Institutions'] },
-  { match: /^\/institutions\//, trail: ['Records', 'Institutions', 'Profile'] },
-  { match: /^\/reports$/, trail: ['Records', 'Reports'] },
-  { match: /^\/reports\/improvement$/, trail: ['Records', 'Reports', 'Improvement'] },
-  { match: /^\/alerts$/, trail: ['Monitoring', 'Alerts'] },
-  { match: /^\/admin\/outbox$/, trail: ['Monitoring', 'Outbox'] },
-  { match: /^\/audit$/, trail: ['Monitoring', 'Audit log'] },
-  { match: /^\/admin\/rules$/, trail: ['Administration', 'Rules'] },
-  { match: /^\/admin\/users$/, trail: ['Administration', 'Users'] },
-  { match: /^\/admin\/demo$/, trail: ['Administration', 'Demo tools'] },
-  { match: /^\/institution$/, trail: ['My institution'] },
-  { match: /^\/institution\/instruments\/new$/, trail: ['My institution', 'New instrument'] },
-  { match: /^\/institution\/instruments\/.+\/edit$/, trail: ['My institution', 'Edit instrument'] },
-  { match: /^\/instruments\//, trail: ['Instrument', 'Passport'] },
-  { match: /^\/verify\//, trail: ['Release order check'] },
-  { match: /^\/login$/, trail: ['Sign in'] },
-  { match: /^\/help\/faq$/, trail: ['Help', 'FAQ'] },
-  { match: /^\/help\/contact$/, trail: ['Help', 'Contact helpdesk'] },
-  { match: /^\/policies\/terms$/, trail: ['Policies', 'Terms of use'] },
-  { match: /^\/policies\/privacy$/, trail: ['Policies', 'Privacy policy'] },
-  { match: /^\/policies\/accessibility$/, trail: ['Policies', 'Accessibility statement'] },
-  { match: /^\/policies\/disclaimer$/, trail: ['Policies', 'Disclaimer'] },
-];
-
-export function crumbsFor(path: string): string[] {
-  return CRUMBS.find((c) => c.match.test(path))?.trail ?? [];
 }

@@ -28,7 +28,7 @@ export function CommandPalette({ open, onClose, links, canSearchRegister }: { op
     const pages = links
       .filter((l) => !term || `${l.group ?? ''} ${l.label}`.toLowerCase().includes(term))
       .map((l) => ({ key: l.to, label: l.label, hint: l.group, go: l.to }));
-    const ref = canSearchRegister && term ? [{ key: 'ref', label: `Search the register for “${q.trim()}”`, hint: 'Ref. No. / institution', go: `/register?q=${encodeURIComponent(q.trim())}` }] : [];
+    const ref = canSearchRegister && term ? [{ key: 'ref', label: `Search the register for “${q.trim()}”`, hint: 'Reference / institution', go: `/register?q=${encodeURIComponent(q.trim())}` }] : [];
     return [...pages, ...ref];
   }, [q, links, canSearchRegister]);
 
@@ -41,25 +41,25 @@ export function CommandPalette({ open, onClose, links, canSearchRegister }: { op
     else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
   };
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/50 p-4 pt-24" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div role="dialog" aria-modal="true" aria-label="Search the portal" className="fade-in w-full max-w-xl border border-line bg-white">
-        <div className="flex items-center gap-2 border-b border-line bg-strip px-3">
-          <Search className="size-4 text-navy" aria-hidden />
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-ink/40 p-4 pt-24" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div role="dialog" aria-modal="true" aria-label="Search the portal" className="fade-in w-full max-w-xl overflow-hidden rounded-[14px] border border-border bg-white shadow-xl">
+        <div className="flex items-center gap-2 border-b border-hairline px-4">
+          <Search className="size-4 text-muted" aria-hidden />
           <input ref={input} value={q} onChange={(e) => { setQ(e.target.value); setIndex(0); }} onKeyDown={onKey}
             role="combobox" aria-expanded="true" aria-controls={listId} aria-activedescendant={options[index] ? `${listId}-${index}` : undefined}
-            placeholder="Type a page name or a Ref. No." aria-label="Search" className="h-11 flex-1 bg-transparent text-sm outline-none" />
-          <kbd className="border border-slate-400 px-1 text-xs">Esc</kbd>
+            placeholder={canSearchRegister ? "Jump to a deposit: type a reference, or a page name" : "Type a page name"} aria-label="Search" className="h-12 flex-1 bg-transparent text-[0.9375rem] outline-none" />
+          <kbd className="mono rounded-[4px] border border-border px-1.5 text-xs">Esc</kbd>
         </div>
-        <ul id={listId} role="listbox" className="max-h-80 overflow-y-auto py-1">
+        <ul id={listId} role="listbox" className="max-h-80 overflow-y-auto p-1.5">
           {options.map((o, i) => (
             <li key={o.key} id={`${listId}-${i}`} role="option" aria-selected={i === index}
               onMouseEnter={() => setIndex(i)} onClick={() => choose(o)}
-              className={cn('flex cursor-pointer items-center justify-between border-l-4 px-3 py-2 text-sm', i === index ? 'border-saffron bg-primary-50 text-navy' : 'border-transparent text-slate-800')}>
+              className={cn('flex cursor-pointer items-center justify-between rounded-[8px] px-3 py-2 text-sm', i === index ? 'bg-teal-tint text-ink shadow-[inset_3px_0_0_var(--color-teal)]' : 'text-ink')}>
               <span className="font-semibold">{o.label}</span>
-              {o.hint && <span className="text-xs text-slate-600">{o.hint}</span>}
+              {o.hint && <span className="text-xs text-muted">{o.hint}</span>}
             </li>
           ))}
-          {options.length === 0 && <li className="px-3 py-3 text-sm text-slate-700">No matching page.</li>}
+          {options.length === 0 && <li className="px-3 py-3 text-sm text-muted">No matching page.</li>}
         </ul>
       </div>
     </div>,

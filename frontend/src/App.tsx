@@ -19,6 +19,8 @@ import { ScrutinyQueue } from '@/pages/officer/ScrutinyQueue';
 import { Dashboard } from '@/pages/dashboard/Dashboard';
 import { InstitutionProfile, Institutions } from '@/pages/institutions/Institutions';
 import { OfficerHome } from '@/pages/myday/OfficerHome';
+import { AdminHome } from '@/pages/home/AdminHome';
+import { AuditorHome } from '@/pages/home/AuditorHome';
 import { Register } from '@/pages/register/Register';
 import { Improvement } from '@/pages/reports/Improvement';
 import { Reports } from '@/pages/reports/Reports';
@@ -56,8 +58,8 @@ export function App() {
         <Route index element={<HomeRedirect />} />
         <Route path="/officer" element={<ProtectedRoute roles={['officer']}><OfficerHome /></ProtectedRoute>} />
         <Route path="/approver" element={<ProtectedRoute roles={['approver']}><ApproverHome /></ProtectedRoute>} />
-        <Route path="/admin" element={<Navigate to="/admin/rules" replace />} />
-        <Route path="/auditor" element={<Navigate to="/audit" replace />} />
+        <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminHome /></ProtectedRoute>} />
+        <Route path="/auditor" element={<ProtectedRoute roles={['auditor']}><AuditorHome /></ProtectedRoute>} />
         <Route path="/admin/rules" element={<ProtectedRoute roles={['admin', 'auditor']}><RulesPage /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute roles={['admin']}><Users /></ProtectedRoute>} />
         <Route path="/audit" element={<ProtectedRoute roles={['admin', 'auditor']}><AuditLog /></ProtectedRoute>} />

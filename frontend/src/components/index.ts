@@ -25,3 +25,5 @@ export * from './ReleaseStatusChip';
 export * from './QrCode';
 export * from './Notice';
 export * from './FormField';
+export * from './desk';
+export * from './ConfirmModal';

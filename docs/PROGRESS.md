@@ -1093,3 +1093,70 @@ hand-made tables, rounded/shadowed boxes or inline form controls; roughly in ord
 8. Instrument wizard forms (`institution/wizard/*`, without labels-above / asterisk / ButtonBar), Institution home and its banners
 9. Register, Institutions, Alerts inbox (tables are restyled by `Table`; filter bars and inline controls are not)
 10. Print layouts (`PrintPassport.tsx`, `ReleaseOrder.tsx`) and the Verify page card: deliberately left as is apart from the shell
+
+## UI direction v4: Mission Desk (frontend only)
+
+Rebuild of the shell, shared components, the five role landing pages and the login page after `docs/design/DESIGN.md` and
+the two mockups (`mockup-officer-desk.html`, `mockup-institution-home.html`). No backend, API, shared-constant, migration or
+test changes. Branch `claude/nifty-franklin-fc6uwa`.
+
+Done:
+- **Tokens** (`index.css`): DM Sans 400–700 + DM Mono 400/500 via @fontsource (Noto Sans removed, Noto Sans Devanagari kept);
+  canvas #F4F6F6, surface, border #DCE2E2 / hairline #EAEEEE / subtle #FAFBFB, ink #1F2933, muted #52606D, teal #0F766E
+  (hover #0B544F, tint #E6F4F2), attention #C2410C / #8A3A0A / #FFF0E6, danger #B42318, the three tier fills; radii 14/10/6–8;
+  no shadows except menus, popovers, drawers and dialogs. The v2 names (`navy`, `link`, `saffron`, `line`, `strip`, `primary-*`,
+  `success-*` …) are remapped to the new palette so pages not yet migrated follow it. `gov-table` is now hairline rows, no grid
+  or zebra, small uppercase header. Dates display as `27 Oct 2026` (`lib/format.ts`).
+- **Shell** (`components/Layout.tsx`, `components/shell/*`): 60 px white header with the teal-square wordmark, role-aware nav
+  pills (`lib/nav.ts`; active = ink pill; Records / Monitoring / Administration as small dropdowns with the old keyboard
+  behaviour, `data-testid="menu-bar"` / `"menu-list"` kept; "Menu" button below 1024 px), search box (Ctrl+K palette; a compact
+  icon below 1536 px), app-clock chip (`clock-badge`), alerts bell, avatar user menu (name and role, A-/A/A+, high contrast,
+  Sign out). For the admin the clock chip is a button with a popover: +1d, +7d, +30d, Reset to today, from any page. Slim demo
+  ribbon (`demo-ribbon`), skip link, one-line footer on app pages; public pages get the same header without nav and a fuller
+  footer. Removed: utility bar, tricolour line, crest, navy menu band, breadcrumbs, navy footer.
+- **Back links**: with breadcrumbs gone, `PageHeader` takes `back` and there is a shared `BackLink` ("← Back to <page>"), used on
+  the passport, scrutiny review, release review, release order, institution profile, Improvement and the instrument wizard.
+- **Components** (`components/desk.tsx` and restyled shared ones): QueueRow, ProofStrip (7 squares in the fixed field order,
+  tooltip + screen-reader sentence), ProofLegend, ScoreBreakdown, ConditionLine, ActionCard, Tracker, StatChip, Kicker, Kbd,
+  KeyLegend, Drawer, ConfirmModal; Button (primary teal, `lg` 48 px, secondary, dark, danger, ghost, link, `kbd` hint chip),
+  Badge, Panel/Card, PageHeader, Notice, FormField, Tabs, Modal, Toast, Table.
+- **Landing pages** (`ROLE_HOME` now: institution `/institution`, officer `/officer`, approver `/approver`, admin `/admin`,
+  auditor `/auditor`; `/dashboard` is unchanged in content):
+  - Institution: greeting, "Submit a new deposit", "Needs your action" cards (returned, draft, release returned, maturing ≤ 90
+    days without a release), the parcel tracker for the latest release request, "All my deposits" with status, proof strip,
+    maturity and next step. Per-deposit records load in parallel through `useQueries` (cached under `['instrument', id]`,
+    30 s stale time); a row whose record fails shows its `weakestTier` label instead.
+  - Officer "My day": greeting, three numbers, queue with To do / Escalated / Waiting on bank tabs, selected-item panel (rank
+    reason, "Why it is ranked here" from the My day components × risk weights, release conditions with the officer's manual
+    tick, or "What is proven" for deposits), "Why this order?" drawer. Keys: J/K move, R recommend (opens the remarks dialog),
+    B ask the bank (one-line confirmation first; claims first if the deposit is still SUBMITTED), O open record. Keys are
+    ignored while typing or while a dialog is open; nothing writes without a confirming click.
+  - Approver "Awaiting your decision": the same desk over `awaitingMe` release requests ranked by their My day score;
+    panel with the recommendation, live conditions, Approve (A key → the existing approve dialog) / Return / Reject and the
+    separation-of-duties line.
+  - Admin: greeting, three numbers, "Needs attention" (open L2+ escalations), App clock card, tabs Status / Maturity /
+    Verification / Regions / Banks / Alerts reusing the dashboard panels (now exported from `Dashboard.tsx`).
+  - Auditor: integrity card (intact, or broken at event #n with a link to the audit log), three numbers, ten latest events.
+- **Login**: the same style; sign-in card, "Demo accounts (synthetic data)" buttons, "What this portal does" with the documents table.
+
+Deviations / choices:
+- The admin clock controls stay on `/dashboard` too (demo step 4 clicks `+7d` there) and are on `/admin`; the header popover's
+  buttons have spelled-out names ("Move the app date forward 7 days") so they never clash with those.
+- The officer desk's kicker reads "First because: <top reason>" (the server's reason strings are used as they are).
+- Added `@types/node` as a frontend devDependency: `vite.config.ts` imports `node:path`/`node:url` and `tsc` failed on a clean
+  install without it (it was only present before through a stale lockfile entry).
+- `ApproveModal` is exported from `ReleaseReviewPage.tsx` for reuse on the approver desk.
+
+Checks (cloud sandbox, `npm run dev` + `npm run seed`): `npm run typecheck` green; `npm run test`: 302 passed, 1 failed
+(`test_phase09_seed.py::test_ac1_two_runs_identical_and_each_under_15_seconds`, the 15 s seed-duration limit: a seed takes
+≈ 16–17 s in this sandbox; it passes when its file runs alone; backend-only, unrelated to this change), shared vitest passed;
+`node e2e/demo.mjs` 9/9, no console errors; `node e2e/ui-shots.mjs` all checks passed. A scratch Playwright run over the five
+landing pages and login at 1920/1366/1280/768/390 px: no horizontal overflow, header on one line (≤ 62 px), no console errors
+or warnings, J/K move, B opens the confirmation and Esc cancels it, O opens the record, the admin clock popover works.
+Screenshots in `e2e/screenshots/mission-desk/` (gitignored).
+
+**Pages still to migrate** (they use the new tokens, shell and restyled shared components, but keep their v2 layouts):
+audit log; release review and parts, release list, request-release modal; officer review and its tabs, scrutiny queue;
+dashboard page layout (filters, KPI tiles); reports and Improvement; rules editor, users, outbox, demo tools; passport and its
+tabs; instrument wizard (calm step indicator still to do); register, institutions, alerts inbox; static pages and the verify
+card. Print layouts (printable passport, release order) are deliberately unchanged apart from the shell.

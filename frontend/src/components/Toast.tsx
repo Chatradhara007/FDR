@@ -8,10 +8,10 @@ interface ToastItem { id: number; kind: ToastKind; message: string }
 const ToastContext = createContext<((kind: ToastKind, message: string) => void) | null>(null);
 
 const STYLE: Record<ToastKind, { cls: string; icon: typeof Info; label: string }> = {
-  success: { cls: 'border-success-600/30 bg-success-50 text-success-700', icon: CheckCircle2, label: 'Success' },
-  error: { cls: 'border-danger-600/30 bg-danger-50 text-danger-700', icon: XCircle, label: 'Error' },
-  warning: { cls: 'border-warning-600/30 bg-warning-50 text-warning-700', icon: AlertTriangle, label: 'Warning' },
-  info: { cls: 'border-info-600/30 bg-info-50 text-info-700', icon: Info, label: 'Info' },
+  success: { cls: 'bg-teal-tint text-teal-hover', icon: CheckCircle2, label: 'Success' },
+  error: { cls: 'bg-danger-tint text-danger-700', icon: XCircle, label: 'Error' },
+  warning: { cls: 'bg-attn-tint text-attn-text', icon: AlertTriangle, label: 'Warning' },
+  info: { cls: 'bg-white text-ink', icon: Info, label: 'Info' },
 };
 
 let nextId = 1;
@@ -28,12 +28,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={push}>
       {children}
-      <div className="fixed right-4 bottom-4 z-[60] flex w-80 flex-col gap-2 print:hidden" role="status" aria-live="polite">
+      <div className="fixed right-4 bottom-4 z-[60] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2 print:hidden" role="status" aria-live="polite">
         {items.map((t) => {
           const s = STYLE[t.kind];
           const Icon = s.icon;
           return (
-            <div key={t.id} className={cn('flex items-start gap-2 border border-l-4 px-3 py-2 text-sm', s.cls)}>
+            <div key={t.id} className={cn('flex items-start gap-2.5 rounded-[10px] border border-border px-4 py-3 text-sm shadow-lg', s.cls)}>
               <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
               <p className="flex-1"><span className="sr-only">{s.label}: </span>{t.message}</p>
               <button type="button" onClick={() => dismiss(t.id)} aria-label="Dismiss" className="rounded p-0.5 hover:bg-black/5">

@@ -9,13 +9,14 @@ import {
 import { useMeta } from '@/api/instruments';
 import { toQuery } from '@/api/reporting';
 import { useDashboard } from '@/api/reporting';
-import { Badge, Button, EmptyState, PageHeader, Panel, StatusChip, Table, VerificationChip, type Column } from '@/components';
+import { useAuth } from '@/auth/AuthContext';
+import { Badge, Button, ClockControls, EmptyState, PageHeader, Panel, StatusChip, Table, VerificationChip, type Column } from '@/components';
 import { useCountUp } from '@/hooks/useCountUp';
 import { downloadCsv } from '@/lib/csv';
 import { formatDateGov } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
-const selectCls = 'h-10 min-w-48 rounded-none border border-slate-400 bg-white px-2 text-sm';
+const selectCls = 'h-11 min-w-48 rounded-[10px] border border-border bg-white px-3 text-sm';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** Register link with the dashboard's own filters carried over. */
@@ -29,10 +30,10 @@ function addDays(day: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-type Base = { region?: string; type?: string };
+export type Base = { region?: string; type?: string };
 type Edge = 'navy' | 'green' | 'saffron' | 'red' | 'blue';
 const EDGE: Record<Edge, string> = {
-  navy: 'border-l-navy', green: 'border-l-india-green', saffron: 'border-l-saffron', red: 'border-l-danger-600', blue: 'border-l-primary-500',
+  navy: 'border-l-ink', green: 'border-l-teal', saffron: 'border-l-attn', red: 'border-l-danger', blue: 'border-l-tier-doc-border',
 };
 
 function CountUp({ value }: { value: number }) {
@@ -42,8 +43,8 @@ function CountUp({ value }: { value: number }) {
 /** Bordered KPI tile: thick coloured left edge, big number, clear label, "More details →". */
 function Kpi({ icon, label, value, sub, to, edge }: { icon: ReactNode; label: string; value: ReactNode; sub?: ReactNode; to: string; edge: Edge }) {
   return (
-    <Link to={to} className={cn('group flex min-w-0 flex-col border border-line border-l-[6px] bg-surface p-3 hover:bg-primary-50', EDGE[edge])}>
-      <div className="text-3xl font-bold tabular-nums text-navy">{value}</div>
+    <Link to={to} className={cn('group flex min-w-0 flex-col rounded-[14px] border border-border border-l-[5px] bg-surface p-5 hover:bg-subtle', EDGE[edge])}>
+      <div className="text-3xl font-bold tabular-nums text-ink">{value}</div>
       <div className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-slate-800">{icon}{label}</div>
       {sub && <div className="text-sm text-slate-700 tabular-nums">{sub}</div>}
       <div className="mt-auto pt-2 text-sm text-link group-hover:underline">More details →</div>
@@ -54,8 +55,8 @@ function Kpi({ icon, label, value, sub, to, edge }: { icon: ReactNode; label: st
 /** Thin flat bar inside a table cell; the number next to it carries the value (never the bar alone). */
 function Bar({ pct }: { pct: number }) {
   return (
-    <span className="block h-2.5 w-full min-w-16 bg-strip" aria-hidden>
-      <span className="block h-2.5 bg-primary-600" style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
+    <span className="block h-2 w-full min-w-16 rounded bg-track" aria-hidden>
+      <span className="block h-2 rounded bg-teal" style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
     </span>
   );
 }
@@ -64,7 +65,7 @@ function CsvLink({ onClick }: { onClick: () => void }) {
   return <button type="button" onClick={onClick} className="inline-flex items-center gap-1 text-link hover:underline"><Download className="size-3.5" aria-hidden />Download CSV</button>;
 }
 
-function StatusBreakdown({ d, base }: { d: DashboardData; base: Base }) {
+export function StatusBreakdown({ d, base }: { d: DashboardData; base: Base }) {
   const max = Math.max(...d.byStatus.map((g) => Number(g.amount)), 0);
   return (
     <Panel title="Instruments by status" flush
@@ -98,7 +99,7 @@ function StatusBreakdown({ d, base }: { d: DashboardData; base: Base }) {
   );
 }
 
-function MaturityChart({ d }: { d: DashboardData }) {
+export function MaturityChart({ d }: { d: DashboardData }) {
   const data = d.maturityByMonth.map((m) => ({
     month: `${MONTHS[Number(m.month.slice(5)) - 1]}-${m.month.slice(2, 4)}`,
     crore: Number(m.amount) / 1e7,
@@ -132,7 +133,7 @@ function MaturityChart({ d }: { d: DashboardData }) {
   );
 }
 
-function Buckets({ d, base }: { d: DashboardData; base: Base }) {
+export function Buckets({ d, base }: { d: DashboardData; base: Base }) {
   const range: Record<string, Record<string, string | undefined>> = {
     overdue: { status: 'MATURED,LAPSED' },
     d0_30: { status: 'ACTIVE,EXPIRING,RELEASE_REQUESTED', maturityFrom: d.asOf, maturityTo: addDays(d.asOf, 30) },
@@ -162,7 +163,7 @@ function Buckets({ d, base }: { d: DashboardData; base: Base }) {
   );
 }
 
-function Verification({ d }: { d: DashboardData }) {
+export function Verification({ d }: { d: DashboardData }) {
   const total = VERIFICATION_STATES.reduce((s, v) => s + d.verification.byState[v], 0);
   return (
     <Panel title="Verification (submitted instruments)" flush actions={<Link to="/reports?preset=pending-verification" className="text-link hover:underline">View all</Link>}>
@@ -189,7 +190,7 @@ function Verification({ d }: { d: DashboardData }) {
 type RegionRow = DashboardData['byRegion'][number];
 type BankRow = DashboardData['byBank'][number];
 
-function Regions({ d, base }: { d: DashboardData; base: Base }) {
+export function Regions({ d, base }: { d: DashboardData; base: Base }) {
   const columns: Column<RegionRow>[] = [
     { key: 'region', header: 'Region', sortValue: (r) => r.region, cell: (r) => <Link className="gov-link" to={`/institutions?region=${encodeURIComponent(r.region)}`}>{r.region}</Link> },
     { key: 'count', header: 'No. of instruments', align: 'right', sortValue: (r) => r.count, cell: (r) => r.count },
@@ -209,7 +210,7 @@ function Regions({ d, base }: { d: DashboardData; base: Base }) {
   );
 }
 
-function Banks({ d, base }: { d: DashboardData; base: Base }) {
+export function Banks({ d, base }: { d: DashboardData; base: Base }) {
   const columns: Column<BankRow>[] = [
     { key: 'bank', header: 'Bank', className: 'whitespace-nowrap', sortValue: (b) => b.bank, cell: (b) => <Link className="gov-link" to={registerLink(base, { bank: b.bank })}>{b.bank}</Link> },
     { key: 'count', header: 'No.', align: 'right', sortValue: (b) => b.count, cell: (b) => b.count },
@@ -229,7 +230,7 @@ function Banks({ d, base }: { d: DashboardData; base: Base }) {
   );
 }
 
-function Alerts({ d }: { d: DashboardData }) {
+export function Alerts({ d }: { d: DashboardData }) {
   const levels = [1, 2, 3];
   return (
     <Panel title={`Open alerts (${d.alerts.total})`} flush actions={<Link to="/alerts" className="text-link hover:underline">View all</Link>}>
@@ -259,6 +260,7 @@ export function Dashboard() {
   const region = params.get('region') ?? '';
   const type = params.get('type') ?? '';
   const meta = useMeta();
+  const { user } = useAuth();
   const q = useDashboard({ region, type });
   const d = q.data;
   const base = { region: region || undefined, type: type || undefined };
@@ -272,8 +274,8 @@ export function Dashboard() {
   return (
     <>
       <PageHeader title="Dashboard" subtitle="Position of security deposits and FDRs held by AICTE, their verification and maturity."
-        actions={d && <span className="border border-navy bg-white px-3 py-1 text-sm font-semibold text-navy" data-testid="as-of">As of {formatDateGov(d.asOf)}</span>} />
-      <form className="mb-4 flex flex-wrap items-end gap-3 border border-line bg-surface px-4 py-3" onSubmit={(e) => e.preventDefault()} aria-label="Dashboard filters">
+        actions={d && <span className="rounded-[10px] border border-border bg-white px-3.5 py-2 text-sm font-semibold" data-testid="as-of">As of {formatDateGov(d.asOf)}</span>} />
+      <form className="mb-5 flex flex-wrap items-end gap-3 rounded-[14px] border border-border bg-surface px-5 py-4" onSubmit={(e) => e.preventDefault()} aria-label="Dashboard filters">
         <div>
           <label htmlFor="dash-region" className="mb-1 block text-sm font-semibold text-slate-800">Region</label>
           <select id="dash-region" className={selectCls} value={region} onChange={set('region')}>
@@ -290,6 +292,12 @@ export function Dashboard() {
         </div>
         {(region || type) && <Button variant="secondary" onClick={() => setParams(new URLSearchParams(), { replace: true })}>Reset</Button>}
       </form>
+      {user?.role === 'admin' && (
+        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-[14px] border border-border bg-surface px-5 py-3">
+          <span className="kicker text-muted">App clock</span>
+          <ClockControls />
+        </div>
+      )}
       {q.isError && <EmptyState title="Could not load the dashboard" description={q.error.message} />}
       {d && (
         <div className="fade-in space-y-4">

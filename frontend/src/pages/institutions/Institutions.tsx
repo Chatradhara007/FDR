@@ -1,4 +1,5 @@
-import { AlertOctagon, ArrowLeft } from 'lucide-react';
+import { AlertOctagon } from 'lucide-react';
+import { BackLink } from '@/components/PageHeader';
 import type { ChangeEvent } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { INSTRUMENT_TYPE_LABELS, formatINRCompact, type InstitutionSummary, type InstrumentListItem, type InstrumentStatus } from '@fdr/shared';
@@ -88,7 +89,7 @@ export function InstitutionProfile() {
   ];
   return (
     <>
-      {user?.role !== 'institution' && <Link to="/institutions" className="mb-2 inline-flex items-center gap-1 text-sm text-primary-700 hover:underline"><ArrowLeft className="size-4" aria-hidden />All institutions</Link>}
+      {user?.role !== 'institution' && <BackLink to="/institutions" label="Institutions" />}
       <PageHeader title={s.name} subtitle={`${s.aicteId} · ${s.region} · ${s.state}`} />
       <div className="mb-4 grid gap-4 lg:grid-cols-3">
         <Card title="Profile">
