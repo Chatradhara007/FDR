@@ -1307,3 +1307,55 @@ Checks (cloud sandbox, `npm run dev` + `npm run seed`):
 - Screenshots in `e2e/screenshots/mission-desk-3/` (gitignored).
 
 **Pages still to migrate**: none.
+
+## Seed replay performance (after Phase 09)
+
+The demo reset took several minutes on Windows (Docker Postgres through WSL), where every database round trip is
+expensive. Profiled with cProfile and a per-statement counter; the replay issued ~28,300 statements in ~2,800
+transactions, and httpx built a fresh TLS context for each of the 57 mock-bank calls (~2.7 s alone).
+
+Changes (output unchanged: a full fingerprint — instruments, provenance, alerts, event actions and timestamps, releases,
+row counts of every table — was compared byte for byte before and after; `test_phase09_seed` still passes):
+- `db/memo.py` (new): a replay-scoped memo (ContextVar, active only inside the seed's replay loop). `rule_repo.get_rule_config`
+  reads each rule once per replay instead of 5,066 times; `clock_repo` keeps the app clock in memory (3,967 reads and 955
+  clock-write transactions gone). The replay is the only writer of both while it runs; the clock row is written for real by
+  the final D0 transaction after the session ends. Outside the session nothing is cached (rule 11 unchanged for requests).
+- Audit chain: `record_event` fetches the next event id and the previous hash in one statement (`event_repo.next_event_slot`,
+  replacing `last_hash` + `next_event_id`), still after the chain lock.
+- Evaluation: consecutive days without steps are evaluated in one transaction (each still at its own 18:00, in the same order,
+  before the next day's steps). **The number of evaluation runs is not reduced**: 428 of the 505 runs change nothing, but which
+  ones is only known by running them — skipping a day whose run would act moves that alert/escalation's `created_at` to a later
+  day, i.e. changes the output. Deviation from the request, recorded here.
+- `bank_client`: one pooled `httpx.Client` (connection keep-alive, TLS context built once).
+- Pool connections are autocommit: a single statement run on the pool no longer leaves an implicit transaction for the pool to
+  roll back. `transaction()` still opens an explicit BEGIN … COMMIT block. (Small general change to `db/pool.py`.)
+- Progress: logger `fdr.seed` prints one line per phase (wipe, bank load, replay start, every 10 % of the replay with the date
+  and steps done, final evaluation, done) with elapsed seconds; `npm run seed` shows them, the server log shows them for
+  POST /demo/reset.
+
+Result: ~17,300 statements (−39 %), ~1,000 fewer transactions. Locally 18.4 s → 11.7–12.8 s; with an injected 1 ms per round
+trip (approximating WSL) 71.8 s → 41.7 s. Remaining cost is mostly the evaluation candidate queries and service reads.
+
+## Officer case page: right-column layout fix
+
+Bug: on `/officer/review/:id` the "Can this be accepted?" card was `lg:sticky` on its own inside a normal-flow `<aside>`, so the
+advisory card below it scrolled underneath it and was covered; the card (1,037 px with A1's blockers) was also taller than a
+1366×768 or 1280×720 screen, so its header and buttons could not both be seen.
+
+- `ReviewPage.tsx`: the `<aside>` (`data-testid="review-side"`, new; main column `data-testid="review-main"`, new) is now the ONE sticky
+  container from 1100 px: `top: 16px`, `max-height: calc(100vh - 40px)` (the shell header is not sticky and scrolls away, so
+  "header height" is 0 here: 16 px top offset + 24 px), `overflow-y: auto`, `overscroll-behavior: contain`. Cards inside keep the
+  normal `space-y-5` gap. No negative margins, no z-index. Under 1100 px (was 1024 px, Tailwind `lg`) the grid is one column and the
+  aside stacks below the main content, not sticky.
+- `DecisionPanel.tsx`: no longer sticky itself; the `-mt-1` on the blocker list is gone.
+- **Ask the bank on this page** is the "Verify with bank" button in the decision card (the B key belongs to the officer's
+  My day desk, `OfficerHome.tsx`, and is unchanged — J/K/R/B/O untouched). It was hidden while the case is SUBMITTED (unclaimed),
+  because the server only verifies a case under scrutiny. It is now shown **disabled** for an unclaimed case, with the hint
+  "Claim this case first" (`aria-describedby`). All existing data-testids and button names are unchanged.
+- New `e2e/review-layout.mjs` (`node e2e/review-layout.mjs [before|after]`): 1860×930, 1366×768, 1280×720 and 1024×768, each
+  scrolled to top, middle and bottom. It checks that the cards never overlap, that the column fits the viewport and scrolls
+  internally, that it stacks under 1100 px, that Return/Add observation can be reached, and that the unclaimed bank button and
+  hint are there. If A1 (`SBIN/FDR/2026/00731`) does not exist yet it runs demo steps 1–2 through the API first (submitted
+  at ₹25 L, claimed, verified → mismatch). Before the fix: 31 checks failed; after: all pass. Screenshots in
+  `e2e/screenshots/review-layout/{before,after}/` (gitignored). `npm run typecheck`, `node e2e/ui-shots.mjs` and `npm run e2e`
+  (9/9) pass.

@@ -26,13 +26,10 @@ def lock_chain(db: Db, key: int) -> None:
     many(db, "SELECT pg_advisory_xact_lock($1)", [key])
 
 
-def last_hash(db: Db) -> str | None:
-    row = maybe_one(db, "SELECT hash FROM events ORDER BY id DESC LIMIT 1")
-    return cast(str, row["hash"]) if row else None
-
-
-def next_event_id(db: Db) -> int:
-    return cast(int, one(db, "SELECT nextval('events_id_seq') AS id")["id"])
+def next_event_slot(db: Db) -> tuple[int, str | None]:
+    """The next event id and the chain's last hash in one round trip (call with the chain lock held)."""
+    row = one(db, "SELECT nextval('events_id_seq') AS id, (SELECT hash FROM events ORDER BY id DESC LIMIT 1) AS hash")
+    return cast(int, row["id"]), cast(str | None, row["hash"])
 
 
 def insert_event(db: Db, e: EventRow) -> None:

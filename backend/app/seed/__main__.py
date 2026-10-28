@@ -7,6 +7,7 @@ to docs/demo-files/.
 
 from __future__ import annotations
 
+import logging
 import sys
 
 from ..config import REPO_ROOT
@@ -18,6 +19,8 @@ from .replay import a1_sample, reset_and_seed
 
 
 def main() -> None:
+    logging.basicConfig(format="%(message)s")
+    logging.getLogger("fdr.seed").setLevel(logging.INFO)  # one progress line per phase of the replay
     applied = migrate()
     if applied:
         print(f"migrations applied: {', '.join(applied)}")
