@@ -25,7 +25,7 @@ COPY mock-bank/mock_bank mock-bank/mock_bank
 RUN pip install --no-cache-dir ./backend ./mock-bank
 COPY --from=web /app/frontend/dist /app/frontend-dist
 COPY docker/prod/start.sh /app/start.sh
-RUN chmod +x /app/start.sh && mkdir -p /data/storage /data/bank
+RUN sed -i 's/\r$//' /app/start.sh && chmod +x /app/start.sh && mkdir -p /data/storage /data/bank
 ENV STATIC_DIR=/app/frontend-dist \
     STORAGE_DIR=/data/storage \
     MOCK_BANK_DATA_FILE=/data/bank/records.json \

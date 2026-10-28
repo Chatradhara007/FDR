@@ -60,3 +60,11 @@ E2E_WEB=http://localhost:8080 E2E_API=http://localhost:8080/api/v1 node e2e/show
 `.env.prod` needs `JWT_SECRET` and `FILE_ENCRYPTION_KEY` (compose refuses to start without them).
 
 Sign in through the role picker on the login page; every sample account uses the password `Demo@123`.
+
+## Troubleshooting
+
+**`exec /app/start.sh: no such file or directory` (Windows).** The script was checked out with CRLF line
+endings, so the kernel looks for an interpreter named `/bin/sh\r`. `.gitattributes` now forces LF for `*.sh`,
+`Dockerfile*`, `*.yml`, `*.yaml` and `docker/**`, and the Dockerfile strips carriage returns from `start.sh`
+before `chmod`, so a rebuild (`docker compose -f docker-compose.prod.yml up --build`) fixes it. To renormalise an
+existing checkout: `git add --renormalize . && git status` (or re-clone).

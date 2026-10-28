@@ -1415,3 +1415,10 @@ Deviations / known issues:
   gave 5 failures + 23 errors, because `/demo/*` returns 403). `test_showcase.py` turns showcase mode on itself with
   monkeypatch. Verified with `SHOWCASE_MODE=true` and `=false` (each with `DEMO_MODE=false`) exported in the shell:
   310 backend + 9 mock-bank + 7 shared pass both times.
+
+## Windows CRLF fix for the production image
+
+- `docker compose -f docker-compose.prod.yml up --build` on Windows failed with `exec /app/start.sh: no such file or
+  directory` (CRLF in `start.sh`). Added `.gitattributes` (LF for `*.sh`, `Dockerfile*`, `*.yml`, `*.yaml`,
+  `docker/**`); `docker/prod/Dockerfile` runs `sed -i 's/\r$//'` on `start.sh` before `chmod`. Noted in
+  `docs/DEPLOY.md` → Troubleshooting. No Docker here, so the image was not rebuilt.
