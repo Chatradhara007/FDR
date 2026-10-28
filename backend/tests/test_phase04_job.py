@@ -3,6 +3,7 @@ idempotence and scale (D18)."""
 
 from __future__ import annotations
 
+import os
 import time
 from typing import Any
 
@@ -287,4 +288,5 @@ def test_ac12_a_365_day_jump_over_500_instruments_is_fast() -> None:
     elapsed = time.perf_counter() - started
     assert res.status_code == 200, res.text
     assert res.json()["summary"]["statusChanges"] > 500
-    assert elapsed < 5, f"365-day jump took {elapsed:.2f}s"
+    budget = float(os.environ.get("JUMP_BUDGET_SECONDS", "5"))  # loosened on slow machines, like SEED_BUDGET_SECONDS
+    assert elapsed < budget, f"365-day jump took {elapsed:.2f}s (budget {budget:g}s)"
