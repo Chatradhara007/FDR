@@ -24,6 +24,10 @@ CLAIMS: list[tuple[str, str, str]] = [
     ("SBIN/FDR/2026/09002", "State Bank of India", "Begumpet"),
     ("SBIN/FDR/2026/09003", "State Bank of India", "Begumpet"),
     ("SBIN/FDR/2026/09004", "Indian Overseas Bank", "Anna Salai"),
+    ("SBIN/FDR/2026/09005", "State Bank of India", "Begumpet"),
+    ("SBIN/FDR/2026/09006", "State Bank of India", "Begumpet"),
+    ("SBIN/FDR/2026/09007", "State Bank of India", "Begumpet"),
+    ("SBIN/FDR/2026/09008", "Indian Overseas Bank", "Anna Salai"),
 ]
 
 
@@ -44,14 +48,15 @@ def main() -> None:
         (folder / f"{short}-fdr-copy.pdf").write_bytes(sample_document("FDR_COPY", rows, institution, bank))
         (folder / f"{short}-bank-letter.pdf").write_bytes(sample_document("BANK_LETTER", rows, institution, bank, NOTE))
         print(f"wrote {folder.relative_to(ROOT)}")
-    # 09002 after the officer returns it: the institution re-uploads documents showing the bank's amount.
-    folder = OUT / "SBIN-FDR-2026-09002"
-    rows = document_rows({**values("SBIN/FDR/2026/09002", "Begumpet"), "amount": "2400000.00"})
-    bank = "State Bank of India"
-    (folder / "09002-corrected-fdr-copy.pdf").write_bytes(sample_document("FDR_COPY", rows, institution, bank))
-    (folder / "09002-corrected-bank-letter.pdf").write_bytes(
-        sample_document("BANK_LETTER", rows, institution, bank, NOTE)
-    )
+    # 09002 / 09006 after the officer returns them: the institution re-uploads documents showing the bank's amount.
+    for short in ("09002", "09006"):
+        folder = OUT / f"SBIN-FDR-2026-{short}"
+        rows = document_rows({**values(f"SBIN/FDR/2026/{short}", "Begumpet"), "amount": "2400000.00"})
+        bank = "State Bank of India"
+        (folder / f"{short}-corrected-fdr-copy.pdf").write_bytes(sample_document("FDR_COPY", rows, institution, bank))
+        (folder / f"{short}-corrected-bank-letter.pdf").write_bytes(
+            sample_document("BANK_LETTER", rows, institution, bank, NOTE)
+        )
 
 
 if __name__ == "__main__":

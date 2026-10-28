@@ -124,7 +124,8 @@ def test_demo_video_records_survive_a_load_and_are_not_listed(client: TestClient
         return [f for f, r in check(ref).json()["fields"].items() if not r["match"]]
 
     assert all(not r["reference_no"].startswith("SBIN/FDR/2026/090") for r in client.get("/records").json())
-    assert check("SBIN/FDR/2026/09001").json()["result"] == "CONFIRMED"
-    assert mismatched("SBIN/FDR/2026/09002") == ["amount"]
-    assert mismatched("SBIN/FDR/2026/09003") == ["maturity_date"]
-    assert check("SBIN/FDR/2026/09004", "Indian Overseas Bank").status_code == 503
+    for a, b, c, d in (("09001", "09002", "09003", "09004"), ("09005", "09006", "09007", "09008")):
+        assert check(f"SBIN/FDR/2026/{a}").json()["result"] == "CONFIRMED"
+        assert mismatched(f"SBIN/FDR/2026/{b}") == ["amount"]
+        assert mismatched(f"SBIN/FDR/2026/{c}") == ["maturity_date"]
+        assert check(f"SBIN/FDR/2026/{d}", "Indian Overseas Bank").status_code == 503

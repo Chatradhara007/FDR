@@ -31,4 +31,9 @@ VIDEO_RECORDS: list[dict[str, object]] = [
     _record("SBIN/FDR/2026/09002", amount="2400000.00"),  # the form and the PDFs claim 25,00,000
     _record("SBIN/FDR/2026/09003", maturity="2029-03-15"),  # the form and the PDFs say 2029-09-15
     _record("SBIN/FDR/2026/09004", bank="Indian Overseas Bank"),  # the offline-test bank: "Bank unavailable"
+    # A second set with the same four cases, for a retake after the first set is lodged.
+    _record("SBIN/FDR/2026/09005"),
+    _record("SBIN/FDR/2026/09006", amount="2400000.00"),
+    _record("SBIN/FDR/2026/09007", maturity="2029-03-15"),
+    _record("SBIN/FDR/2026/09008", bank="Indian Overseas Bank"),
 ]
