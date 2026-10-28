@@ -25,7 +25,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'How does an institution lodge an FDR?', a: 'Sign in with the institution account, open My institution and choose to add a new instrument. Enter the particulars exactly as printed on the receipt, upload the required documents and submit the record for scrutiny.' },
   { q: 'What do "Claimed by institution", "Document-checked" and "Bank-confirmed" mean?', a: 'They show how much of each particular is proven. Claimed means only the institution has stated it; Document-checked means an officer has checked it against the uploaded document; Bank-confirmed means the issuing bank has confirmed it.' },
   { q: 'Does the portal approve releases automatically?', a: 'No. The portal records the checks and the recommendation; the decision on every release is taken by an official.' },
-  { q: 'Is the data real?', a: 'No. Every institution, deposit and person in this prototype is synthetic.' },
+  { q: 'Is the data real?', a: 'No. Every institution, deposit and person in this prototype is sample data.' },
 ];
 
 export function FaqPage() {
@@ -72,7 +72,7 @@ export function TermsPage() {
 export function PrivacyPage() {
   return (
     <Page title="Privacy policy">
-      <p>The prototype holds only synthetic data. It stores the sign-in session token in the browser and, if changed, the chosen text size and contrast setting.</p>
+      <p>The prototype holds only sample data. It stores the sign-in session token in the browser and, if changed, the chosen text size and contrast setting.</p>
       <p>No analytics or third-party tracking is used. Server logs record requests without access tokens.</p>
       <p>A production privacy policy would be issued by the owning organisation.</p>
     </Page>
@@ -100,7 +100,7 @@ export function DisclaimerPage() {
   return (
     <Page title="Disclaimer">
       <p>This is not an official AICTE website. It is a prototype built for the Smart India Hackathon 2026 (SIH26265).</p>
-      <p>All institutions, deposits, banks' responses, users and amounts shown are synthetic. Any resemblance to real records is coincidental.</p>
+      <p>All institutions, deposits, banks' responses, users and amounts shown are sample data. Any resemblance to real records is coincidental.</p>
       <p>The crest shown in the header is a neutral design mark and is not a national emblem or the logo of any organisation.</p>
     </Page>
   );

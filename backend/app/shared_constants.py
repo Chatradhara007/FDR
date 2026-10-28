@@ -106,6 +106,8 @@ INSTITUTION_VISIBLE_ACTIONS: tuple[str, ...] = tuple(_data["institutionVisibleAc
 DASHBOARD_STATUS_GROUPS: tuple[DashboardStatusGroup, ...] = tuple(_data["dashboardStatusGroups"])
 REPORT_PRESETS: dict[str, str] = _data["reportPresets"]
 SIMULATED_LABEL: str = _data["simulatedLabel"]
+SHOWCASE_SIMULATED_LABEL: str = _data["showcaseSimulatedLabel"]
+SHOWCASE_EVENT_LABELS: dict[str, str] = _data["showcaseEventLabels"]
 REMINDER_RECIPIENT_ROLES: tuple[Role, ...] = tuple(_data["reminderRecipientRoles"])
 SIGN_IN_ACTIONS: tuple[str, ...] = tuple(_data["signInActions"])
 RULE_NAMES: dict[str, str] = _data["ruleNames"]
@@ -115,7 +117,10 @@ def can_transition(from_status: str, to_status: str) -> bool:
     return to_status in ALLOWED.get(from_status, ())  # type: ignore[call-overload]
 
 
-def event_label(action: str) -> str:
+def event_label(action: str, showcase: bool = False) -> str:
+    """The human label; in SHOWCASE_MODE a few seed-only actions read as product wording ("Initial data loaded")."""
+    if showcase and action in SHOWCASE_EVENT_LABELS:
+        return SHOWCASE_EVENT_LABELS[action]
     return EVENT_LABELS.get(action, action)
 
 

@@ -61,8 +61,11 @@ export const RELEASE_DECISION_LABELS = c.releaseDecisionLabels as Record<Release
 export const EVENT_LABELS = c.eventLabels as Record<string, string>;
 export const INSTITUTION_VISIBLE_ACTIONS = c.institutionVisibleActions as readonly string[];
 
-export function eventLabel(action: string): string {
-  return EVENT_LABELS[action] ?? action;
+const SHOWCASE_EVENT_LABELS = c.showcaseEventLabels as Record<string, string>;
+
+/** The human label; in showcase mode a few seed-only actions read as product wording ("Initial data loaded"). */
+export function eventLabel(action: string, showcase = false): string {
+  return (showcase ? SHOWCASE_EVENT_LABELS[action] : undefined) ?? EVENT_LABELS[action] ?? action;
 }
 
 export interface DashboardStatusGroup { key: string; label: string; statuses: readonly InstrumentStatus[] }

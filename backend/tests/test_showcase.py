@@ -105,3 +105,17 @@ def test_seeds_once_under_a_lock_and_never_again(monkeypatch: pytest.MonkeyPatch
     assert calls == [1]
     server.seed_showcase_once()  # a later restart
     assert calls == [1]
+
+
+def test_showcase_wording_for_seeded_data(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.domain.event_labels import label_for
+    from app.seed.pdf import sample_document
+    from app.services import metrics_service
+
+    assert label_for("DEMO_RESET", None, {}, "System") == "Initial data loaded"
+    assert "demo" not in metrics_service._label().lower()
+    monkeypatch.setenv("SHOWCASE_MODE", "false")
+    assert label_for("DEMO_RESET", None, {}, "System") == "Demo data reset"
+    pdf = sample_document("BANK_LETTER", [("Amount", "25,00,000.00")], "X College", "State Bank of India")
+    assert b"Bank Letter - sample data" in pdf
+    assert b"Demo" not in pdf and b"synthetic" not in pdf and b"demo" not in pdf

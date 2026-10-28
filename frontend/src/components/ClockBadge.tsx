@@ -4,6 +4,7 @@ import { formatDate, type EvaluationSummary } from '@fdr/shared';
 import { formatDateGov } from '@/lib/format';
 import { ApiError } from '@/api/client';
 import { useClock, useClockMutation, type ClockAction } from '@/hooks/useClock';
+import { useShowcase } from '@/hooks/useShowcase';
 import { Badge } from './Badge';
 import { Button } from './Button';
 import { FieldError } from './FieldError';
@@ -56,11 +57,13 @@ export function ClockControls() {
   const [dateError, setDateError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ action: ClockAction; message: string; onDone?: () => void } | null>(null);
   const today = clock.data?.today;
+  // Showcase mode: plain wording ("App date", "Move the app date"); demo mode keeps "simulated".
+  const showcase = useShowcase();
 
   const run = (action: ClockAction, onDone?: () => void) =>
     mutation.mutate(action, {
       onSuccess: ({ clock: c, summary }) => {
-        const when = c.mode === 'SIMULATED' ? `App date ${formatDate(c.today)} (simulated)` : `Clock reset to real time (${formatDate(c.today)})`;
+        const when = c.mode === 'SIMULATED' ? `App date ${formatDate(c.today)}${showcase ? '' : ' (simulated)'}` : `Clock reset to real time (${formatDate(c.today)})`;
         const msg = `${when}: ${summaryText(summary)}`;
         if (c.warning === 'CLOCK_MOVED_BACKWARDS') toast.warning(`${msg}. The clock moved backwards; existing alerts are kept.`);
         else toast.success(msg);
@@ -89,7 +92,7 @@ export function ClockControls() {
         </Button>
       ))}
       <Button size="sm" variant="secondary" disabled={mutation.isPending} onClick={() => { setDateError(null); setDate(today ?? ''); setSetOpen(true); }}>
-        Set date…
+        {showcase ? 'Move the app date…' : 'Set date…'}
       </Button>
       <Button
         size="sm"
@@ -102,18 +105,18 @@ export function ClockControls() {
       </Button>
       <Modal
         open={setOpen}
-        title="Set the app date"
+        title={showcase ? 'Move the app date' : 'Set the app date'}
         onClose={() => setSetOpen(false)}
         footer={
           <>
             <Button variant="secondary" onClick={() => setSetOpen(false)}>Cancel</Button>
             <Button loading={mutation.isPending} disabled={!date} onClick={() => guarded({ kind: 'set', date }, date, () => setSetOpen(false))}>
-              Set date
+              {showcase ? 'Move the app date' : 'Set date'}
             </Button>
           </>
         }
       >
-        <label htmlFor="clock-date" className="mb-1 block font-medium text-ink">Simulated date</label>
+        <label htmlFor="clock-date" className="mb-1 block font-medium text-ink">{showcase ? 'App date' : 'Simulated date'}</label>
         <input
           id="clock-date"
           type="date"
