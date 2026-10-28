@@ -1,3 +1,4 @@
+import { useShowcase } from '@/hooks/useShowcase';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { FIELD_LABELS, INSTRUMENT_TYPE_LABELS, formatDate } from '@fdr/shared';
@@ -14,6 +15,7 @@ const when = (iso: string) => new Date(iso).toLocaleString('en-IN', { dateStyle:
 export function PrintPassport() {
   const { id = '' } = useParams();
   const q = usePassport(id);
+  const showcase = useShowcase();
   if (q.isError) return <main className="p-6"><EmptyState title="Instrument not found" description="It may have been deleted, or it belongs to another institution." /></main>;
   const p = q.data;
   if (!p) return <main className="p-6 text-sm text-slate-500"><p>Loading…</p></main>;
@@ -121,7 +123,7 @@ export function PrintPassport() {
       </section>
 
       <footer className="mt-8 border-t border-slate-400 pt-2 text-xs text-slate-600">
-        Printed from the FDR Portal (demo, synthetic data). The portal supports officials; decisions rest with the competent authority.
+        Printed from the FDR Portal ({showcase ? 'prototype, sample data' : 'demo, synthetic data'}). The portal supports officials; decisions rest with the competent authority.
       </footer>
     </main>
   );

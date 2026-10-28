@@ -1,0 +1,35 @@
+# Production-style stack: one container serves the frontend and the API on one origin (http://localhost:8080).
+#   cp .env.example .env.prod   # then set JWT_SECRET and FILE_ENCRYPTION_KEY (see docs/DEPLOY.md)
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up --build -d
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: fdr
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fdr}
+      POSTGRES_DB: fdr
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fdr -d fdr"]
+      interval: 3s
+      retries: 20
+
+  app:
+    build: { context: ., dockerfile: docker/prod/Dockerfile }
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgres://fdr:${POSTGRES_PASSWORD:-fdr}@db:5432/fdr
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      FILE_ENCRYPTION_KEY: ${FILE_ENCRYPTION_KEY:?set FILE_ENCRYPTION_KEY}
+      SHOWCASE_MODE: ${SHOWCASE_MODE:-true}
+      DEMO_MODE: ${DEMO_MODE:-false}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      FRONTEND_ORIGIN: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      PORT: 3000
+    ports: ["8080:3000"]
+    volumes: [appdata:/data]   # STORAGE_DIR=/data/storage and the mock bank's records
+
+volumes:
+  pgdata:
+  appdata:

@@ -41,3 +41,16 @@ def find_instrument_id(db: Db, bank: str, reference_no: str) -> str | None:
         [bank, reference_no],
     )
     return cast(str, row["id"]) if row else None
+
+
+def session_lock(db: Db, key: int) -> None:
+    """Session-level advisory lock (held across transactions until `session_unlock` or the connection closes)."""
+    many(db, "SELECT pg_advisory_lock($1)", [key])
+
+
+def session_unlock(db: Db, key: int) -> None:
+    many(db, "SELECT pg_advisory_unlock($1)", [key])
+
+
+def has_instruments(db: Db) -> bool:
+    return maybe_one(db, "SELECT 1 AS x FROM instruments LIMIT 1") is not None

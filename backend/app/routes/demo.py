@@ -3,7 +3,9 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from starlette.responses import Response
 
+from ..config import config
 from ..domain.access import AuthUser
+from ..domain.errors import Forbidden
 from ..middleware.auth import require_role
 from ..middleware.responses import json_response
 from ..middleware.validate import json_body, parse
@@ -11,8 +13,22 @@ from ..schemas import BankCorrectionInput, TamperInput
 from ..services import audit_service, auth_service, demo_service
 from .instruments import content_disposition
 
-# Mounted only when DEMO_MODE=true (D17); otherwise these paths fall through to 404.
-router = APIRouter()
+
+def _showcase_guard() -> None:
+    """SHOWCASE_MODE=true: every demo-only endpoint is refused (403) before authentication."""
+    if config.showcase_mode:
+        raise Forbidden("Not available in this installation")
+
+
+def _tamper_guard() -> None:
+    """The tamper demonstration and its undo exist only while DEMO_MODE is on (also under SHOWCASE_MODE)."""
+    if not config.demo_mode:
+        raise Forbidden("Not available in this installation")
+
+
+# Mounted when DEMO_MODE=true (D17) or SHOWCASE_MODE=true (then refused with 403); otherwise these paths 404.
+router = APIRouter(dependencies=[Depends(_showcase_guard)])
+tamper_router = APIRouter(dependencies=[Depends(_tamper_guard)])
 
 
 # Public by design: feeds the login page's "Sign in as" buttons.
@@ -21,13 +37,13 @@ def demo_users() -> Response:
     return json_response(auth_service.list_demo_users())
 
 
-@router.post("/demo/tamper")
+@tamper_router.post("/demo/tamper")
 def tamper(user: AuthUser = Depends(require_role("admin")), body: object = Depends(json_body)) -> Response:
     """Alters one event without recomputing its hash, so the integrity check can be shown catching it."""
     return json_response(audit_service.tamper(parse(TamperInput, body)))
 
 
-@router.post("/demo/tamper/undo")
+@tamper_router.post("/demo/tamper/undo")
 def undo_tamper(user: AuthUser = Depends(require_role("admin"))) -> Response:
     """Restores every tampered event's original data; the chain verifies again."""
     return json_response(audit_service.undo_tamper())

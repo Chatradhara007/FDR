@@ -47,6 +47,17 @@ class Config:
         return os.environ.get("DEMO_MODE") == "true"
 
     @property
+    def showcase_mode(self) -> bool:
+        """SHOWCASE_MODE=true: the preloaded product build (no demo chrome; demo endpoints 403; seeds once if empty)."""
+        return os.environ.get("SHOWCASE_MODE") == "true"
+
+    @property
+    def static_dir(self) -> Path | None:
+        """STATIC_DIR: the built frontend, served from the API's origin (production image); unset in dev."""
+        raw = os.environ.get("STATIC_DIR", "").strip()
+        return (REPO_ROOT / raw).resolve() if raw else None
+
+    @property
     def storage_dir(self) -> Path:
         """Uploaded files live here (STORAGE_DIR; relative paths resolve against the repo root)."""
         return (REPO_ROOT / os.environ.get("STORAGE_DIR", "./storage")).resolve()

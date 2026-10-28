@@ -15,6 +15,9 @@ from .config import config
 from .db.migrate import migrate
 from .db.pool import close_pool, get_pool, maybe_one
 from .domain.errors import AppError
+from .logging_setup import configure_logging
+from .repositories import demo_repo
+from .security import InsecureConfig, check_startup_config
 from .seed.base import seed_base
 from .seed.replay import reset_and_seed
 
@@ -33,13 +36,48 @@ def wait_for_db(timeout_seconds: float = 30) -> None:
             time.sleep(1)
 
 
+# Advisory lock key: only one process seeds a showcase database, however many start at once.
+SHOWCASE_SEED_LOCK = 7002
+
+
 def prepare() -> None:
+    configure_logging()
+    check_startup_config()  # before touching data: SHOWCASE_MODE refuses placeholder secrets
     wait_for_db()
     applied = migrate()
     if applied:
         print(f"migrations applied: {', '.join(applied)}")
-    if config.demo_mode:
+    if config.showcase_mode:
+        seed_showcase_once()
+    elif config.demo_mode:
         seed_empty_demo()
+
+
+def seed_showcase_once(wait_seconds: float = 120) -> None:
+    """SHOWCASE_MODE: load the sample dataset once, on a database with no instruments, holding an advisory lock so two
+    instances starting together cannot both seed. Never seeds again once instruments exist. Without the mock bank the
+    process refuses to start (a restart retries) rather than serve a half-empty product."""
+    with get_pool().connection() as conn:
+        conn.autocommit = True
+        demo_repo.session_lock(conn, SHOWCASE_SEED_LOCK)
+        try:
+            if demo_repo.has_instruments(conn):
+                print("showcase data present; not seeding")
+                return
+            deadline = time.monotonic() + wait_seconds
+            while True:
+                try:
+                    r = reset_and_seed()
+                    print(f"showcase data loaded: {r['instruments']} instruments in {r['durationMs'] / 1000:.1f} s")
+                    return
+                except AppError as err:
+                    if err.code != "BANK_UNREACHABLE" or time.monotonic() > deadline:
+                        raise SystemExit(f"showcase data not loaded: {err.message}") from err
+                    print("waiting for the mock bank...")
+                    time.sleep(2)
+        finally:
+            demo_repo.session_unlock(conn, SHOWCASE_SEED_LOCK)
+            conn.autocommit = False
 
 
 def seed_empty_demo(wait_seconds: float = 60) -> None:
@@ -63,7 +101,10 @@ def seed_empty_demo(wait_seconds: float = 60) -> None:
 
 
 def main(argv: list[str]) -> None:
-    prepare()
+    try:
+        prepare()
+    except InsecureConfig as err:
+        raise SystemExit(f"refusing to start: {err}") from None
     close_pool()  # the server process opens its own pool
     if "--migrate-only" in argv:
         return

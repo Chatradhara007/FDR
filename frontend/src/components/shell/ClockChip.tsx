@@ -8,8 +8,9 @@ import { formatDateGov } from '@/lib/format';
 import { summaryText } from '../ClockBadge';
 import { useToast } from '../Toast';
 
-/** Header app-clock chip: "27 Oct 2026 · simulated". For the admin it is a button with quick clock moves, usable from any page. */
-export function ClockChip({ admin }: { admin: boolean }) {
+/** Header app-clock chip: "27 Oct 2026 · simulated". For the admin it is a button with quick clock moves, usable from any page.
+ *  `plain` (showcase mode): just the date for everyone; the admin moves the clock from Admin > App clock. */
+export function ClockChip({ admin, plain = false }: { admin: boolean; plain?: boolean }) {
   const clock = useClock();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -27,7 +28,7 @@ export function ClockChip({ admin }: { admin: boolean }) {
   }, [open]);
 
   if (!clock.data) return null;
-  const simulated = clock.data.mode === 'SIMULATED';
+  const simulated = clock.data.mode === 'SIMULATED' && !plain;
   const label = (
     <span data-testid="clock-badge" className="tabular-nums">
       {formatDateGov(clock.data.today)}{simulated && <span className="text-attn-text"> · simulated</span>}

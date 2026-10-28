@@ -1,13 +1,16 @@
+import type { ReactNode } from 'react';
 import { Navigate, Outlet, Route, Routes, useParams } from 'react-router-dom';
 import type { Role } from '@fdr/shared';
 import { HomeRedirect, ProtectedRoute } from '@/auth/ProtectedRoute';
 import { Layout, PublicLayout } from '@/components';
-import { AccessibilityPage, ContactPage, DisclaimerPage, FaqPage, PrivacyPage, TermsPage } from '@/pages/static/StaticPages';
+import { AboutPage, AccessibilityPage, ContactPage, DisclaimerPage, FaqPage, PrivacyPage, TermsPage } from '@/pages/static/StaticPages';
 import { EmptyState } from '@/components/EmptyState';
 import { InstitutionHome } from '@/pages/institution/InstitutionHome';
 import { InstrumentWizard } from '@/pages/institution/wizard/InstrumentWizard';
 import { AlertsInbox } from '@/pages/alerts/AlertsInbox';
 import { DemoTools } from '@/pages/admin/DemoTools';
+import { AppClockPage } from '@/pages/admin/AppClock';
+import { useShowcaseState } from '@/hooks/useShowcase';
 import { Outbox } from '@/pages/admin/Outbox';
 import { RulesPage } from '@/pages/admin/rules/RulesPage';
 import { Users } from '@/pages/admin/Users';
@@ -37,6 +40,15 @@ function ToPassport() {
   return <Navigate to={`/instruments/${id}`} replace />;
 }
 
+const NOT_FOUND = <EmptyState title="Page not found" description="Check the address or use the menu." />;
+
+/** Demo tools do not exist in showcase mode. */
+function DemoOnly({ children }: { children: ReactNode }) {
+  const { showcase, known } = useShowcaseState();
+  if (!known) return null;
+  return showcase ? NOT_FOUND : <>{children}</>;
+}
+
 const INTERNAL: Role[] = ['officer', 'approver', 'admin', 'auditor'];
 
 export function App() {
@@ -47,6 +59,7 @@ export function App() {
         {/* Public: the page behind a release order's QR code (order numbers contain slashes). */}
         <Route path="/verify/*" element={<VerifyPage />} />
         <Route path="/help/faq" element={<FaqPage />} />
+        <Route path="/help/about" element={<AboutPage />} />
         <Route path="/help/contact" element={<ContactPage />} />
         <Route path="/policies/terms" element={<TermsPage />} />
         <Route path="/policies/privacy" element={<PrivacyPage />} />
@@ -83,9 +96,10 @@ export function App() {
         <Route path="/approver/releases/:id" element={<ProtectedRoute roles={['approver']}><ReleaseReviewPage /></ProtectedRoute>} />
         <Route path="/releases/:id/order" element={<ReleaseOrder />} />
         <Route path="/alerts" element={<AlertsInbox />} />
-        <Route path="/admin/demo" element={<ProtectedRoute roles={['admin']}><DemoTools /></ProtectedRoute>} />
+        <Route path="/admin/demo" element={<ProtectedRoute roles={['admin']}><DemoOnly><DemoTools /></DemoOnly></ProtectedRoute>} />
+        <Route path="/admin/clock" element={<ProtectedRoute roles={['admin']}><AppClockPage /></ProtectedRoute>} />
         <Route path="/admin/outbox" element={<ProtectedRoute roles={['admin']}><Outbox /></ProtectedRoute>} />
-        <Route path="*" element={<EmptyState title="Page not found" description="Check the address or use the menu." />} />
+        <Route path="*" element={NOT_FOUND} />
       </Route>
     </Routes>
   );

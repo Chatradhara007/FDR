@@ -17,6 +17,7 @@ class Health(TypedDict):
     db: Status
     mockBank: Status
     time: str
+    showcaseMode: bool
 
 
 def _db_status() -> Status:
@@ -37,4 +38,5 @@ def _mock_bank_status() -> Status:
 
 def get_health() -> Health:
     # Infrastructure timestamp (wall time), not business time.
-    return {"status": "ok", "db": _db_status(), "mockBank": _mock_bank_status(), "time": iso_ms(datetime.now(UTC))}
+    return {"status": "ok", "db": _db_status(), "mockBank": _mock_bank_status(), "time": iso_ms(datetime.now(UTC)),
+            "showcaseMode": config.showcase_mode}  # fmt: skip

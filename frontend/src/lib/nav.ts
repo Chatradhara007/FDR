@@ -3,8 +3,10 @@ import type { Role } from '@fdr/shared';
 export interface NavItem {
   to: string;
   label: string;
-  /** Listed only while the server runs in DEMO_MODE (D17). */
+  /** Listed only while the server runs in DEMO_MODE (D17), never in SHOWCASE_MODE. */
   demoOnly?: boolean;
+  /** Listed only in SHOWCASE_MODE. */
+  showcaseOnly?: boolean;
 }
 
 /** A top-level menu entry: a single link, or a dropdown group of links. */
@@ -18,6 +20,7 @@ const RULES: NavItem = { to: '/admin/rules', label: 'Rules' };
 const OUTBOX: NavItem = { to: '/admin/outbox', label: 'Outbox' };
 const USERS: NavItem = { to: '/admin/users', label: 'Users' };
 const DEMO: NavItem = { to: '/admin/demo', label: 'Demo tools', demoOnly: true };
+const CLOCK: NavItem = { to: '/admin/clock', label: 'App clock', showcaseOnly: true };
 /** Registers and reports (Phase 7), for every internal role. */
 const RECORDS: NavItem[] = [
   { to: '/register', label: 'Register' },
@@ -53,7 +56,7 @@ export const MENU: Record<Role, MenuEntry[]> = {
     link(RELEASES),
     group('Records', RECORDS),
     group('Monitoring', [ALERTS, OUTBOX, AUDIT]),
-    group('Administration', [RULES, USERS, DEMO]),
+    group('Administration', [RULES, USERS, CLOCK, DEMO]),
   ],
   /** Read-only: audit log and reports first (§8.6); rules and releases to look at, never to change. */
   auditor: [
@@ -66,9 +69,10 @@ export const MENU: Record<Role, MenuEntry[]> = {
   ],
 };
 
-/** The menu for a role with demo-only items dropped outside demo mode and empty groups removed. */
-export function menuFor(role: Role, demoMode: boolean): MenuEntry[] {
-  const keep = (i: NavItem) => !i.demoOnly || demoMode;
+/** The menu for a role with demo-only items dropped outside demo mode (and always in showcase mode), showcase-only
+ *  items dropped outside showcase mode, and empty groups removed. */
+export function menuFor(role: Role, demoMode: boolean, showcase = false): MenuEntry[] {
+  const keep = (i: NavItem) => (!i.demoOnly || (demoMode && !showcase)) && (!i.showcaseOnly || showcase);
   return MENU[role].flatMap((e): MenuEntry[] => {
     if (e.kind === 'link') return keep(e.item) ? [e] : [];
     const items = e.items.filter(keep);

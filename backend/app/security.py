@@ -12,6 +12,8 @@ from .config import config
 log = logging.getLogger("fdr")
 
 MIN_JWT_SECRET = 32
+# The values shipped in .env.example and docker-compose.yml; never acceptable for a showcase install.
+PLACEHOLDER_JWT_SECRETS = frozenset({"change-me-to-a-long-random-string", "dev-secret-change-me"})
 
 
 class InsecureConfig(RuntimeError):
@@ -36,6 +38,17 @@ def file_key() -> bytes:
 
 
 def check_startup_config() -> None:
+    if config.showcase_mode:
+        if config.jwt_secret in PLACEHOLDER_JWT_SECRETS or len(config.jwt_secret) < MIN_JWT_SECRET:
+            raise InsecureConfig(
+                "SHOWCASE_MODE=true needs a real JWT_SECRET (at least 32 random characters, not the placeholder). "
+                'Generate one: python -c "import secrets;print(secrets.token_urlsafe(48))"'
+            )
+        if config.file_encryption_key is None:
+            raise InsecureConfig(
+                "SHOWCASE_MODE=true needs FILE_ENCRYPTION_KEY (32 random bytes, base64). "
+                'Generate one: python -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"'
+            )
     if len(config.jwt_secret) < MIN_JWT_SECRET:
         if not config.demo_mode:
             raise InsecureConfig(f"JWT_SECRET must be at least {MIN_JWT_SECRET} characters (DEMO_MODE is off)")

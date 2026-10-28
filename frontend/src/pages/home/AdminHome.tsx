@@ -6,6 +6,8 @@ import { useDashboard } from '@/api/reporting';
 import { useAuth } from '@/auth/AuthContext';
 import { AlertKindChip, AlertLevelChip, ClockControls, EmptyState, Kicker, StatChip, Tabs } from '@/components';
 import { useClock } from '@/hooks/useClock';
+import { useShowcase } from '@/hooks/useShowcase';
+import { formatDateGov } from '@/lib/format';
 import { firstName, greeting } from '@/lib/greeting';
 import { Alerts, Banks, Buckets, MaturityChart, Regions, StatusBreakdown, Verification } from '@/pages/dashboard/Dashboard';
 
@@ -13,6 +15,7 @@ import { Alerts, Banks, Buckets, MaturityChart, Regions, StatusBreakdown, Verifi
 export function AdminHome() {
   const { user } = useAuth();
   const clock = useClock();
+  const showcase = useShowcase();
   const dash = useDashboard({});
   const escalations = useAlerts({ status: 'open', pageSize: 100 });
   const [tab, setTab] = useState('status');
@@ -62,8 +65,17 @@ export function AdminHome() {
         </section>
         <section className="min-w-0 flex-[1_1_300px] rounded-[14px] border border-border bg-white p-6">
           <Kicker>App clock</Kicker>
-          <p className="mt-1.5 text-[0.9375rem] text-ink-2">Every user sees this date. Moving it runs the daily evaluation at once. The clock chip in the header does the same from any page.</p>
-          <div className="mt-4"><ClockControls /></div>
+          {showcase ? (
+            <>
+              <p className="mt-1.5 text-[0.9375rem] text-ink-2">Every user sees this date{clock.data ? `: ${formatDateGov(clock.data.today)}` : ''}. Moving it runs the daily evaluation at once.</p>
+              <Link to="/admin/clock" className="gov-link mt-4 inline-block font-semibold">Open the app clock</Link>
+            </>
+          ) : (
+            <>
+              <p className="mt-1.5 text-[0.9375rem] text-ink-2">Every user sees this date. Moving it runs the daily evaluation at once. The clock chip in the header does the same from any page.</p>
+              <div className="mt-4"><ClockControls /></div>
+            </>
+          )}
           <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1 border-t border-hairline pt-4 text-sm">
             <Link to="/admin/rules" className="gov-link">Rules</Link>
             <Link to="/admin/users" className="gov-link">Users</Link>

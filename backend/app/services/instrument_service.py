@@ -131,6 +131,7 @@ class Meta(TypedDict):
     requiredDocs: dict[InstrumentType, list[DocType]]
     lienRequired: dict[InstrumentType, bool]
     demoMode: bool  # DEMO_MODE (D17): the header shows the demo ribbon
+    showcaseMode: bool  # SHOWCASE_MODE: no demo chrome; demo tools hidden
 
 
 class InstrumentListResponse(TypedDict):
@@ -254,6 +255,7 @@ def get_meta() -> Meta:
         "requiredDocs": rules["requiredDocs"],
         "lienRequired": rules["lienRequired"],
         "demoMode": config.demo_mode,
+        "showcaseMode": config.showcase_mode,
     }
 
 

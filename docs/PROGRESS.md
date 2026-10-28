@@ -16,6 +16,7 @@ Claude Code updates this file at the end of every phase. Read it first in every 
 | 08 | Admin, audit integrity, security | done | (this commit) | All 10 checks pass (AC10 run in headless Chromium); rules UI scope reduced (see deviations) |
 | 09 | Seed, demo tools, rehearsal, polish | done with known issues | (this commit) | Checks 1–4 automated and passing; check 5 (docker compose from a clean clone) pending, no Docker here; check 6 ticked below |
 | — | Post-Phase-09 features: verifiable release order, advisory flags, PDF text cross-check, printable passport | done | (this commit) | Feature session; see the "Post-Phase-09" subsections below. Tests in `test_phase10_*.py`; the public route is on the security allow-list on purpose |
+| — | Showcase mode (final polish) | done with known issues | (this commit) | `SHOWCASE_MODE=true`; see "Showcase mode" below. Production image not built (no Docker here); its steps were run by hand |
 
 Status values: `not started` · `in progress` · `done` · `done with known issues`.
 
@@ -1359,3 +1360,43 @@ advisory card below it scrolled underneath it and was covered; the card (1,037 p
   at ₹25 L, claimed, verified → mismatch). Before the fix: 31 checks failed; after: all pass. Screenshots in
   `e2e/screenshots/review-layout/{before,after}/` (gitignored). `npm run typecheck`, `node e2e/ui-shots.mjs` and `npm run e2e`
   (9/9) pass.
+
+
+## Showcase mode (final polish)
+
+`SHOWCASE_MODE=true` (default off). With it off nothing changes: 310 backend + 9 mock-bank + 7 shared tests,
+`npm run e2e` 9/9 and `e2e/review-layout.mjs` all pass as before.
+
+- Backend: `config.showcase_mode`. The demo router is mounted when DEMO_MODE or SHOWCASE_MODE is on; a router
+  dependency answers **403 `FORBIDDEN`** for every `/demo/*` route under SHOWCASE_MODE (before authentication).
+  `/demo/tamper` and `/demo/tamper/undo` sit on their own router that requires DEMO_MODE (403 otherwise).
+  `/api/v1/health` gains `showcaseMode` (public, so the login page knows) and is also served at `/health`;
+  `/meta` gains `showcaseMode`.
+- Startup (`check_startup_config`, also run first in `app.server`): SHOWCASE_MODE refuses the placeholder JWT_SECRETs
+  (`.env.example`, compose default) or one under 32 chars, and a missing FILE_ENCRYPTION_KEY, even with DEMO_MODE on.
+- Seeding: `app.server` seeds once when the database has **no instruments**, holding Postgres advisory lock 7002 on a
+  dedicated connection (a second instance waits, then finds the data). Without the mock bank it waits 120 s and then
+  refuses to start (a restart retries) instead of serving base users only. The seed is unchanged; its progress lines
+  (`fdr.seed`) are the per-phase log.
+- UI: no demo ribbon, no Demo tools nav entry (`/admin/demo` shows "Page not found"), no scenario wording; the header
+  clock chip shows just the date for every role; clock controls moved to **Admin > App clock** (`/admin/clock`; the
+  admin home links there; the dashboard's admin clock bar is hidden). Login: "Sign in as" role picker (fills email +
+  `Demo@123`, user presses Sign in) and a plain line under the heading; `/demo/users` is not requested. Footer:
+  "Prototype for SIH26265 · all data is sample data" + Help, Accessibility, Privacy. Print footers on the release
+  order and passport say "prototype, sample data". New page `/help/about` ("How the portal works"), linked from the
+  FAQ and the public footer (both modes).
+- Deployment: `docker/prod/Dockerfile` (+ `start.sh`) builds the frontend with `VITE_API_URL=/api/v1` and serves it
+  from FastAPI (`STATIC_DIR`; SPA fallback for non-`/api` paths with its own CSP; `/api/*` misses stay JSON 404);
+  mock bank inside the container; `/data` volume. `docker-compose.prod.yml`; steps in `docs/DEPLOY.md`.
+- Tests: `backend/tests/test_showcase.py` (403 on every demo route with and without DEMO_MODE, tamper needs DEMO_MODE,
+  flags, startup refusal, seed once under the lock). `e2e/showcase.mjs`: role-picker sign-in for all five roles,
+  landing-page screenshots at 1920x1080, 1366x768, 390x844, with checks (no `demo-ribbon`, no demo/scenario wording,
+  no undefined/null/NaN, no horizontal scroll, no header overlaps, no empty panels, every button named). All pass
+  against the single-origin setup (built frontend served by the backend on :8080).
+
+Deviations / known issues:
+- The audit log still labels the seed's `DEMO_RESET` event "Demo data reset", and the seeded sample PDFs say
+  "Demo Bank Letter". Both come from the seed, which this phase was told not to change.
+- Sample account emails are `@demo.in` (seed data).
+- No Docker here: the production image was not built. Its steps were run by hand instead (vite build with
+  `VITE_API_URL=/api/v1`, backend with `STATIC_DIR`, mock bank on 127.0.0.1:4000).
