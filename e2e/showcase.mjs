@@ -108,6 +108,13 @@ async function main() {
       await page.goto(`${WEB}/admin/clock`);
       await page.getByTestId('app-clock-date').waitFor();
       check(await page.getByRole('button', { name: '+90d' }).count() === 1, 'Admin > App clock has the clock controls');
+      await settle(page);
+      checkPage(await inspect(page), 'Admin > App clock 1366x768');
+      // The "move the date" dialog too (opened and cancelled: the app date is not changed).
+      await page.getByRole('button', { name: 'Move the app date…' }).click();
+      await page.getByLabel('App date', { exact: true }).waitFor();
+      checkPage(await inspect(page), 'Admin > App clock, move dialog');
+      await page.getByRole('button', { name: 'Cancel' }).click();
       await page.screenshot({ path: join(OUT, 'admin-clock-1366x768.png'), fullPage: true });
       await page.goto(`${WEB}/admin/demo`);
       const notFound = await page.getByText('Page not found').waitFor({ timeout: 5000 }).then(() => true, () => false);

@@ -1451,10 +1451,19 @@ Remaining hits, and why they stay:
   hidden or 403 in showcase mode (checked by `e2e/showcase.mjs`).
 - `A1`/`A5`/`A9` keys and `A1-*.pdf` names in `backend/app/seed/*`: internal seed keys and dev file names, never
   rendered; changing them is out of scope (rule d).
-- "simulated" in the clock chip/badge and Admin → App clock: the app-clock feature itself (a moved clock); the
-  header chip is `plain` in showcase mode. The admin page's "Simulated date" field label stays: it names what it sets.
+- "simulated" in the clock chip/badge and Admin → App clock: demo mode only (see the App clock pass below).
 - `simulatedLabel` "Simulated on demo data…": the D26 label outside showcase mode.
 - `@demo.in` account emails, the `Demo@123` password: seed data (rule d).
 - "demonstration and evaluation" on the Terms page: describes the prototype's purpose, not demo chrome.
 - `OfficerHome` "todo" tab id ("To do" label): not a TODO marker. No TODO in UI strings, seed text or PDFs.
 - Code comments, docstrings, docs (`docs/demo-script.md`, `docs/demo-files/`) and `e2e/demo.mjs`: not user-facing.
+
+## Showcase wording: Admin > App clock
+
+- `ClockControls` (`frontend/src/components/ClockBadge.tsx`) in showcase mode: "Move the app date…" button, "Move the
+  app date" dialog title and confirm button, "App date" field label, toast "App date <date>: …" without
+  "(simulated)". Outside showcase mode the wording is unchanged ("Set date…", "Set the app date", "Simulated date").
+- `e2e/showcase.mjs` now runs the page checks (including the "simulated" check) on Admin > App clock and on its move
+  dialog (opened, checked, cancelled; the app date is not changed).
+- Verified: 311 backend + 9 mock-bank + 7 shared pass; typecheck clean; `e2e/showcase.mjs` passes against the built
+  frontend served by the backend with SHOWCASE_MODE=true.
