@@ -35,4 +35,6 @@ def find_institution_by_id(db: Db, institution_id: str) -> InstitutionRow | None
 
 
 def list_regions(db: Db) -> list[str]:
-    return [r["region"] for r in many(db, "SELECT DISTINCT region FROM institutions ORDER BY region")]
+    return [
+        r["region"] for r in many(db, 'SELECT region FROM institutions GROUP BY region ORDER BY region COLLATE "C"')
+    ]

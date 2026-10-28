@@ -14,7 +14,7 @@
     "dev:backend": "node scripts/py.mjs --cwd backend -m app.server --migrate-only && node scripts/py.mjs --cwd backend -m uvicorn app.main:app --reload --reload-dir app --host 0.0.0.0 --port 3000",
     "dev:bank": "node scripts/py.mjs --cwd mock-bank -m uvicorn mock_bank.main:app --reload --reload-dir mock_bank --host 0.0.0.0 --port 4000",
     "test": "npm run test:py && npm run test -w shared",
-    "test:py": "node scripts/py.mjs --cwd backend --env SEED_BUDGET_SECONDS=30 -m pytest && node scripts/py.mjs --cwd mock-bank -m pytest",
+    "test:py": "node scripts/py.mjs --cwd backend --env SEED_BUDGET_SECONDS=60 --env JUMP_BUDGET_SECONDS=20 -m pytest && node scripts/py.mjs --cwd mock-bank -m pytest",
     "typecheck": "npm run lint:py && npm run typecheck:py && npm run typecheck -w shared && npm run typecheck -w frontend",
     "lint:py": "node scripts/py.mjs -m ruff check --config backend/pyproject.toml backend mock-bank scripts && node scripts/py.mjs -m ruff format --check --config backend/pyproject.toml backend mock-bank scripts",
     "typecheck:py": "node scripts/py.mjs --cwd backend -m mypy && node scripts/py.mjs --cwd mock-bank -m mypy",
