@@ -28,6 +28,10 @@ os.environ["DATABASE_URL"] = _test_url
 os.environ["MOCK_BANK_URL"] = os.environ.get(
     "TEST_MOCK_BANK_URL", "http://127.0.0.1:9"
 )  # unreachable unless a test starts one
+# Hermetic modes: an .env or shell SHOWCASE_MODE/DEMO_MODE never changes the result. test_showcase.py turns
+# showcase mode on itself with monkeypatch.
+os.environ["SHOWCASE_MODE"] = "false"
+os.environ["DEMO_MODE"] = "true"
 os.environ["SCHEDULER_ENABLED"] = "false"  # the real-clock daily job never runs inside tests
 os.environ["JWT_SECRET"] = "test-secret-at-least-32-bytes-long!"
 # A fixed test key for documents at rest (32 bytes, base64), so tests never depend on DEMO_MODE's derived key.

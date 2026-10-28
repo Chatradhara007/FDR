@@ -1410,5 +1410,8 @@ Deviations / known issues:
   phase-04 check); `npm run test:py` sets it to 20.
 - `npm run test:py` raises `SEED_BUDGET_SECONDS` from 30 to 60 (the test's own default stays 15 s).
 - Verified: `SHOWCASE_MODE=false` → 310 backend + 9 mock-bank + 7 shared pass; typecheck clean.
-  Known issue: `SHOWCASE_MODE=true` in `.env` → 282 pass, 5 failed + 23 errors, identical before this change: the
-  demo-script/seed tests call `/demo/*`, which showcase mode forbids (403). Run the suite with showcase off.
+- Tests are hermetic against the modes: `backend/tests/conftest.py` forces `SHOWCASE_MODE=false` and `DEMO_MODE=true`
+  before any app module loads, so an `.env` or shell value never changes the result (previously `SHOWCASE_MODE=true`
+  gave 5 failures + 23 errors, because `/demo/*` returns 403). `test_showcase.py` turns showcase mode on itself with
+  monkeypatch. Verified with `SHOWCASE_MODE=true` and `=false` (each with `DEMO_MODE=false`) exported in the shell:
+  310 backend + 9 mock-bank + 7 shared pass both times.
