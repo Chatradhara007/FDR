@@ -1467,3 +1467,9 @@ Remaining hits, and why they stay:
   dialog (opened, checked, cancelled; the app date is not changed).
 - Verified: 311 backend + 9 mock-bank + 7 shared pass; typecheck clean; `e2e/showcase.mjs` passes against the built
   frontend served by the backend with SHOWCASE_MODE=true.
+
+## Post-phase: fresh-submission samples
+- `SAMPLE_RECORDS` (S1–S4) added to the mock bank's seeded records only; the 60 instruments are unchanged. Committed PDFs
+  in `samples/` (see `samples/README.md`); S4's PDFs print ₹30,00,000 against the bank's ₹27,50,000 → MISMATCH.
+- Test: `test_fresh_submission_samples_are_bank_records_only_and_verify_live` (test_phase09_seed.py).
+- Showcase e2e not re-run for this change (no UI change).

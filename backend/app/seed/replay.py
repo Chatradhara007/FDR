@@ -52,7 +52,7 @@ from ..services.audit_service import clear_integrity_cache
 from ..services.document_service import IncomingFile
 from ..shared_constants import FIELD_LABELS
 from .base import INSTITUTIONS, seed_base
-from .dataset import A1_CLAIMED_AMOUNT, A1_RECORD, A4_REPLACEMENT, AICTE, LIEN_HOLDER, Spec, Step, build
+from .dataset import A1_CLAIMED_AMOUNT, A1_RECORD, A4_REPLACEMENT, AICTE, LIEN_HOLDER, SAMPLE_RECORDS, Spec, Step, build
 from .pdf import sample_document
 
 # Evaluate every day of the last weeks (alerts and escalations land on their exact dates), every 5th day before.
@@ -121,10 +121,26 @@ def extra_record(r: dict[str, object], d0: str) -> bank_client.BankRecord:
     }
 
 
+def sample_record(r: dict[str, str]) -> bank_client.BankRecord:
+    return {
+        "bank": r["bank"],
+        "reference_no": r["reference_no"],
+        "amount": r["amount"],
+        "issue_date": r["issue_date"],
+        "maturity_date": r["maturity_date"],
+        "beneficiary_name": AICTE,
+        "lien_marked": True,
+        "lien_in_favour_of": LIEN_HOLDER,
+        "status": "LIVE",
+    }
+
+
 def bank_records(specs: list[Spec], d0: str) -> list[bank_client.BankRecord]:
-    """The bank's true records: every non-draft instrument (none for the not-found case), A1 and A4's replacement."""
+    """The bank's true records: every non-draft instrument (none for the not-found case), A1, A4's replacement and
+    the fresh-submission samples (samples/), which are never portal instruments."""
     out = [bank_record(s, d0) for s in specs if s.bank_record]
-    return [*out, extra_record(A1_RECORD, d0), extra_record(A4_REPLACEMENT, d0)]
+    samples = [sample_record(r) for r in SAMPLE_RECORDS]
+    return [*out, extra_record(A1_RECORD, d0), extra_record(A4_REPLACEMENT, d0), *samples]
 
 
 # ---- sample documents ----
@@ -163,6 +179,26 @@ def a1_sample(doc_type: str, d0: str, *, amount_on_copy: str = "claimed") -> byt
     note = "We confirm the above deposit is held with lien in favour of AICTE." if doc_type == "BANK_LETTER" else ""
     return sample_document(doc_type, document_rows(values), INSTITUTIONS["inst1"]["name"],
                            str(A1_RECORD["bank"]), note)  # fmt: skip
+
+
+def sample_pdf(r: dict[str, str], doc_type: str) -> bytes:
+    """A fresh-submission sample PDF. Both documents print `printed` when set (S4: the bank holds less), so only the
+    officer's bank check reveals the difference."""
+    values: dict[str, object] = {
+        "referenceNo": r["reference_no"], "branch": r["branch"], "amount": r.get("printed", r["amount"]),
+        "issueDate": r["issue_date"], "maturityDate": r["maturity_date"], "beneficiaryName": AICTE, "lienMarked": True,
+    }  # fmt: skip
+    note = "We confirm the above deposit is held with lien in favour of AICTE." if doc_type == "BANK_LETTER" else ""
+    return sample_document(doc_type, document_rows(values), INSTITUTIONS[r["institution"]]["name"], r["bank"], note)
+
+
+def sample_files() -> dict[str, bytes]:
+    """samples/<key>-fdr-copy.pdf and samples/<key>-bank-letter.pdf for every fresh-submission sample."""
+    out: dict[str, bytes] = {}
+    for r in SAMPLE_RECORDS:
+        out[f"{r['key']}-fdr-copy.pdf"] = sample_pdf(r, "FDR_COPY")
+        out[f"{r['key']}-bank-letter.pdf"] = sample_pdf(r, "BANK_LETTER")
+    return out
 
 
 # ---- replay ----

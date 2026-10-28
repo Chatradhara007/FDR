@@ -388,3 +388,36 @@ def test_first_start_in_demo_mode_seeds_an_empty_database_only(
     seed_empty_demo(wait_seconds=0)  # no mock bank: base users and rules, so someone can still sign in
     assert one(get_pool(), "SELECT count(*)::int AS n FROM users")["n"] == 18
     assert one(get_pool(), "SELECT count(*)::int AS n FROM instruments")["n"] == 0
+
+
+def test_fresh_submission_samples_are_bank_records_only_and_verify_live(seeded: dict[str, Any]) -> None:
+    """samples/: committed PDFs match SAMPLE_RECORDS; none is a portal instrument; S1-S3 verify, S4 is a mismatch."""
+    from app.config import REPO_ROOT
+    from app.seed.dataset import SAMPLE_RECORDS
+    from app.seed.replay import sample_files
+
+    for name, data in sample_files().items():
+        assert (REPO_ROOT / "samples" / name).read_bytes() == data, f"samples/{name} is stale: run app.seed.samples"
+    officer = bearer(user_for("officer@demo.in"))
+    for r in SAMPLE_RECORDS:
+        assert many(get_pool(), "SELECT id FROM instruments WHERE reference_no = $1", [r["reference_no"]]) == []
+        user = bearer(user_for(f"{r['institution']}@demo.in"))
+        created = api().post("/api/v1/instruments", headers=user, json={
+            "type": "FDR", "referenceNo": r["reference_no"], "issuingBank": r["bank"], "branch": r["branch"],
+            "amount": r.get("printed", r["amount"]), "issueDate": r["issue_date"], "maturityDate": r["maturity_date"],
+            "beneficiaryName": "MEMBER SECRETARY AICTE", "lienMarked": True, "purpose": "Security deposit"})  # fmt: skip
+        assert created.status_code == 201, created.text
+        iid = created.json()["id"]
+        for doc_type, suffix in (("FDR_COPY", "fdr-copy"), ("BANK_LETTER", "bank-letter")):
+            name = f"{r['key']}-{suffix}.pdf"
+            res = api().post(f"/api/v1/instruments/{iid}/documents", headers=user, data={"docType": doc_type},
+                             files={"file": (name, (REPO_ROOT / "samples" / name).read_bytes(), "application/pdf")})  # fmt: skip
+            assert res.status_code == 201, res.text
+        assert api().post(f"/api/v1/instruments/{iid}/submit", headers=user).status_code == 200
+        assert api().post(f"/api/v1/instruments/{iid}/claim", headers=officer).status_code == 200
+        verify = api().post(f"/api/v1/instruments/{iid}/verify", headers=officer)
+        assert verify.status_code == 200, verify.text
+        if "printed" in r:
+            assert verify.json()["result"] == "MISMATCH" and verify.json()["mismatchedFields"] == ["amount"]
+        else:
+            assert verify.json()["result"] == "CONFIRMED", verify.json()

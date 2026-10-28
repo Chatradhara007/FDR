@@ -131,6 +131,22 @@ A4_REPLACEMENT = {"bank": "Union Bank of India", "reference_no": "UBIN/FDR/2026/
                   "issue": 5, "maturity": 400}  # fmt: skip
 A5_BANK_AMOUNT_AT_REVERIFY = "1450000.00"
 
+# Fresh-submission samples (samples/README.md): bank records that are never portal instruments, so a new deposit can be
+# submitted and bank-verified live, also in showcase mode. Absolute dates (not D0 offsets) keep the committed PDFs in
+# samples/ valid whenever the seed runs. `printed` is the amount on the sample PDFs where it differs from the bank's.
+SAMPLE_RECORDS: tuple[dict[str, str], ...] = (
+    {"key": "S1", "institution": "inst2", "bank": "Canara Bank", "reference_no": "CNRB/FD/2026/52018",
+     "branch": "Rajahmundry Main", "amount": "1500000.00", "issue_date": "2026-09-15", "maturity_date": "2027-09-15"},
+    {"key": "S2", "institution": "inst3", "bank": "Bank of Baroda", "reference_no": "BARB/FDR/2026/31406",
+     "branch": "Mysuru City", "amount": "1000000.00", "issue_date": "2026-08-20", "maturity_date": "2028-08-20"},
+    {"key": "S3", "institution": "inst5", "bank": "HDFC Bank", "reference_no": "HDFC/FD/2026/77215",
+     "branch": "Ahmedabad Navrangpura", "amount": "2500000.00", "issue_date": "2026-10-01",
+     "maturity_date": "2027-10-01"},
+    {"key": "S4", "institution": "inst9", "bank": "Punjab National Bank", "reference_no": "PUNB/FDR/2026/18834",
+     "branch": "Connaught Place", "amount": "2750000.00", "printed": "3000000.00", "issue_date": "2026-09-01",
+     "maturity_date": "2027-12-01"},
+)  # fmt: skip
+
 # Officers by region (seed spec: officer@ South-Central & Southern …, officer2@ Northern & Western).
 OFFICER_FOR_REGION = {
     "South-Central": "officer@demo.in", "Southern": "officer@demo.in", "South-West": "officer@demo.in",
