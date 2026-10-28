@@ -1,5 +1,5 @@
 """Improvement metrics (§7.6): the portal's own data (app-clock events) against the `improvement_baseline` rule.
-Every figure is labelled "Simulated on demo data" (D26); the baseline changes only through the rules table."""
+Every figure carries the D26 label (sample-data wording in showcase mode); the baseline changes only through the rules table."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from collections import defaultdict
 from statistics import median
 from typing import Literal, TypedDict, cast
 
+from ..config import config
 from ..db.pool import get_pool
 from ..domain import clock
 from ..domain.access import AuthUser
@@ -17,11 +18,16 @@ from ..repositories.discrepancy_repo import DiscrepancyRow
 from ..repositories.observation_repo import ObservationRow
 from ..repositories.provenance_repo import ProvenanceRow
 from ..services.instrument_service import doc_rules
-from ..shared_constants import SIMULATED_LABEL, InstrumentType
+from ..shared_constants import SHOWCASE_SIMULATED_LABEL, SIMULATED_LABEL, InstrumentType
 from .report_service import Column, record_export, to_csv
 
 Better = Literal["lower", "higher"]
 REMINDER_LEAD_DAYS = 30
+
+
+def _label() -> str:
+    """D26: every figure carries a label; showcase mode words it for sample data."""
+    return SHOWCASE_SIMULATED_LABEL if config.showcase_mode else SIMULATED_LABEL
 
 
 class Figure(TypedDict):
@@ -58,7 +64,7 @@ def _fig(value: float | None, unit: str, empty: str = "No data yet") -> Figure:
 def _metric(key: str, title: str, unit: str, better: Better, portal: Figure, manual: Figure, n: int | None,
             explanation: str) -> Metric:  # fmt: skip
     return {"key": key, "title": title, "unit": unit, "better": better, "portal": portal, "manual": manual,
-            "sampleSize": n, "explanation": explanation, "label": SIMULATED_LABEL}  # fmt: skip
+            "sampleSize": n, "explanation": explanation, "label": _label()}  # fmt: skip
 
 
 def _auto_problems() -> tuple[int, int]:
@@ -119,7 +125,7 @@ def improvement() -> Improvement:
                 {"value": None, "display": "Not tracked"}, None,
                 "Instruments in scrutiny or returned plus open release requests, all on the dashboard."),
     ]  # fmt: skip
-    return {"label": SIMULATED_LABEL, "asOf": clock.today(db), "baselineNote": base.note, "metrics": metrics}
+    return {"label": _label(), "asOf": clock.today(db), "baselineNote": base.note, "metrics": metrics}
 
 
 CSV_COLUMNS: list[Column] = [

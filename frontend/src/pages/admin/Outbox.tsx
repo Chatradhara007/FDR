@@ -10,7 +10,7 @@ function recipient(o: OutboxItem): string {
   return o.toRole ? `${ROLE_LABELS[o.toRole]} pool` : '—';
 }
 
-/** Simulated emails: what a real mailer would have sent for every new alert. */
+/** Outbox emails: what a real mailer would have sent for every new alert. */
 export function Outbox() {
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState<OutboxItem | null>(null);
@@ -25,10 +25,10 @@ export function Outbox() {
     <div className="mx-auto max-w-[1400px]">
       <PageHeader
         title="Outbox"
-        subtitle="Simulated emails: what a real mailer would have sent for each alert. Nothing leaves the portal."
+        subtitle="The emails a mailer would send for each alert. No mail server is connected; nothing leaves the portal."
       />
       <Table
-        caption="Simulated emails, newest first"
+        caption="Outbox emails, newest first"
         columns={columns}
         rows={outbox.data?.items}
         rowKey={(o) => String(o.id)}

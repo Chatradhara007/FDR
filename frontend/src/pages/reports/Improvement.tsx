@@ -24,7 +24,7 @@ const columns: Column<ImprovementMetric>[] = [
   { key: 'label', header: 'Source', cell: (m) => <SimulatedTag label={m.label} /> },
 ];
 
-/** /reports/improvement: manual vs portal in one table, every row labelled "Simulated on demo data" (D26). */
+/** /reports/improvement: manual vs portal in one table, every row labelled (D26; worded for sample data in showcase mode). */
 export function Improvement() {
   const q = useImprovement();
   const toast = useToast();

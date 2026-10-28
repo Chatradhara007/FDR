@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from ..config import config
 from ..shared_constants import (
     DOC_TYPE_LABELS,
     FIELD_LABELS,
@@ -19,7 +20,7 @@ def _data(v: object) -> Mapping[str, object]:
 
 
 def label_for(action: str, before: object, after: object, actor: str) -> str:
-    base = event_label(action)
+    base = event_label(action, config.showcase_mode)
     a = _data(after)
     if action == "VERIFICATION_RESULT":
         raw = a.get("mismatchedFields")

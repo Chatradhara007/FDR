@@ -2,12 +2,13 @@ import { ChevronRight, Download, RefreshCw, ShieldAlert, ShieldCheck } from 'luc
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  DOC_TYPE_LABELS, EVENT_LABELS, ROLE_LABELS, formatDateTime, type AuditEvent, type DocumentAccessRow,
+  DOC_TYPE_LABELS, EVENT_LABELS, ROLE_LABELS, eventLabel, formatDateTime, type AuditEvent, type DocumentAccessRow,
 } from '@fdr/shared';
 import { downloadAuditEvents, useAuditEvents, useDocumentAccess, useIntegrity, useRecheckIntegrity } from '@/api/admin';
 import type { Params } from '@/api/reporting';
 import { Button, Drawer, ErrorState, Kicker, LoadingState, PageHeader, Pager, Panel, Table, Tabs, useToast, type Column } from '@/components';
 import { cn } from '@/lib/cn';
+import { useShowcase } from '@/hooks/useShowcase';
 
 const ENTITY_TYPES = [
   'instrument', 'document', 'verification', 'discrepancy', 'observation', 'alert', 'release_request', 'release_condition',
@@ -98,6 +99,7 @@ function Diff({ before, after }: { before: unknown; after: unknown }) {
 
 function EventsTab({ eventId, clearEventId }: { eventId: number | null; clearEventId: () => void }) {
   const toast = useToast();
+  const showcase = useShowcase();
   const [filters, setFilters] = useState({ action: '', entityType: '', from: '', to: '', q: '', actorId: '', actorLabel: '' });
   const [signIns, setSignIns] = useState(false);
   const [page, setPage] = useState(1);
@@ -143,7 +145,7 @@ function EventsTab({ eventId, clearEventId }: { eventId: number | null; clearEve
         <label className="text-sm font-semibold text-ink">Action
           <select className="gov-input mt-1 block w-auto" value={filters.action} onChange={set('action')}>
             <option value="">All actions</option>
-            {ACTIONS.map((a) => <option key={a} value={a}>{EVENT_LABELS[a]}</option>)}
+            {ACTIONS.map((a) => <option key={a} value={a}>{eventLabel(a, showcase)}</option>)}
           </select>
         </label>
         <label className="text-sm font-semibold text-ink">Record type

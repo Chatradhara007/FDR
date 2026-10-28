@@ -41,7 +41,7 @@ export function PublicFooter() {
           </div>
         ))}
         <p className="min-w-0 flex-[1_1_280px] text-[0.8125rem] text-muted">
-          Prototype built for Smart India Hackathon 2026 (SIH26265). {showcase ? 'All data is sample data.' : 'All data shown is synthetic.'} This is not an official AICTE website.
+          {showcase ? 'Prototype for SIH26265 · all data is sample data' : 'Prototype built for Smart India Hackathon 2026 (SIH26265). All data shown is synthetic. This is not an official AICTE website.'}
         </p>
       </div>
     </footer>

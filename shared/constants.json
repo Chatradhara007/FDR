@@ -751,6 +751,10 @@
     "institution-summary": "Institution summary"
   },
   "simulatedLabel": "Simulated on demo data — illustrative, not real-world claims",
+  "showcaseSimulatedLabel": "Estimated on sample data — illustrative, not real-world claims",
+  "showcaseEventLabels": {
+    "DEMO_RESET": "Initial data loaded"
+  },
   "reminderRecipientRoles": [
     "institution",
     "officer",
