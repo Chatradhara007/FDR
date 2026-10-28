@@ -10,6 +10,7 @@ import { useMeta } from '@/api/instruments';
 import { toQuery } from '@/api/reporting';
 import { useDashboard } from '@/api/reporting';
 import { useAuth } from '@/auth/AuthContext';
+import { useShowcase } from '@/hooks/useShowcase';
 import { Badge, Button, ClockControls, EmptyState, ErrorState, LoadingState, PageHeader, Panel, StatusChip, Table, Tabs, VerificationChip, type Column } from '@/components';
 import { useCountUp } from '@/hooks/useCountUp';
 import { downloadCsv } from '@/lib/csv';
@@ -287,6 +288,7 @@ export function Dashboard() {
   const type = params.get('type') ?? '';
   const meta = useMeta();
   const { user } = useAuth();
+  const showcase = useShowcase();
   const q = useDashboard({ region, type });
   const d = q.data;
   const base = { region: region || undefined, type: type || undefined };
@@ -319,7 +321,7 @@ export function Dashboard() {
         </div>
         {(region || type) && <Button variant="secondary" onClick={() => setParams(new URLSearchParams(), { replace: true })}>Reset</Button>}
       </form>
-      {user?.role === 'admin' && (
+      {user?.role === 'admin' && !showcase && (
         <div className="mb-5 flex flex-wrap items-center gap-3 rounded-[14px] border border-border bg-surface px-5 py-3">
           <span className="kicker text-muted">App clock</span>
           <ClockControls />

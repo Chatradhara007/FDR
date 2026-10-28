@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useMeta } from '@/api/instruments';
 import { useAuth } from '@/auth/AuthContext';
+import { useShowcase } from '@/hooks/useShowcase';
 import { menuFor, menuLinks } from '@/lib/nav';
 import { ROLE_HOME } from '@/lib/roles';
 import { AlertBell } from './AlertBell';
@@ -45,7 +46,8 @@ export function Layout() {
   const { user } = useAuth();
   const { pathname } = useLocation();
   const demoMode = useMeta().data?.demoMode === true;
-  const entries = useMemo(() => (user ? menuFor(user.role, demoMode) : []), [user, demoMode]);
+  const showcase = useShowcase();
+  const entries = useMemo(() => (user ? menuFor(user.role, demoMode, showcase) : []), [user, demoMode, showcase]);
   const [palette, setPalette] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   useEffect(() => setMobileOpen(false), [pathname]);
@@ -70,9 +72,9 @@ export function Layout() {
             className="inline-flex h-[38px] min-w-0 shrink items-center gap-2 rounded-[8px] border border-border bg-canvas px-2.5 text-sm text-muted hover:border-slate-400 2xl:w-[300px] 2xl:px-3.5">
             <Search className="size-4 shrink-0" aria-hidden />
             <span className="hidden truncate 2xl:inline">{internal ? 'Jump to a deposit: type a reference' : 'Search pages'}</span>
-            <kbd className="mono ml-auto hidden text-xs 2xl:inline">Ctrl K</kbd>
+            <kbd className="mono ml-auto hidden text-xs whitespace-nowrap 2xl:inline">Ctrl K</kbd>
           </button>
-          <ClockChip admin={user?.role === 'admin'} />
+          <ClockChip admin={user?.role === 'admin' && !showcase} plain={showcase} />
           <AlertBell />
           <UserMenu />
           <button type="button" className="inline-flex h-9 items-center gap-1.5 rounded-[8px] border border-border px-2.5 text-sm font-semibold lg:hidden"
@@ -81,14 +83,19 @@ export function Layout() {
           </button>
         </div>
       </header>
-      {demoMode && <DemoRibbon />}
+      {demoMode && !showcase && <DemoRibbon />}
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1400px] flex-1 px-4 pt-6 pb-9 outline-none sm:px-7 print:max-w-none print:p-0">
         <Outlet />
       </main>
-      <AppFooter />
+      <AppFooter showcase={showcase} />
       <CommandPalette open={palette} onClose={() => setPalette(false)} links={menuLinks(entries)} canSearchRegister={internal} />
     </div>
   );
+}
+
+function PublicTagline() {
+  const showcase = useShowcase();
+  return <span className="hidden text-[0.8125rem] text-muted sm:inline">Security Deposit &amp; FDR Management{showcase ? '' : ' · Prototype'}</span>;
 }
 
 /** Public pages (sign in, help, policies, release verification): the slim header without nav, and a fuller footer. */
@@ -99,7 +106,7 @@ export function PublicLayout({ children }: { children?: ReactNode }) {
       <header className="border-b border-border bg-white print:hidden">
         <div className="mx-auto flex min-h-[60px] max-w-[1400px] items-center gap-4 px-4 sm:px-7">
           <Wordmark to="/" />
-          <span className="hidden text-[0.8125rem] text-muted sm:inline">Security Deposit &amp; FDR Management · Prototype</span>
+          <PublicTagline />
         </div>
       </header>
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1400px] flex-1 px-4 pt-8 pb-10 outline-none sm:px-7 print:max-w-none print:p-0">

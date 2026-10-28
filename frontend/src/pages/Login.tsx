@@ -8,6 +8,7 @@ import { ApiError, apiFetch } from '@/api/client';
 import { useAuth } from '@/auth/AuthContext';
 import { clearSignOutReason, getSignOutReason } from '@/auth/token';
 import { Button, FormField, MandatoryNote, Notice } from '@/components';
+import { useShowcaseState } from '@/hooks/useShowcase';
 import { ROLE_HOME } from '@/lib/roles';
 
 // Demo mode quick sign-in (D17). The seed gives every demo user this password.
@@ -23,6 +24,15 @@ const QUICK: { email: string; label: string }[] = [
   { email: 'auditor@demo.in', label: 'Auditor' },
 ];
 
+/** Showcase mode: one sample account per role; a click fills the form, the user presses Sign in. */
+const ROLE_PICKER: { email: string; label: string; does: string }[] = [
+  { email: 'inst1@demo.in', label: 'Institution', does: 'Lodges deposits and requests release' },
+  { email: 'officer@demo.in', label: 'Scrutiny officer', does: 'Verifies deposits with the bank' },
+  { email: 'approver@demo.in', label: 'Approver', does: 'Decides releases' },
+  { email: 'admin@demo.in', label: 'Admin', does: 'Users, rules and the app clock' },
+  { email: 'auditor@demo.in', label: 'Auditor', does: 'Reads the audit trail and reports' },
+];
+
 export function Login() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
@@ -34,10 +44,13 @@ export function Login() {
   const [pending, setPending] = useState<string | null>(null);
   // Shown once: read on mount, cleared after (an initializer may run twice in StrictMode).
   const [reason] = useState(getSignOutReason);
+  const { showcase, known } = useShowcaseState();
   useEffect(clearSignOutReason, []);
 
   // 404 when DEMO_MODE is off: the quick buttons simply don't render.
-  const demoUsers = useQuery({ queryKey: ['demo-users'], queryFn: () => apiFetch<DemoUser[]>('/demo/users'), retry: false, staleTime: Infinity });
+  // Not asked in showcase mode (403 there): the role picker below replaces them.
+  const demoUsers = useQuery({ queryKey: ['demo-users'], queryFn: () => apiFetch<DemoUser[]>('/demo/users'), retry: false, staleTime: Infinity,
+    enabled: known && !showcase });
 
   if (user) return <Navigate to={ROLE_HOME[user.role]} replace />;
 
@@ -62,17 +75,45 @@ export function Login() {
     void signIn(email, password, 'form');
   };
 
-  const quick = QUICK.map((q) => ({ ...q, user: demoUsers.data?.find((d) => d.email === q.email) })).filter((q) => q.user);
+  const pick = (email: string) => {
+    setEmail(email);
+    setPassword(DEMO_PASSWORD);
+    setFieldErrors({});
+    setFormError(null);
+    document.getElementById('sign-in')?.focus();
+  };
+
+  const quick = showcase ? [] : QUICK.map((q) => ({ ...q, user: demoUsers.data?.find((d) => d.email === q.email) })).filter((q) => q.user);
 
   return (
     <div className="mx-auto max-w-[1100px]">
       <div className="mb-7">
         <h1 className="text-[2rem] leading-tight font-bold tracking-[-0.02em]">Sign in to the FDR Portal</h1>
-        <p className="mt-2 text-[1.0625rem] text-muted">Lodge, verify and release fixed deposits and security deposits held by AICTE.</p>
+        <p className="mt-2 text-[1.0625rem] text-muted">
+          {showcase
+            ? 'Institutions lodge fixed deposits and security deposits held by AICTE; officials verify them with the bank, track maturity and authorise release.'
+            : 'Lodge, verify and release fixed deposits and security deposits held by AICTE.'}
+        </p>
       </div>
       <div className="flex flex-wrap items-start gap-[22px]">
         <div className="min-w-0 flex-[1_1_420px] space-y-[22px] lg:max-w-[520px]">
           {reason && <Notice role="status">{reason}</Notice>}
+          {showcase && (
+            <section data-testid="role-picker" className="rounded-[14px] border border-border bg-white p-[26px]">
+              <h2 className="text-lg font-bold">Sign in as</h2>
+              <p className="mt-1.5 mb-4 text-sm text-muted">Choose a role to fill in its sample account, then press Sign in.</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {ROLE_PICKER.map((r) => (
+                  <button key={r.email} type="button" onClick={() => pick(r.email)} aria-pressed={email === r.email}
+                    aria-label={`Sign in as ${r.label}: fill in the sample account`}
+                    className="rounded-[10px] border border-border px-3.5 py-2.5 text-left hover:border-slate-400 hover:bg-subtle aria-pressed:border-teal aria-pressed:bg-teal-tint">
+                    <span className="block text-[0.9375rem] font-semibold text-ink">{r.label}</span>
+                    <span className="block text-[0.8125rem] text-muted">{r.does}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
           <section className="rounded-[14px] border border-border bg-white p-[26px]">
             <h2 className="text-lg font-bold">Your account</h2>
             <form onSubmit={onSubmit} noValidate className="mt-4 space-y-4">
@@ -86,7 +127,7 @@ export function Login() {
                   aria-invalid={!!fieldErrors.password} aria-describedby="password-error" className="gov-input" />
               </FormField>
               <div className="flex flex-wrap items-center gap-3 pt-1">
-                <Button type="submit" size="lg" loading={pending === 'form'} disabled={!!pending} icon={<LogIn className="size-4" aria-hidden />}>
+                <Button id="sign-in" type="submit" size="lg" loading={pending === 'form'} disabled={!!pending} icon={<LogIn className="size-4" aria-hidden />}>
                   Sign in
                 </Button>
                 <Button type="reset" variant="secondary" disabled={!!pending} onClick={() => { setEmail(''); setPassword(''); setFieldErrors({}); setFormError(null); }}>

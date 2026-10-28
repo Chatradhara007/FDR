@@ -152,6 +152,7 @@ export interface Meta {
   lienRequired: Record<InstrumentType, boolean>;
   /** DEMO_MODE (D17): demo tools, quick sign-in and the header ribbon. */
   demoMode: boolean;
+  showcaseMode: boolean;
 }
 
 /** Request bodies (validated server-side by backend/app/schemas.py). Blank strings and null clear a field. */
