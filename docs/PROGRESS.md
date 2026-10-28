@@ -1486,3 +1486,7 @@ Remaining hits, and why they stay:
   claims and verifies): 09001 CONFIRMED, 09002 MISMATCH [amount], 09003 MISMATCH [maturity_date], 09004 UNAVAILABLE;
   the PDF text cross-check read every PDF (FDR copy: reference, amount, issue and maturity dates all MATCH).
   311 backend + 10 mock-bank + 7 shared pass; typecheck clean; `e2e/showcase.mjs` passes.
+- Second set SBIN/FDR/2026/09005–09008 (same four cases, for a retake once the first set is lodged), plus corrected
+  PDFs (24,00,000) for 09002 and 09006 to resubmit after the officer returns them. Verified on a fresh showcase DB:
+  09005 CONFIRMED, 09006 MISMATCH [amount], 09007 MISMATCH [maturity_date], 09008 UNAVAILABLE; 09006 returned,
+  amount corrected, documents replaced, resubmitted, re-verified: CONFIRMED.
