@@ -14,3 +14,6 @@ maturity date 2029-09-15, in favour of MEMBER SECRETARY AICTE, lien marked: yes.
 | SBIN/FDR/2026/09002 | State Bank of India | amount 24,00,000 | Mismatch: amount |
 | SBIN/FDR/2026/09003 | State Bank of India | maturity 2029-03-15 | Mismatch: maturity date |
 | SBIN/FDR/2026/09004 | Indian Overseas Bank | same as the form | Bank unavailable (offline-test bank) |
+
+09002 after the officer returns it: change the amount to 24,00,000, replace both documents with
+`09002-corrected-fdr-copy.pdf` and `09002-corrected-bank-letter.pdf`, and submit again; the bank check then confirms.

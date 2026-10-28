@@ -44,6 +44,14 @@ def main() -> None:
         (folder / f"{short}-fdr-copy.pdf").write_bytes(sample_document("FDR_COPY", rows, institution, bank))
         (folder / f"{short}-bank-letter.pdf").write_bytes(sample_document("BANK_LETTER", rows, institution, bank, NOTE))
         print(f"wrote {folder.relative_to(ROOT)}")
+    # 09002 after the officer returns it: the institution re-uploads documents showing the bank's amount.
+    folder = OUT / "SBIN-FDR-2026-09002"
+    rows = document_rows({**values("SBIN/FDR/2026/09002", "Begumpet"), "amount": "2400000.00"})
+    bank = "State Bank of India"
+    (folder / "09002-corrected-fdr-copy.pdf").write_bytes(sample_document("FDR_COPY", rows, institution, bank))
+    (folder / "09002-corrected-bank-letter.pdf").write_bytes(
+        sample_document("BANK_LETTER", rows, institution, bank, NOTE)
+    )
 
 
 if __name__ == "__main__":
