@@ -32,6 +32,7 @@ ENV STATIC_DIR=/app/frontend-dist \
     MOCK_BANK_URL=http://127.0.0.1:4000 \
     MOCK_BANK_PORT=4000 \
     MOCK_BANK_SLOW_SECONDS=3 \
+    MOCK_BANK_OFFLINE_BANKS="Indian Overseas Bank" \
     TZ=Asia/Kolkata \
     PORT=3000
 VOLUME ["/data"]

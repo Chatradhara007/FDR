@@ -1467,3 +1467,22 @@ Remaining hits, and why they stay:
   dialog (opened, checked, cancelled; the app date is not changed).
 - Verified: 311 backend + 9 mock-bank + 7 shared pass; typecheck clean; `e2e/showcase.mjs` passes against the built
   frontend served by the backend with SHOWCASE_MODE=true.
+
+## Demo-video sample deposits
+
+- Four new references, unused by the seed (checked on a freshly seeded showcase DB: 60 instruments, 60 bank records,
+  none `…/090xx`): SBIN/FDR/2026/09001–09004, Institution 1. PDFs (FDR copy + bank letter, the seed's
+  `sample_document` layout) in `samples/video/SBIN-FDR-2026-0900N/`, written by `scripts/gen_video_samples.py`;
+  see `samples/video/README.md` for the form values.
+- Mock bank: fixed records in `mock-bank/mock_bank/video_records.py`. `Store.find` looks in the loaded records, then
+  these; `/records/load`, `/reload` and `GET /records` are unchanged, so the seed's bank data, seed output and
+  fingerprint do not change. Part of the `mock_bank` package, so the mock-bank image and the prod image carry them.
+- Prod image (`docker/prod/Dockerfile`) now sets `MOCK_BANK_OFFLINE_BANKS="Indian Overseas Bank"` (as dev and
+  docker-compose already did), so 09004 shows "Bank unavailable" there too. Overridable with `-e`.
+- 09004 keeps the SBIN reference format as asked although the bank is Indian Overseas Bank (nothing validates the
+  prefix against the bank).
+- Test: `test_demo_video_records_survive_a_load_and_are_not_listed` (mock bank).
+- Verified on a fresh SHOWCASE_MODE=true DB through the API (institution creates, uploads both PDFs, submits; officer
+  claims and verifies): 09001 CONFIRMED, 09002 MISMATCH [amount], 09003 MISMATCH [maturity_date], 09004 UNAVAILABLE;
+  the PDF text cross-check read every PDF (FDR copy: reference, amount, issue and maturity dates all MATCH).
+  311 backend + 10 mock-bank + 7 shared pass; typecheck clean; `e2e/showcase.mjs` passes.
