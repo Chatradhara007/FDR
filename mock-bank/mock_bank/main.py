@@ -22,6 +22,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from .normalize import norm_amount, norm_bool, norm_date, norm_name, norm_ref
+from .video_records import VIDEO_RECORDS
 
 load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
 
@@ -90,8 +91,10 @@ class Store:
             return len(cleaned)
 
     def find(self, bank: str, ref: str) -> BankRecord | None:
+        """A loaded record, else one of the fixed demo-video records (video_records.py)."""
         with self.lock:
-            return next((r for r in self.records if r["bank"] == bank and norm_ref(r["reference_no"]) == ref), None)
+            records = [*self.records, *VIDEO]
+            return next((r for r in records if r["bank"] == bank and norm_ref(r["reference_no"]) == ref), None)
 
     def pending_left(self, bank: str, ref: str, delay: float) -> float:
         """Seconds the bank still needs (first call starts the timer); 0 when the answer is ready."""
@@ -115,6 +118,8 @@ def _clean(r: object) -> BankRecord:
         "status": "CLOSED" if r.get("status") == "CLOSED" else "LIVE",
     }
 
+
+VIDEO: list[BankRecord] = [_clean(r) for r in VIDEO_RECORDS]
 
 store = Store()
 store.reload()
