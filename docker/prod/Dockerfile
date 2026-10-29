@@ -35,7 +35,6 @@ ENV STATIC_DIR=/app/frontend-dist \
     MOCK_BANK_OFFLINE_BANKS="Indian Overseas Bank" \
     TZ=Asia/Kolkata \
     PORT=3000
-VOLUME ["/data"]
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s CMD python -c "import os,urllib.request;urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"PORT\",\"3000\")}/health',timeout=4)"
 CMD ["/app/start.sh"]
