@@ -97,6 +97,8 @@ def test_seeds_once_under_a_lock_and_never_again(monkeypatch: pytest.MonkeyPatch
 
     monkeypatch.setattr(server, "reset_and_seed", fake_seed)
     monkeypatch.setattr(server.demo_repo, "has_instruments", lambda _db: seeded.is_set())
+    monkeypatch.setattr(server, "_storage_missing", lambda: not seeded.is_set())
+    monkeypatch.setattr(server, "_bank_data_missing", lambda: not seeded.is_set())
     threads = [threading.Thread(target=server.seed_showcase_once) for _ in range(2)]
     for t in threads:
         t.start()
@@ -105,6 +107,48 @@ def test_seeds_once_under_a_lock_and_never_again(monkeypatch: pytest.MonkeyPatch
     assert calls == [1]
     server.seed_showcase_once()  # a later restart
     assert calls == [1]
+
+
+def _files_match_db() -> None:
+    from app.config import config
+    from app.db.pool import get_pool, many
+    from app.services import bank_client
+
+    db = get_pool()
+    docs = many(db, "SELECT storage_path FROM documents")
+    assert docs
+    assert all((config.storage_dir / d["storage_path"]).is_file() for d in docs)
+    from app.domain import clock
+    from app.seed.dataset import build
+    from app.seed.replay import bank_records
+
+    d0 = clock.real_today()
+    expected = bank_records(build(d0), d0)
+    assert expected
+    assert sorted(r["reference_no"] for r in bank_client.list_records()) == sorted(r["reference_no"] for r in expected)
+    assert len(many(db, "SELECT 1 FROM instruments")) == len(build(d0))
+
+
+def test_fresh_container_reseeds_db_files_and_bank(
+    monkeypatch: pytest.MonkeyPatch, bank_url: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    import os
+    import shutil
+
+    from app.config import config
+
+    monkeypatch.setenv("MOCK_BANK_URL", bank_url)
+    server.seed_showcase_once()  # empty database
+    assert "empty database; full reseed" in capsys.readouterr().out
+    _files_match_db()
+    server.seed_showcase_once()  # a restart with everything in place
+    assert "present; not seeding" in capsys.readouterr().out
+
+    shutil.rmtree(config.storage_dir)  # the container filesystem is wiped; Postgres keeps its rows
+    os.remove(os.environ["MOCK_BANK_DATA_FILE"])
+    server.seed_showcase_once()
+    assert "fresh container" in capsys.readouterr().out
+    _files_match_db()
 
 
 def test_showcase_wording_for_seeded_data(monkeypatch: pytest.MonkeyPatch) -> None:

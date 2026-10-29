@@ -1497,3 +1497,18 @@ Remaining hits, and why they stay:
   Persistence now comes only from the platform: a Railway volume / Render disk mounted at `/data`, and locally the
   named volume `appdata:/data` in `docker-compose.prod.yml` (unchanged). Without a mount, `/data` is ephemeral.
 - Added `railway.json` (Dockerfile builder, `docker/prod/Dockerfile`, healthcheck `/health`). Noted in `docs/DEPLOY.md`.
+
+## Render free tier: self-healing showcase startup
+
+- `seed_showcase_once` (`backend/app/server.py`) now also runs the full reseed (`reset_and_seed`: wipe data, reseed,
+  regenerate stored files and mock-bank records) when the database has instruments but the container is fresh: the
+  storage directory has no document folders, or the mock-bank data file (`MOCK_BANK_DATA_FILE`) is missing, unreadable
+  or holds no records (when that variable is unset, the bank's `GET /records` being empty or unreachable counts).
+  Same advisory lock (7002). One log line per startup, `showcase startup: <case>`.
+- The seed output is unchanged. The demo-video bank records 09001–09008 live in `mock_bank/video_records.py`, so they
+  are present after any reseed without touching the seed.
+- Tests: `test_fresh_container_reseeds_db_files_and_bank` (real seed; storage dir and bank file deleted; restart; every
+  document file exists and the bank holds exactly the seed's records); the lock test now stubs the file checks.
+- `docs/DEPLOY.md`: "Render free tier" section (data resets on container restart).
+- Verified: 312 backend + 10 mock-bank + 7 shared pass; typecheck clean; manual run of the three startup cases;
+  `e2e/showcase.mjs` passes against the built frontend served by the backend with SHOWCASE_MODE=true.
