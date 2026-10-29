@@ -52,6 +52,26 @@ The image already sets `STATIC_DIR`, `STORAGE_DIR=/data/storage`, `MOCK_BANK_URL
 6. Settings → Deploy → healthcheck path `/health`. Settings → Networking → Generate domain, then put that URL in
    `PUBLIC_BASE_URL` and `FRONTEND_ORIGIN` and redeploy.
 
+## 3c. Render free tier (no persistent disk)
+
+The free tier has no disk: the container filesystem (`/data/storage`, `/data/bank/records.json`) is wiped on every
+restart, redeploy and wake-up from sleep, while the Postgres database may keep its rows. With `SHOWCASE_MODE=true` the
+startup is self-healing:
+
+- **Fresh container** (storage directory has no document folders, or the mock-bank data file is missing or empty):
+  a full reseed runs — the database data is wiped, the instruments are reseeded, the stored PDFs and the mock-bank
+  records are regenerated — so database, files and bank always match.
+- **Empty database**: the same full seed.
+- **Files, bank data and deposits all present**: nothing happens.
+
+The seed takes the advisory lock, so two instances cannot reseed at once. The log shows one line saying which case
+ran, starting `showcase startup:`. The fixed demo-video bank records (SBIN/FDR/2026/09001–09008) are part of the mock
+bank's code, so they are always available after a reseed.
+
+**Data resets whenever the container restarts.** Anything lodged, verified or changed in the app (including the
+09001–09004 sample deposits once submitted, and any app-date change) is lost at the next restart or wake-up; the app
+comes back with the original sample dataset. Use a paid instance with a disk mounted at `/data` to keep changes.
+
 ## Local check of the production image
 
 ```
