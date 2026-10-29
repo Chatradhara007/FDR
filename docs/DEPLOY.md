@@ -47,7 +47,8 @@ The image already sets `STATIC_DIR`, `STORAGE_DIR=/data/storage`, `MOCK_BANK_URL
 2. Add a **PostgreSQL** service; in the app service set `DATABASE_URL=${{Postgres.DATABASE_URL}}`.
 3. Set variable `RAILWAY_DOCKERFILE_PATH=docker/prod/Dockerfile` (builder: Dockerfile).
 4. Add the other variables from step 2. Railway injects `PORT`.
-5. Add a **Volume** mounted at `/data`.
+5. Add a **Volume** mounted at `/data`. (The Dockerfile has no `VOLUME` instruction because Railway rejects one; the
+   platform volume, Render disk or compose's `appdata:/data` mount provides persistence instead.)
 6. Settings → Deploy → healthcheck path `/health`. Settings → Networking → Generate domain, then put that URL in
    `PUBLIC_BASE_URL` and `FRONTEND_ORIGIN` and redeploy.
 

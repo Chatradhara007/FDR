@@ -1490,3 +1490,10 @@ Remaining hits, and why they stay:
   PDFs (24,00,000) for 09002 and 09006 to resubmit after the officer returns them. Verified on a fresh showcase DB:
   09005 CONFIRMED, 09006 MISMATCH [amount], 09007 MISMATCH [maturity_date], 09008 UNAVAILABLE; 09006 returned,
   amount corrected, documents replaced, resubmitted, re-verified: CONFIRMED.
+
+## Railway deploy: no VOLUME in the production Dockerfile
+
+- Removed `VOLUME ["/data"]` from `docker/prod/Dockerfile`: Railway refuses Dockerfiles with a `VOLUME` instruction.
+  Persistence now comes only from the platform: a Railway volume / Render disk mounted at `/data`, and locally the
+  named volume `appdata:/data` in `docker-compose.prod.yml` (unchanged). Without a mount, `/data` is ephemeral.
+- Added `railway.json` (Dockerfile builder, `docker/prod/Dockerfile`, healthcheck `/health`). Noted in `docs/DEPLOY.md`.
